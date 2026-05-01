@@ -40,7 +40,8 @@ export default function FilterTabs({ activeCategory, currentParams }: FilterTabs
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const entries = Object.entries(CATEGORY_LABELS) as [ProductCategory, typeof CATEGORY_LABELS[ProductCategory]][]
+  const entries = (Object.entries(CATEGORY_LABELS) as [ProductCategory, typeof CATEGORY_LABELS[ProductCategory]][])
+    .filter((e): e is [ProductCategory, NonNullable<typeof CATEGORY_LABELS[ProductCategory]>] => e[1] != null)
   const scrollToProducts = () => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })
 
   return (
