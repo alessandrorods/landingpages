@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Product, BADGE_CONFIG, CATEGORY_GRADIENT, CATEGORY_LABELS } from '@/constants/products'
+import { trackViewItem } from '@/lib/analytics'
 import BuyButton from './BuyButton'
 
 function formatPrice(n: number) {
@@ -19,8 +20,8 @@ interface ProductModalProps {
 }
 
 export default function ProductModal({ product, onClose }: ProductModalProps) {
-  const gradient = CATEGORY_GRADIENT[product.category]
-  const { emoji, label } = CATEGORY_LABELS[product.category]
+  const gradient = CATEGORY_GRADIENT[product.category] ?? 'from-gray-100 to-gray-200'
+  const { emoji, label } = CATEGORY_LABELS[product.category] ?? { emoji: '🎁', label: product.category }
   const lowStock = product.stockCount !== undefined && product.stockCount <= 10
 
   const allImages = [product.image, ...(product.images ?? [])].filter(Boolean)
@@ -48,6 +49,10 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
   }, [])
 
   useEffect(() => { dialogRef.current?.focus() }, [])
+
+  useEffect(() => {
+    trackViewItem({ item_id: product.sku, item_name: product.name, item_category: product.category, price: product.price })
+  }, [product.sku, product.name, product.category, product.price])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">

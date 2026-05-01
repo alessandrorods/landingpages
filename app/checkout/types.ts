@@ -28,3 +28,9 @@ export interface FormData {
 }
 
 export type CepStatus = 'idle' | 'loading' | 'ok' | 'fora-area' | 'invalido'
+
+export interface ViaCEPResult {
+  logradouro: string
+  bairro: string
+  erro?: boolean
+}

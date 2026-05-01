@@ -1,38 +1,6 @@
 import { PRODUCTS } from '@/constants/products'
 import { CAMPANHA_ECOMMERCE, CAMPANHA_MARCADOR, FRETE_VALOR, FRETE_POR_CONTA, PERIODOS_ENTREGA } from '@/constants/pedido'
-
-interface PedidoBody {
-  sku: string
-  endereco: {
-    cep: string
-    logradouro: string
-    numero: string
-    complemento?: string
-    bairro: string
-    dataEntrega: string
-    periodoEntrega: string
-  }
-  destinatario: {
-    paraOutraPessoa: boolean
-    nome: string
-    telefone: string
-    mensagemCartao?: string
-  }
-  comprador: {
-    nome: string
-    telefone: string
-  }
-}
-
-interface TinyResponse {
-  retorno?: {
-    status?: string
-    erros?: Array<{ erro: string }>
-    registros?: {
-      registro?: { id: number; numero: string; status?: string }
-    }
-  }
-}
+import type { PedidoBody, TinyResponse } from './route.types'
 
 export async function POST(request: Request) {
   const token = process.env.TINY_TOKEN

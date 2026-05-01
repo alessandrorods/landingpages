@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { FaStar } from 'react-icons/fa'
 import { Product, BADGE_CONFIG, CATEGORY_GRADIENT, CATEGORY_LABELS } from '@/constants/products'
 import BuyButton from './BuyButton'
 import ProductModal from './ProductModal'
@@ -17,8 +18,8 @@ function discountPct(original: number, current: number) {
 // ─── Regular card ─────────────────────────────────────────────────────────────
 
 export default function ProductCard({ product }: { product: Product }) {
-  const gradient = CATEGORY_GRADIENT[product.category]
-  const { emoji } = CATEGORY_LABELS[product.category]
+  const gradient = CATEGORY_GRADIENT[product.category] ?? 'from-gray-100 to-gray-200'
+  const { emoji } = CATEGORY_LABELS[product.category] ?? { emoji: '🎁' }
   const lowStock = product.stockCount !== undefined && product.stockCount <= 10
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -32,7 +33,7 @@ export default function ProductCard({ product }: { product: Product }) {
           type="button"
           onClick={() => setModalOpen(true)}
           aria-label={`Ver detalhes de ${product.name}`}
-          className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1E7439]"
+          className="absolute inset-0 z-10 rounded-2xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1E7439]"
         />
 
         {/* Image */}
@@ -117,8 +118,8 @@ export default function ProductCard({ product }: { product: Product }) {
 // ─── Highlight card ───────────────────────────────────────────────────────────
 
 export function HighlightProductCard({ product }: { product: Product }) {
-  const gradient = CATEGORY_GRADIENT[product.category]
-  const { emoji } = CATEGORY_LABELS[product.category]
+  const gradient = CATEGORY_GRADIENT[product.category] ?? 'from-gray-100 to-gray-200'
+  const { emoji } = CATEGORY_LABELS[product.category] ?? { emoji: '🎁' }
   const [modalOpen, setModalOpen] = useState(false)
 
   return (
@@ -148,13 +149,13 @@ export function HighlightProductCard({ product }: { product: Product }) {
           type="button"
           onClick={() => setModalOpen(true)}
           aria-label={`Ver detalhes de ${product.name}`}
-          className="absolute inset-0 z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+          className="absolute inset-0 z-10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
         />
 
         {/* Badges — top left */}
         <div className="absolute top-3 left-3 z-20 flex flex-col gap-1">
-          <span className="bg-[#1E7439] text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
-            ⭐ Destaque
+          <span className="bg-[#1E7439] text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow inline-flex items-center gap-1">
+            <FaStar className="text-yellow-300" /> Destaque
           </span>
           {product.badges.slice(0, 1).map((badge) => (
             <span key={badge} className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${BADGE_CONFIG[badge].className}`}>

@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   },
   description: 'Flores frescas, plantas e presentes especiais com entrega garantida.',
   robots: { index: true, follow: true },
+  icons: { icon: '/favicon.png' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

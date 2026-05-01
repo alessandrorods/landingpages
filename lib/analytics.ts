@@ -40,6 +40,20 @@ export function trackViewItemList(items: AnalyticsItem[]) {
   })
 }
 
+export function trackViewItem(item: AnalyticsItem) {
+  gtag('event', 'view_item', {
+    currency: 'BRL',
+    value: item.price,
+    items: [{ ...item, quantity: item.quantity ?? 1 }],
+  })
+  fbq('track', 'ViewContent', {
+    content_ids: [item.item_id],
+    content_type: 'product',
+    value: item.price,
+    currency: 'BRL',
+  })
+}
+
 export function trackAddToCart(item: AnalyticsItem) {
   gtag('event', 'add_to_cart', {
     currency: 'BRL',

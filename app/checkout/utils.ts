@@ -1,4 +1,4 @@
-import type { FormData } from './types'
+import type { FormData, ViaCEPResult } from './types'
 
 export const STORAGE_KEY = 'checkout_v1'
 
@@ -24,12 +24,6 @@ export function maskPhone(raw: string): string {
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
-}
-
-export interface ViaCEPResult {
-  logradouro: string
-  bairro: string
-  erro?: boolean
 }
 
 export async function fetchViaCEP(digits: string): Promise<ViaCEPResult | null> {

@@ -11,12 +11,12 @@ import type { AnalyticsItem } from '@/lib/analytics'
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mundoplanta.com.br'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://floramundoplanta.com.br'
 const PAGE_URL = `${SITE_URL}/dia-das-maes`
 const OG_IMAGE = `${SITE_URL}/og/dia-das-maes.jpg`
 
 export const metadata: Metadata = {
-  title: 'Especial Dia das Mães 2026 — Flores, Plantas e Presentes',
+  title: 'Especial Dia das Mães 2026 - Mundo Planta Flores e Presentes',
   description:
     'Surpreenda sua mãe com flores frescas, plantas especiais e presentes únicos. Entrega garantida até 10/05. Compre agora!',
   keywords: [
@@ -27,14 +27,14 @@ export const metadata: Metadata = {
     'orquídea presente',
     'cesta dia das mães',
     'plantas ornamentais',
-    'flores bh',
+    'floricultura em mogi das cruzes',
     'entrega flores',
   ],
   alternates: {
     canonical: PAGE_URL,
   },
   openGraph: {
-    title: 'Especial Dia das Mães 2026 | Mundo Planta',
+    title: 'Especial Dia das Mães - Mundo Planta Flores e Presentes',
     description:
       'Flores frescas e presentes com entrega garantida para o Dia das Mães. Surpreenda quem você ama! 🌸',
     url: PAGE_URL,
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
         url: OG_IMAGE,
         width: 1200,
         height: 630,
-        alt: 'Especial Dia das Mães 2026 — Mundo Planta Flores e Presentes',
+        alt: 'Especial Dia das Mães 2026 - Mundo Planta Flores e Presentes',
       },
     ],
   },

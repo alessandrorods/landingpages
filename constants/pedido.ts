@@ -3,19 +3,8 @@ export const CAMPANHA_MARCADOR = 'Campanha-Maes2026'
 export const FRETE_VALOR = 15.00
 export const FRETE_POR_CONTA = 'D'
 
-export interface DataEntrega {
-  valor: string         // dd/mm/yyyy — enviado ao Tiny como data_prevista
-  dia: number
-  diaSemana: string     // "Sex", "Sáb"…
-  destaque?: boolean
-  labelDestaque?: string
-}
-
-export interface PeriodoEntrega {
-  id: string
-  label: string
-  idOlist: string
-}
+export type { DataEntrega, PeriodoEntrega } from './pedido.types'
+import type { DataEntrega, PeriodoEntrega } from './pedido.types'
 
 export const DATAS_ENTREGA: DataEntrega[] = [
   { valor: '29/04/2026', dia: 29,  diaSemana: 'Ontem' },

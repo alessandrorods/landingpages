@@ -1,18 +1,7 @@
-export type ProductBadge =
-  | 'mais-vendido'
-  | 'poucas-unidades'
-  | 'exclusivo'
-  | 'novidade'
-  | 'oferta'
+export type { ProductBadge, ProductCategory, Product } from './products.types'
+import type { ProductBadge, Product } from './products.types'
 
-export type ProductCategory = 'flores' | 'plantas' | 'cestas' | 'presentes'
-
-export const CATEGORY_LABELS: Record<ProductCategory, { label: string; emoji: string }> = {
-  flores:    { label: 'Buquês de Flores',    emoji: '🌹' },
-  plantas:   { label: 'Plantas',   emoji: '🌿' },
-  cestas:    { label: 'Cestas',    emoji: '🎁' },
-  presentes: { label: 'Presentes', emoji: '✨' },
-}
+export { CATEGORY_LABELS, CATEGORY_GRADIENT, FILTER_ALL } from './categories'
 
 export const BADGE_CONFIG: Record<ProductBadge, { label: string; className: string }> = {
   'mais-vendido':    { label: '🏆 Mais Vendido',    className: 'bg-amber-500 text-white' },
@@ -20,37 +9,6 @@ export const BADGE_CONFIG: Record<ProductBadge, { label: string; className: stri
   'exclusivo':       { label: '⭐ Exclusivo',        className: 'bg-purple-600 text-white' },
   'novidade':        { label: '✨ Novidade',         className: 'bg-blue-500 text-white' },
   'oferta':          { label: '🏷️ Oferta',           className: 'bg-orange-500 text-white' },
-}
-
-export const CATEGORY_GRADIENT: Record<ProductCategory, string> = {
-  flores:    'from-rose-100 via-pink-100 to-rose-200',
-  plantas:   'from-green-100 via-emerald-100 to-green-200',
-  cestas:    'from-amber-100 via-yellow-100 to-amber-200',
-  presentes: 'from-purple-100 via-violet-100 to-purple-200',
-}
-
-export interface Product {
-  id: string
-  sku: string
-  name: string
-  shortDescription: string
-  /** Descrição completa exibida no modal de detalhes */
-  description?: string
-  price: number
-  originalPrice?: number
-  /**
-   * Imagem principal. Deixe como string vazia para exibir o placeholder da categoria.
-   */
-  image: string
-  /** Imagens adicionais exibidas na galeria do modal */
-  images?: string[]
-  category: ProductCategory
-  badges: ProductBadge[]
-  /** Marca o produto como destaque da categoria — exibido em card maior */
-  isHighlight: boolean
-  inStock: boolean
-  /** Exibe contagem de estoque quando baixo — reforça urgência */
-  stockCount?: number
 }
 
 export const PRODUCTS: Product[] = [
@@ -88,15 +46,84 @@ export const PRODUCTS: Product[] = [
     stockCount: 15,
   },
   {
-    id: 'fl-003',
-    sku: 'MP-FL-003',
-    name: 'Arranjo Misto Primavera',
+    id: 'BQ17',
+    sku: 'BQ17',
+    name: 'Buquê Mix de Flores',
     shortDescription: 'Mix colorido de flores da estação em vaso decorativo',
     description:
       'Explosão de cores e alegria! Este arranjo reúne as flores mais vibrantes da estação — lírios, rosas, margaridas e folhagens tropicais — em um vaso decorativo de cerâmica que pode ser reutilizado. Um presente que embeleza a casa e fica na memória muito depois que as flores secarem.',
-    price: 119.90,
-    originalPrice: 139.90,
-    image: '',
+    price: 154.90,
+    originalPrice: 159.90,
+    image: 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/054b3042f7.jpg',
+    images: ['https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/7eec8f144b.jpg', 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/d9b6a83933.jpg'],
+    category: 'flores',
+    badges: ['oferta'],
+    isHighlight: false,
+    inStock: true,
+    stockCount: 12,
+  },
+  {
+    id: 'BQ18',
+    sku: 'BQ18',
+    name: 'Buquê Mix de Flores',
+    shortDescription: 'Mix colorido de flores da estação em vaso decorativo',
+    description:
+      'Explosão de cores e alegria! Este arranjo reúne as flores mais vibrantes da estação — lírios, rosas, margaridas e folhagens tropicais — em um vaso decorativo de cerâmica que pode ser reutilizado. Um presente que embeleza a casa e fica na memória muito depois que as flores secarem.',
+    price: 154.90,
+    originalPrice: 159.90,
+    image: 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/054b3042f7.jpg',
+    images: ['https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/7eec8f144b.jpg', 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/d9b6a83933.jpg'],
+    category: 'flores',
+    badges: ['oferta'],
+    isHighlight: false,
+    inStock: true,
+    stockCount: 12,
+  },
+  {
+    id: 'BQ19',
+    sku: 'BQ19',
+    name: 'Buquê Mix de Flores',
+    shortDescription: 'Mix colorido de flores da estação em vaso decorativo',
+    description:
+      'Explosão de cores e alegria! Este arranjo reúne as flores mais vibrantes da estação — lírios, rosas, margaridas e folhagens tropicais — em um vaso decorativo de cerâmica que pode ser reutilizado. Um presente que embeleza a casa e fica na memória muito depois que as flores secarem.',
+    price: 154.90,
+    originalPrice: 159.90,
+    image: 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/054b3042f7.jpg',
+    images: ['https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/7eec8f144b.jpg', 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/d9b6a83933.jpg'],
+    category: 'flores',
+    badges: ['oferta'],
+    isHighlight: false,
+    inStock: true,
+    stockCount: 12,
+  },
+  {
+    id: 'BQ20',
+    sku: 'BQ20',
+    name: 'Buquê Mix de Flores',
+    shortDescription: 'Mix colorido de flores da estação em vaso decorativo',
+    description:
+      'Explosão de cores e alegria! Este arranjo reúne as flores mais vibrantes da estação — lírios, rosas, margaridas e folhagens tropicais — em um vaso decorativo de cerâmica que pode ser reutilizado. Um presente que embeleza a casa e fica na memória muito depois que as flores secarem.',
+    price: 154.90,
+    originalPrice: 159.90,
+    image: 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/054b3042f7.jpg',
+    images: ['https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/7eec8f144b.jpg', 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/d9b6a83933.jpg'],
+    category: 'flores',
+    badges: ['oferta'],
+    isHighlight: false,
+    inStock: true,
+    stockCount: 12,
+  },
+  {
+    id: 'BQ21',
+    sku: 'BQ21',
+    name: 'Buquê Mix de Flores',
+    shortDescription: 'Mix colorido de flores da estação em vaso decorativo',
+    description:
+      'Explosão de cores e alegria! Este arranjo reúne as flores mais vibrantes da estação — lírios, rosas, margaridas e folhagens tropicais — em um vaso decorativo de cerâmica que pode ser reutilizado. Um presente que embeleza a casa e fica na memória muito depois que as flores secarem.',
+    price: 154.90,
+    originalPrice: 159.90,
+    image: 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/054b3042f7.jpg',
+    images: ['https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/7eec8f144b.jpg', 'https://cdn.awsli.com.br/600x700/399/399569/produto/138905825/d9b6a83933.jpg'],
     category: 'flores',
     badges: ['oferta'],
     isHighlight: false,
@@ -152,15 +179,16 @@ export const PRODUCTS: Product[] = [
 
   // ── CESTAS ────────────────────────────────────────────────────────────────
   {
-    id: 'cs-001',
-    sku: 'MP-CS-001',
-    name: 'Cesta Especial Dia das Mães',
+    id: 'B13',
+    sku: 'B13',
+    name: 'Baú Flor e Sabor - Café da Manhã com Amor para Mães Inesquecíveis',
     shortDescription: 'Rosas + chocolates finos + vinho rosé + cartão personalizado',
     description:
       'A cesta mais completa e apaixonante da coleção. Reúne um buquê de rosas frescas, chocolates finos belgas, uma garrafa de vinho rosé selecionado, sachês perfumados e cartão personalizado com a sua mensagem de amor. Tudo embalado com fita e papel de seda em cesta vime artesanal. Um presente que diz tudo sem precisar de palavras.',
-    price: 289.90,
-    originalPrice: 340.00,
-    image: '',
+    price: 189.90,
+    originalPrice: 199.00,
+    image: 'https://cdn.awsli.com.br/600x700/399/399569/produto/346751358/kit-2-26nxtaxr1n.png',
+    images: ['https://cdn.awsli.com.br/600x700/399/399569/produto/346751358/kit-2--1--41zfy7vsaf.png', 'https://cdn.awsli.com.br/600x700/399/399569/produto/346751358/kit-2-j68b6dwa9a.png'],
     category: 'cestas',
     badges: ['mais-vendido', 'poucas-unidades'],
     isHighlight: true,

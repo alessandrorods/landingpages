@@ -1,7 +1,6 @@
-interface FaixaCep {
-  min: number
-  max: number
-}
+import type { FaixaCep } from './cep.types'
+
+export type { FaixaCep } from './cep.types'
 
 export const FAIXAS_CEP_ATENDIDAS: FaixaCep[] = [
   { min: 8700000, max: 8899999 }, // Mogi das Cruzes / SP
