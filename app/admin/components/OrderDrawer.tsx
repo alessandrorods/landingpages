@@ -6,6 +6,8 @@ interface Props {
   pedido: TinyPedidoCompleto
   onClose: () => void
   action?: React.ReactNode
+  hideBuyer?: boolean
+  hidePrices?: boolean
 }
 
 function fmt(phone: string) {
@@ -35,7 +37,7 @@ function Divider() {
   return <div className="border-t border-gray-100" />
 }
 
-export default function OrderDrawer({ pedido: p, onClose, action }: Props) {
+export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hidePrices }: Props) {
   const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
   const destinatario = endereco?.nome_destinatario
   const mesmaPessoa = !destinatario || destinatario === p.cliente?.nome
@@ -86,46 +88,50 @@ export default function OrderDrawer({ pedido: p, onClose, action }: Props) {
           <Divider />
 
           {/* ── Comprador ── */}
-          <Section label="Comprador">
-            <p className="font-semibold text-gray-900 mb-1">{p.cliente?.nome}</p>
+          {!hideBuyer && (
+            <>
+              <Section label="Comprador">
+                <p className="font-semibold text-gray-900 mb-1">{p.cliente?.nome}</p>
 
-            {(telefoneComprador || celularComprador) && (
-              <div className="space-y-2">
-                {telefoneComprador && (
-                  <div className="flex gap-2">
-                    <a
-                      href={`https://wa.me/55${telefoneComprador}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 text-center text-sm font-semibold bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl transition-colors"
-                    >
-                      WhatsApp
-                    </a>
-                    <a
-                      href={`tel:${telefoneComprador}`}
-                      className="flex-1 text-center text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded-xl transition-colors"
-                    >
-                      {p.cliente?.fone}
-                    </a>
+                {(telefoneComprador || celularComprador) && (
+                  <div className="space-y-2">
+                    {telefoneComprador && (
+                      <div className="flex gap-2">
+                        <a
+                          href={`https://wa.me/55${telefoneComprador}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-center text-sm font-semibold bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl transition-colors"
+                        >
+                          WhatsApp
+                        </a>
+                        <a
+                          href={`tel:${telefoneComprador}`}
+                          className="flex-1 text-center text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded-xl transition-colors"
+                        >
+                          {p.cliente?.fone}
+                        </a>
+                      </div>
+                    )}
+                    {celularComprador && celularComprador !== telefoneComprador && (
+                      <a
+                        href={`tel:${celularComprador}`}
+                        className="block text-center text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded-xl transition-colors"
+                      >
+                        Celular: {p.cliente?.celular}
+                      </a>
+                    )}
                   </div>
                 )}
-                {celularComprador && celularComprador !== telefoneComprador && (
-                  <a
-                    href={`tel:${celularComprador}`}
-                    className="block text-center text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded-xl transition-colors"
-                  >
-                    Celular: {p.cliente?.celular}
-                  </a>
+
+                {p.cliente?.email && (
+                  <p className="text-xs text-gray-400 mt-2">{p.cliente.email}</p>
                 )}
-              </div>
-            )}
+              </Section>
 
-            {p.cliente?.email && (
-              <p className="text-xs text-gray-400 mt-2">{p.cliente.email}</p>
-            )}
-          </Section>
-
-          <Divider />
+              <Divider />
+            </>
+          )}
 
           {/* ── Destinatário ── */}
           <Section label="Destinatário">
@@ -178,9 +184,11 @@ export default function OrderDrawer({ pedido: p, onClose, action }: Props) {
                         {i.item.codigo ? `SKU ${i.item.codigo} · ` : ''}
                         {i.item.quantidade} {i.item.unidade ?? 'un'}
                       </span>
-                      <span className="text-sm font-medium text-gray-700">
-                        R$ {i.item.valor_total ?? i.item.valor_unitario}
-                      </span>
+                      {!hidePrices && (
+                        <span className="text-sm font-medium text-gray-700">
+                          R$ {i.item.valor_total ?? i.item.valor_unitario}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -203,17 +211,19 @@ export default function OrderDrawer({ pedido: p, onClose, action }: Props) {
           <Divider />
 
           {/* ── Financeiro ── */}
-          <Section label="Financeiro">
-            <div className="bg-gray-50 rounded-xl px-3 py-1">
-              {p.valor_frete && <Row label="Frete" value={`R$ ${p.valor_frete}`} />}
-              {p.valor_total && (
-                <div className="flex justify-between gap-4 pt-2 mt-1 border-t border-gray-200">
-                  <span className="text-sm font-semibold text-gray-700">Total</span>
-                  <span className="text-base font-bold text-gray-900">R$ {p.valor_total}</span>
-                </div>
-              )}
-            </div>
-          </Section>
+          {!hidePrices && (
+            <Section label="Financeiro">
+              <div className="bg-gray-50 rounded-xl px-3 py-1">
+                {p.valor_frete && <Row label="Frete" value={`R$ ${p.valor_frete}`} />}
+                {p.valor_total && (
+                  <div className="flex justify-between gap-4 pt-2 mt-1 border-t border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">Total</span>
+                    <span className="text-base font-bold text-gray-900">R$ {p.valor_total}</span>
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
 
           {/* ── Ação ── */}
           {action && (

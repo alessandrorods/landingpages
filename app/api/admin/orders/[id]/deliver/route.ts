@@ -4,10 +4,31 @@ import { createOlistClient } from '@/lib/olist/client'
 function fmtDate(d: Date): string {
   const dd = String(d.getDate()).padStart(2, '0')
   const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const yyyy = d.getFullYear()
   const hh = String(d.getHours()).padStart(2, '0')
   const min = String(d.getMinutes()).padStart(2, '0')
-  return `${dd}/${mm}/${yyyy} ${hh}:${min}`
+  return `${dd}/${mm} ${hh}:${min}`
+}
+
+const DIVISOR = '\n---\n'
+
+function buildObs(existing: string | undefined, ourSection: string): string {
+  const MAX = 100
+  const sepAndSection = `${DIVISOR}${ourSection}`
+
+  const sepIdx = existing?.indexOf(DIVISOR) ?? -1
+  const original = existing
+    ? (sepIdx !== -1 ? existing.slice(0, sepIdx) : existing).trimEnd()
+    : ''
+
+  if (!original) return sepAndSection.slice(0, MAX)
+
+  const full = `${original}${sepAndSection}`
+  if (full.length <= MAX) return full
+
+  const slack = MAX - sepAndSection.length
+  return slack > 0
+    ? `${original.slice(0, slack)}${sepAndSection}`
+    : sepAndSection.slice(0, MAX)
 }
 
 export async function POST(
@@ -15,6 +36,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
+  const tag = `[deliver] id=${id}`
 
   let body: { recebidoPor?: string; motoboy?: string }
   try {
@@ -29,28 +51,39 @@ export async function POST(
   }
 
   const token = process.env.TINY_TOKEN
-  if (!token) return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
-
-  const client = createOlistClient(token)
-  const now = fmtDate(new Date())
-
-  // "Entregue 10/05/2026 14:35. MB: João. Recebeu: Maria" — max 100 chars
-  const obs = `Entregue ${now}. MB: ${motoboy.trim()}. Recebeu: ${recebidoPor.trim()}`.slice(0, 100)
-
-  const [alterarRes, situacaoRes] = await Promise.all([
-    client.alterarPedido(Number(id), { obs }),
-    client.atualizarSituacaoPedido(Number(id), 'entregue'),
-  ])
-
-  if (alterarRes.retorno?.status !== 'OK') {
-    const erros = (alterarRes.retorno?.erros ?? []).map((e) => e.erro).join('; ')
-    return NextResponse.json({ error: erros || 'Erro ao registrar entrega' }, { status: 422 })
+  if (!token) {
+    console.error(tag, 'TINY_TOKEN não configurado')
+    return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
   }
 
-  if (situacaoRes.retorno?.status !== 'OK') {
-    const erros = (situacaoRes.retorno?.erros ?? []).map((e) => e.erro).join('; ')
-    return NextResponse.json({ error: erros || 'Erro ao atualizar situação' }, { status: 422 })
-  }
+  try {
+    const client = createOlistClient(token)
 
-  return NextResponse.json({ ok: true })
+    const detalhe = await client.obterPedido(Number(id))
+    const obsAtual = detalhe.retorno?.pedido?.obs
+
+    const ourSection = `Entregue: ${fmtDate(new Date())}\nMotoboy: ${motoboy.trim()}\nRecebido por: ${recebidoPor.trim()}`
+    const obs = buildObs(obsAtual, ourSection)
+
+    const [alterarRes, situacaoRes] = await Promise.all([
+      client.alterarPedido(Number(id), { obs }),
+      client.atualizarSituacaoPedido(Number(id), 'entregue'),
+    ])
+
+    if (alterarRes.retorno?.status !== 'OK') {
+      console.error(tag, 'alterarPedido (obs) falhou — não crítico', alterarRes.retorno)
+    }
+
+    if (situacaoRes.retorno?.status !== 'OK') {
+      const erros = (situacaoRes.retorno?.erros ?? []).map((e) => e.erro).join('; ')
+      console.error(tag, 'atualizarSituacao falhou', situacaoRes.retorno)
+      return NextResponse.json({ error: erros || 'Erro ao atualizar situação' }, { status: 422 })
+    }
+
+    console.log(tag, 'entrega registrada', { motoboy, recebidoPor, obs, obsGravada: alterarRes.retorno?.status === 'OK' })
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error(tag, 'erro inesperado', err)
+    return NextResponse.json({ error: 'Erro interno ao registrar entrega' }, { status: 500 })
+  }
 }

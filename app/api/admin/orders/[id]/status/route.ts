@@ -25,16 +25,28 @@ export async function PATCH(
     return NextResponse.json({ error: 'situacao inválida' }, { status: 400 })
   }
 
+  const tag = `[status] id=${id} situacao=${situacao}`
+
   const token = process.env.TINY_TOKEN
-  if (!token) return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
-
-  const client = createOlistClient(token)
-  const data = await client.atualizarSituacaoPedido(Number(id), situacao as SituacaoPedido)
-
-  if (data.retorno?.status !== 'OK') {
-    const erros = (data.retorno?.erros ?? []).map((e) => e.erro).join('; ')
-    return NextResponse.json({ error: erros || 'Erro ao atualizar' }, { status: 422 })
+  if (!token) {
+    console.error(tag, 'TINY_TOKEN não configurado')
+    return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true })
+  try {
+    const client = createOlistClient(token)
+    const data = await client.atualizarSituacaoPedido(Number(id), situacao as SituacaoPedido)
+
+    if (data.retorno?.status !== 'OK') {
+      const erros = (data.retorno?.erros ?? []).map((e) => e.erro).join('; ')
+      console.error(tag, 'atualizarSituacao falhou', data.retorno)
+      return NextResponse.json({ error: erros || 'Erro ao atualizar' }, { status: 422 })
+    }
+
+    console.log(tag, 'status atualizado com sucesso')
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error(tag, 'erro inesperado', err)
+    return NextResponse.json({ error: 'Erro interno ao atualizar status' }, { status: 500 })
+  }
 }

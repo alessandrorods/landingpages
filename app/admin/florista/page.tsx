@@ -62,7 +62,7 @@ function MontadoAction({
       const res = await fetch(`/api/admin/orders/${p.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ situacao: 'preparando_envio' }),
+        body: JSON.stringify({ situacao: 'pronto_envio' }),
       })
       if (!res.ok) {
         const d = await res.json()

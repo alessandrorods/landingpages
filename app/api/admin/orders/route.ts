@@ -33,32 +33,58 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'situacao inválida' }, { status: 400 })
   }
 
+  const tag = `[orders] situacao=${situacao}`
+
   const token = process.env.TINY_TOKEN
-  if (!token) return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
-
-  const client = createOlistClient(token)
-
-  const listData = await client.buscarPedidos(situacao, dataInicial30d())
-
-  // codigo_erro 20 = sem registros — não é erro real
-  if (listData.retorno?.status !== 'OK') {
-    return NextResponse.json({ pedidos: [] })
+  if (!token) {
+    console.error(tag, 'TINY_TOKEN não configurado')
+    return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
   }
 
-  const resumos = (listData.retorno?.pedidos ?? []).map((p) => p.pedido)
-  if (resumos.length === 0) return NextResponse.json({ pedidos: [] })
+  try {
+    const client = createOlistClient(token)
 
-  const tasks = resumos.map((r) => async (): Promise<TinyPedidoCompleto | null> => {
-    try {
-      const detail = await client.obterPedido(r.id)
-      return detail.retorno?.status === 'OK' ? (detail.retorno.pedido ?? null) : null
-    } catch {
-      return null
+    const listData = await client.buscarPedidos(situacao, dataInicial30d())
+
+    // codigo_erro 20 = sem registros — não é erro real
+    if (listData.retorno?.status !== 'OK') {
+      if (listData.retorno?.codigo_erro === 20) {
+        return NextResponse.json({ pedidos: [] })
+      }
+      console.error(tag, 'buscarPedidos falhou', listData.retorno)
+      return NextResponse.json({ pedidos: [] })
     }
-  })
 
-  const detalhes = await withConcurrency(tasks, 8)
-  const pedidos = detalhes.filter(Boolean) as TinyPedidoCompleto[]
+    const resumos = (listData.retorno?.pedidos ?? []).map((p) => p.pedido)
+    if (resumos.length === 0) return NextResponse.json({ pedidos: [] })
 
-  return NextResponse.json({ pedidos })
+    let falhas = 0
+    const tasks = resumos.map((r) => async (): Promise<TinyPedidoCompleto | null> => {
+      try {
+        const detail = await client.obterPedido(r.id)
+        if (detail.retorno?.status !== 'OK') {
+          console.error(tag, `obterPedido falhou para id=${r.id}`, detail.retorno)
+          falhas++
+          return null
+        }
+        return detail.retorno.pedido ?? null
+      } catch (err) {
+        console.error(tag, `erro ao obter pedido id=${r.id}`, err)
+        falhas++
+        return null
+      }
+    })
+
+    const detalhes = await withConcurrency(tasks, 3)
+    const pedidos = detalhes.filter(Boolean) as TinyPedidoCompleto[]
+
+    if (falhas > 0) {
+      console.error(tag, `${falhas}/${resumos.length} pedidos falharam ao obter detalhes`)
+    }
+
+    return NextResponse.json({ pedidos })
+  } catch (err) {
+    console.error(tag, 'erro inesperado', err)
+    return NextResponse.json({ error: 'Erro interno ao listar pedidos' }, { status: 500 })
+  }
 }

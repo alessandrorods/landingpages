@@ -111,6 +111,7 @@ export interface TinyPedidoCompleto {
   situacao: string
   data_pedido?: string
   data_prevista?: string
+  obs?: string
   obs_internas?: string
   forma_frete?: string
   valor_frete?: string

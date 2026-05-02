@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const headers = new Headers(request.headers)
-  headers.set('x-duque-role', role)
+  headers.set('x-admin-role', role)
   return NextResponse.next({ request: { headers } })
 }
 

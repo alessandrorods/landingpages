@@ -5,7 +5,7 @@ import type { Role } from '@/lib/admin/auth'
 export const metadata = { title: 'Operacional | Mundo Planta', robots: { index: false } }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const role = (await headers()).get('x-duque-role') as Role | null
+  const role = (await headers()).get('x-admin-role') as Role | null
 
   return (
     <div className="min-h-screen bg-gray-50">

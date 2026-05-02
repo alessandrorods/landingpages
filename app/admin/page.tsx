@@ -11,7 +11,7 @@ const AREAS = [
 ]
 
 export default async function AdminPage() {
-  const role = (await headers()).get('x-duque-role') as Role | null
+  const role = (await headers()).get('x-admin-role') as Role | null
 
   if (role && role !== 'admin') {
     redirect(`/admin/${role}`)

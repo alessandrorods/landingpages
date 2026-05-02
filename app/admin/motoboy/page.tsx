@@ -7,7 +7,7 @@ import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 
-const STORAGE_KEY = 'duque_motoboy_nome'
+const STORAGE_KEY = 'motoboy_nome'
 
 // ── Nome setup ────────────────────────────────────────────────────────────────
 
@@ -46,6 +46,74 @@ function NomeSetup({ onSalvar }: { onSalvar: (nome: string) => void }) {
           Continuar
         </button>
       </form>
+    </div>
+  )
+}
+
+// ── Coletar pedido ────────────────────────────────────────────────────────────
+
+function ColetarPedido({ motoboy }: { motoboy: string }) {
+  const [numero, setNumero] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState<string | null>(null)
+  const [err, setErr] = useState('')
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    const n = numero.trim()
+    if (!n) return
+    setLoading(true)
+    setErr('')
+    setDone(null)
+    try {
+      const res = await fetch('/api/admin/orders/collect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numero: n, motoboy }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErr(data.error ?? 'Erro ao coletar pedido')
+        return
+      }
+      setDone(n)
+      setNumero('')
+    } catch {
+      setErr('Erro de conexão')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+        Coletar pedido
+      </p>
+      <form onSubmit={submit} className="flex gap-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          value={numero}
+          onChange={(e) => { setNumero(e.target.value); setErr(''); setDone(null) }}
+          placeholder="Nº do pedido"
+          className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+          required
+        />
+        <button
+          type="submit"
+          disabled={loading || !numero.trim()}
+          className="bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors whitespace-nowrap"
+        >
+          {loading ? '...' : 'Coletar'}
+        </button>
+      </form>
+      {done && (
+        <p className="text-sm text-green-700 font-medium mt-2">
+          ✓ Pedido #{done} marcado como saiu para entrega
+        </p>
+      )}
+      {err && <p className="text-sm text-red-600 mt-2">{err}</p>}
     </div>
   )
 }
@@ -170,17 +238,17 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MotoboyPage() {
-  const [motoboy, setMotoboy] = useState<string | null>(null)
+  const [motoboy, setMotoboy] = useState<string | undefined>(undefined)
   const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
   const [removidos, setRemovidos] = useState<Set<number>>(new Set())
   const { pedidos, loading, error, lastUpdate, refresh } = useOrders('enviado')
 
   useEffect(() => {
-    setMotoboy(localStorage.getItem(STORAGE_KEY))
+    setMotoboy(localStorage.getItem(STORAGE_KEY) ?? '')
   }, [])
 
-  // Aguarda hidratação para não piscar entre null → nome
-  if (motoboy === null) {
+  // Aguarda hidratação para não piscar antes de ler o localStorage
+  if (motoboy === undefined) {
     return <div className="py-16 text-center text-gray-300 text-sm">...</div>
   }
 
@@ -214,6 +282,8 @@ export default function MotoboyPage() {
         Motoboy: <span className="font-semibold text-gray-800">{motoboy}</span>
       </p>
 
+      <ColetarPedido motoboy={motoboy} />
+
       <StatusBar count={visiveis.length} lastUpdate={lastUpdate} onRefresh={refresh} loading={loading} />
 
       {loading && (
@@ -240,6 +310,8 @@ export default function MotoboyPage() {
         <OrderDrawer
           pedido={aberto}
           onClose={() => setAberto(null)}
+          hideBuyer
+          hidePrices
           action={
             <EntregaAction
               pedido={aberto}

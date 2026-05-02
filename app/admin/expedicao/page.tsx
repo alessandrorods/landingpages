@@ -7,6 +7,137 @@ import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function parseMotoboy(obs?: string): string | null {
+  if (!obs) return null
+  // Lê apenas nossa seção (após o divisor)
+  const sepIdx = obs.indexOf('\n---\n')
+  const section = sepIdx !== -1 ? obs.slice(sepIdx) : obs
+  return section.match(/^Motoboy:\s*(.+)$/m)?.[1]?.trim() ?? null
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  aberto: 'Aguardando pagamento',
+  aprovado: 'Pago',
+  preparando_envio: 'Preparando',
+  faturado: 'Faturado',
+  pronto_envio: 'Pronto para envio',
+  enviado: 'Saiu para entrega',
+  entregue: 'Entregue',
+  nao_entregue: 'Não entregue',
+  cancelado: 'Cancelado',
+}
+
+function labelSituacao(situacao: string): string {
+  const key = situacao.toLowerCase().replace(/\s+/g, '_')
+  return STATUS_LABEL[key] ?? situacao
+}
+
+// ── Busca de pedido ───────────────────────────────────────────────────────────
+
+function BuscaPedido() {
+  const [numero, setNumero] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [pedido, setPedido] = useState<TinyPedidoCompleto | null>(null)
+  const [err, setErr] = useState('')
+  const [drawerAberto, setDrawerAberto] = useState(false)
+
+  async function buscar(e: React.FormEvent) {
+    e.preventDefault()
+    const n = numero.trim()
+    if (!n) return
+    setLoading(true)
+    setErr('')
+    setPedido(null)
+    try {
+      const res = await fetch(`/api/admin/orders/search?numero=${encodeURIComponent(n)}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setErr(data.error ?? 'Erro ao buscar pedido')
+        return
+      }
+      setPedido(data.pedido)
+    } catch {
+      setErr('Erro de conexão')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const motoboy = pedido ? parseMotoboy(pedido.obs) : null
+  const endereco = pedido?.enderecos?.[0]?.endereco ?? pedido?.endereco_entrega
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+        Rastrear pedido
+      </p>
+
+      <form onSubmit={buscar} className="flex gap-2 mb-3">
+        <input
+          type="number"
+          inputMode="numeric"
+          value={numero}
+          onChange={(e) => { setNumero(e.target.value); setErr(''); setPedido(null) }}
+          placeholder="Nº do pedido"
+          className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+          required
+        />
+        <button
+          type="submit"
+          disabled={loading || !numero.trim()}
+          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors"
+        >
+          {loading ? '...' : 'Buscar'}
+        </button>
+      </form>
+
+      {err && <p className="text-sm text-red-600">{err}</p>}
+
+      {pedido && (
+        <div className="border-t border-gray-100 pt-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-bold font-mono text-gray-900">#{pedido.numero}</span>
+            <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+              {labelSituacao(pedido.situacao)}
+            </span>
+          </div>
+
+          {pedido.data_prevista && (
+            <p className="text-xs text-gray-500">Entrega prevista: <span className="font-medium text-gray-700">{pedido.data_prevista}</span></p>
+          )}
+
+          {endereco && (
+            <p className="text-sm text-gray-700">
+              {endereco.bairro} — {endereco.endereco}, {endereco.numero}
+            </p>
+          )}
+
+          {motoboy && (
+            <p className="text-sm text-gray-700">
+              Motoboy: <span className="font-semibold">{motoboy}</span>
+            </p>
+          )}
+
+          <button
+            onClick={() => setDrawerAberto(true)}
+            className="text-xs text-blue-600 font-semibold underline"
+          >
+            Ver detalhes completos
+          </button>
+        </div>
+      )}
+
+      {drawerAberto && pedido && (
+        <OrderDrawer pedido={pedido} onClose={() => setDrawerAberto(false)} />
+      )}
+    </div>
+  )
+}
+
+// ── Card da lista ─────────────────────────────────────────────────────────────
+
 function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }) {
   const produto = p.itens?.[0]?.item?.descricao ?? '—'
   const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
@@ -16,13 +147,10 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
       onClick={onOpen}
       className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <span className="text-2xl font-bold font-mono text-gray-900 bg-blue-50 px-3 py-1 rounded-xl leading-none">
           #{p.numero}
         </span>
-        {p.data_prevista && (
-          <span className="text-xs text-gray-500 font-medium">{p.data_prevista}</span>
-        )}
       </div>
 
       <p className="font-semibold text-gray-900">
@@ -37,83 +165,44 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
       )}
 
       <div className="flex justify-end mt-2">
-        <span className="text-xs text-blue-600 font-semibold">Ver endereço ›</span>
+        <span className="text-xs text-blue-600 font-semibold">Ver detalhes ›</span>
       </div>
     </button>
   )
 }
 
-function EnviadoAction({
-  p,
-  onEnviado,
-}: {
-  p: TinyPedidoCompleto
-  onEnviado: (id: number) => void
-}) {
-  const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
-  const [err, setErr] = useState('')
+// ── Agrupamento ───────────────────────────────────────────────────────────────
 
-  async function marcar() {
-    setLoading(true)
-    setErr('')
-    try {
-      const res = await fetch(`/api/admin/orders/${p.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ situacao: 'enviado' }),
-      })
-      if (!res.ok) {
-        const d = await res.json()
-        setErr(d.error ?? 'Erro ao atualizar')
-        return
-      }
-      setDone(true)
-      setTimeout(() => onEnviado(p.id), 800)
-    } catch {
-      setErr('Erro de conexão')
-    } finally {
-      setLoading(false)
-    }
+function groupByPeriodo(pedidos: TinyPedidoCompleto[]): [string, TinyPedidoCompleto[]][] {
+  const map = new Map<string, TinyPedidoCompleto[]>()
+  for (const p of pedidos) {
+    const key = p.forma_frete?.trim() || 'Sem período'
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(p)
   }
-
-  if (done) {
-    return (
-      <p className="text-center text-blue-700 font-semibold py-3">🚚 Pedido saiu para entrega!</p>
-    )
-  }
-
-  return (
-    <>
-      {err && <p className="text-xs text-red-600 mb-2">{err}</p>}
-      <button
-        onClick={marcar}
-        disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-4 rounded-xl text-base transition-colors"
-      >
-        {loading ? 'Atualizando...' : '🚚 Saiu para Entrega'}
-      </button>
-    </>
-  )
+  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function ExpedicaoPage() {
-  const { pedidos, loading, error, lastUpdate, refresh } = useOrders('preparando_envio')
+  const { pedidos, loading, error, lastUpdate, refresh } = useOrders('pronto_envio')
   const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
-  const [removidos, setRemovidos] = useState<Set<number>>(new Set())
 
-  const visiveis = pedidos.filter((p) => !removidos.has(p.id))
-
-  function remover(id: number) {
-    setAberto(null)
-    setRemovidos((prev) => new Set([...prev, id]))
-  }
+  const grupos = groupByPeriodo(pedidos)
 
   return (
     <div>
       <h1 className="text-xl font-bold text-gray-900 mb-4">Expedição</h1>
 
-      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} onRefresh={refresh} loading={loading} />
+      <BuscaPedido />
+
+      <StatusBar
+        count={pedidos.length}
+        lastUpdate={lastUpdate}
+        onRefresh={refresh}
+        loading={loading}
+      />
 
       {loading && (
         <div className="space-y-3">
@@ -127,20 +216,26 @@ export default function ExpedicaoPage() {
         <p className="text-sm text-red-600 bg-red-50 rounded-xl p-4">{error}</p>
       )}
 
-      {!loading && !error && visiveis.length === 0 && (
-        <EmptyState icon="🚀" message="Nenhum pedido aguardando expedição" />
+      {!loading && !error && pedidos.length === 0 && (
+        <EmptyState icon="📦" message="Nenhum pedido pronto para expedição" />
       )}
 
-      {!loading && visiveis.map((p) => (
-        <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
+      {!loading && grupos.map(([periodo, itens]) => (
+        <div key={periodo} className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-sm font-semibold text-gray-700">{periodo}</h2>
+            <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
+              {itens.length}
+            </span>
+          </div>
+          {itens.map((p) => (
+            <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
+          ))}
+        </div>
       ))}
 
       {aberto && (
-        <OrderDrawer
-          pedido={aberto}
-          onClose={() => setAberto(null)}
-          action={<EnviadoAction p={aberto} onEnviado={remover} />}
-        />
+        <OrderDrawer pedido={aberto} onClose={() => setAberto(null)} />
       )}
     </div>
   )
