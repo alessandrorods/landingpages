@@ -1,11 +1,12 @@
-export type Role = 'vendas' | 'florista' | 'expedicao' | 'admin'
+export type Role = 'vendas' | 'florista' | 'expedicao' | 'motoboy' | 'admin'
 
-export const ROLES: Role[] = ['vendas', 'florista', 'expedicao', 'admin']
+export const ROLES: Role[] = ['vendas', 'florista', 'expedicao', 'motoboy', 'admin']
 
 export const ROLE_LABELS: Record<Role, string> = {
   vendas: 'Vendas',
   florista: 'Florista',
   expedicao: 'Expedição',
+  motoboy: 'Motoboy',
   admin: 'Administrador',
 }
 

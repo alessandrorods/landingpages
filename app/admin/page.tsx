@@ -7,6 +7,7 @@ const AREAS = [
   { role: 'vendas', label: 'Vendas', icon: '💰', desc: 'Pedidos pagos e recuperação', href: '/admin/vendas' },
   { role: 'florista', label: 'Florista', icon: '🌸', desc: 'Montagem dos pedidos', href: '/admin/florista' },
   { role: 'expedicao', label: 'Expedição', icon: '🚚', desc: 'Separação para rota', href: '/admin/expedicao' },
+  { role: 'motoboy', label: 'Motoboy', icon: '🏍️', desc: 'Confirmação de entregas', href: '/admin/motoboy' },
 ]
 
 export default async function AdminPage() {

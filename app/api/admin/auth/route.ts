@@ -6,6 +6,7 @@ const PASSWORD_KEYS: Record<Role, string> = {
   vendas: 'VENDAS_PASSWORD',
   florista: 'FLORISTA_PASSWORD',
   expedicao: 'EXPEDICAO_PASSWORD',
+  motoboy: 'MOTOBOY_PASSWORD',
   admin: 'ADMIN_PASSWORD',
 }
 
