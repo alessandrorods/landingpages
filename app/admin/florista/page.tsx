@@ -4,19 +4,58 @@ import { useState } from 'react'
 import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
+import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 
-function PedidoCard({ p, onMontado }: { p: TinyPedidoCompleto; onMontado: (id: number) => void }) {
+function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }) {
+  const produto = p.itens?.[0]?.item?.descricao ?? '—'
+  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
+  const destinatario = endereco?.nome_destinatario
+  const mesmaPessoa = !destinatario || destinatario === p.cliente?.nome
+
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-2xl font-bold font-mono text-gray-900 bg-pink-50 px-3 py-1 rounded-xl leading-none">
+          #{p.numero}
+        </span>
+        {p.obs_internas && (
+          <span className="text-xs bg-pink-100 text-pink-700 font-semibold px-2 py-0.5 rounded-full">
+            Tem mensagem
+          </span>
+        )}
+      </div>
+
+      <p className="font-semibold text-gray-900">{produto}</p>
+      <p className="text-sm text-gray-500 mt-0.5">
+        {mesmaPessoa ? p.cliente?.nome : `Para: ${destinatario}`}
+      </p>
+
+      <div className="flex items-center justify-between mt-2">
+        {p.data_prevista && (
+          <p className="text-xs text-gray-400">Entrega: {p.data_prevista}</p>
+        )}
+        <span className="text-xs text-pink-600 font-semibold">Montar ›</span>
+      </div>
+    </button>
+  )
+}
+
+function MontadoAction({
+  p,
+  onMontado,
+}: {
+  p: TinyPedidoCompleto
+  onMontado: (id: number) => void
+}) {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState('')
 
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
-  const destinatario = endereco?.nome_destinatario
-  const mesmaPessoa = !destinatario || destinatario === p.cliente?.nome
-
-  async function marcarMontado() {
+  async function marcar() {
     setLoading(true)
     setErr('')
     try {
@@ -31,7 +70,7 @@ function PedidoCard({ p, onMontado }: { p: TinyPedidoCompleto; onMontado: (id: n
         return
       }
       setDone(true)
-      setTimeout(() => onMontado(p.id), 600)
+      setTimeout(() => onMontado(p.id), 800)
     } catch {
       setErr('Erro de conexão')
     } finally {
@@ -41,68 +80,34 @@ function PedidoCard({ p, onMontado }: { p: TinyPedidoCompleto; onMontado: (id: n
 
   if (done) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-3 text-center">
-        <p className="text-green-700 font-semibold">✓ Montado!</p>
-      </div>
+      <p className="text-center text-green-700 font-semibold py-3">✓ Marcado como montado!</p>
     )
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div>
-          <p className="font-semibold text-gray-900 leading-tight">{produto}</p>
-          <p className="text-xs text-gray-400 mt-0.5">Pedido #{p.numero}</p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-sm font-medium text-gray-700">{p.data_prevista}</p>
-          {p.forma_frete && <p className="text-xs text-gray-400">{p.forma_frete}</p>}
-        </div>
-      </div>
-
-      <div className="border-t border-gray-50 pt-2 mt-2 space-y-1">
-        <p className="text-sm text-gray-600">
-          <span className="text-gray-400 text-xs">Comprador:</span> {p.cliente?.nome}
-        </p>
-        {!mesmaPessoa && (
-          <p className="text-sm text-gray-600">
-            <span className="text-gray-400 text-xs">Para:</span>{' '}
-            <span className="font-medium">{destinatario}</span>
-          </p>
-        )}
-        {endereco?.bairro && (
-          <p className="text-sm text-gray-500 text-xs">{endereco.bairro}, {endereco.cidade}</p>
-        )}
-      </div>
-
-      {p.obs_internas && (
-        <div className="mt-3 bg-pink-50 border border-pink-100 rounded-xl px-3 py-2">
-          <p className="text-xs text-pink-500 font-semibold mb-0.5">Mensagem do cartão</p>
-          <p className="text-sm text-pink-900 italic">{p.obs_internas}</p>
-        </div>
-      )}
-
-      {err && <p className="text-xs text-red-600 mt-2">{err}</p>}
-
+    <>
+      {err && <p className="text-xs text-red-600 mb-2">{err}</p>}
       <button
-        onClick={marcarMontado}
+        onClick={marcar}
         disabled={loading}
-        className="mt-3 w-full bg-pink-600 hover:bg-pink-700 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl text-base transition-colors"
+        className="w-full bg-pink-600 hover:bg-pink-700 disabled:opacity-60 text-white font-semibold py-4 rounded-xl text-base transition-colors"
       >
-        {loading ? 'Atualizando...' : '✓ Montado'}
+        {loading ? 'Atualizando...' : '✓ Montado — passar para Expedição'}
       </button>
-    </div>
+    </>
   )
 }
 
 export default function FloristaPage() {
   const { pedidos, loading, error, lastUpdate, refresh } = useOrders('aprovado')
-  const [ids, setIds] = useState<Set<number>>(new Set())
+  const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
+  const [removidos, setRemovidos] = useState<Set<number>>(new Set())
 
-  const visiveis = pedidos.filter((p) => !ids.has(p.id))
+  const visiveis = pedidos.filter((p) => !removidos.has(p.id))
 
   function remover(id: number) {
-    setIds((prev) => new Set([...prev, id]))
+    setAberto(null)
+    setRemovidos((prev) => new Set([...prev, id]))
   }
 
   return (
@@ -114,7 +119,7 @@ export default function FloristaPage() {
       {loading && (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-36" />
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-28" />
           ))}
         </div>
       )}
@@ -127,7 +132,17 @@ export default function FloristaPage() {
         <EmptyState icon="🌸" message="Todos os pedidos estão montados!" />
       )}
 
-      {!loading && visiveis.map((p) => <PedidoCard key={p.id} p={p} onMontado={remover} />)}
+      {!loading && visiveis.map((p) => (
+        <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
+      ))}
+
+      {aberto && (
+        <OrderDrawer
+          pedido={aberto}
+          onClose={() => setAberto(null)}
+          action={<MontadoAction p={aberto} onMontado={remover} />}
+        />
+      )}
     </div>
   )
 }
