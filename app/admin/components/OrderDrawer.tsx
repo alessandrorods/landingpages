@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 
 interface Props {
@@ -37,6 +38,26 @@ function Divider() {
   return <div className="border-t border-gray-100" />
 }
 
+function CopyPhoneButton({ number, display }: { number: string; display: string }) {
+  const [copied, setCopied] = useState(false)
+
+  function copy() {
+    navigator.clipboard.writeText(number).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <button
+      onClick={copy}
+      className="flex-1 text-center text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded-xl transition-colors"
+    >
+      {copied ? '✓ Copiado!' : display}
+    </button>
+  )
+}
+
 export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hidePrices }: Props) {
   const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
   const destinatario = endereco?.nome_destinatario
@@ -45,36 +66,37 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
   const celularComprador = p.cliente?.celular ? fmt(p.cliente.celular) : ''
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       <div
-        className="relative bg-white rounded-t-3xl max-h-[94vh] overflow-y-auto animate-modal-slide-up"
+        className="relative bg-white rounded-t-3xl md:rounded-3xl w-full md:max-w-lg flex flex-col max-h-[94vh] md:max-h-[85vh] animate-modal-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-
-        {/* header */}
-        <div className="px-5 pb-3 pt-1 flex items-center justify-between">
-          <div>
-            <span className="text-3xl font-bold font-mono text-gray-900">#{p.numero}</span>
-            {p.numero_ecommerce && (
-              <p className="text-xs text-gray-400 mt-0.5">Ref: {p.numero_ecommerce}</p>
-            )}
+        {/* Fixed header */}
+        <div className="flex-none">
+          <div className="flex justify-center pt-3 pb-1 md:hidden">
+            <div className="w-10 h-1 bg-gray-200 rounded-full" />
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 text-2xl leading-none p-1"
-            aria-label="Fechar"
-          >
-            ×
-          </button>
+          <div className="px-5 pb-3 pt-3 flex items-center justify-between border-b border-gray-100">
+            <div>
+              <span className="text-3xl font-bold font-mono text-gray-900">#{p.numero}</span>
+              {p.numero_ecommerce && (
+                <p className="text-xs text-gray-400 mt-0.5">Ref: {p.numero_ecommerce}</p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 text-2xl leading-none p-1"
+              aria-label="Fechar"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
-        <div className="px-5 space-y-5 pb-10">
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
           {/* ── Pedido ── */}
           <Section label="Pedido">
             <div className="bg-gray-50 rounded-xl px-3 py-1">
@@ -105,21 +127,11 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
                         >
                           WhatsApp
                         </a>
-                        <a
-                          href={`tel:${telefoneComprador}`}
-                          className="flex-1 text-center text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded-xl transition-colors"
-                        >
-                          {p.cliente?.fone}
-                        </a>
+                        <CopyPhoneButton number={telefoneComprador} display={p.cliente?.fone ?? telefoneComprador} />
                       </div>
                     )}
                     {celularComprador && celularComprador !== telefoneComprador && (
-                      <a
-                        href={`tel:${celularComprador}`}
-                        className="block text-center text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded-xl transition-colors"
-                      >
-                        Celular: {p.cliente?.celular}
-                      </a>
+                      <CopyPhoneButton number={celularComprador} display={`Celular: ${p.cliente?.celular}`} />
                     )}
                   </div>
                 )}
@@ -142,12 +154,7 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
               <p className="text-xs text-gray-400 mb-1">Mesmo que o comprador</p>
             )}
             {endereco?.fone && (
-              <a
-                href={`tel:${fmt(endereco.fone)}`}
-                className="inline-block text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-3 py-1.5 rounded-xl transition-colors"
-              >
-                {endereco.fone}
-              </a>
+              <CopyPhoneButton number={fmt(endereco.fone)} display={endereco.fone} />
             )}
           </Section>
 
@@ -161,12 +168,8 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
                 {endereco?.complemento ? ` — ${endereco.complemento}` : ''}
               </p>
               <p className="text-sm text-gray-600">{endereco?.bairro}</p>
-              <p className="text-xs text-gray-400">
-                CEP {endereco?.cep}
-              </p>
-              <p className="text-xs text-gray-400">
-                {endereco?.cidade} / {endereco?.uf}
-              </p>
+              <p className="text-xs text-gray-400">CEP {endereco?.cep}</p>
+              <p className="text-xs text-gray-400">{endereco?.cidade} / {endereco?.uf}</p>
             </div>
           </Section>
 
@@ -208,31 +211,31 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
             </>
           )}
 
-          <Divider />
-
           {/* ── Financeiro ── */}
           {!hidePrices && (
-            <Section label="Financeiro">
-              <div className="bg-gray-50 rounded-xl px-3 py-1">
-                {p.valor_frete && <Row label="Frete" value={`R$ ${p.valor_frete}`} />}
-                {p.valor_total && (
-                  <div className="flex justify-between gap-4 pt-2 mt-1 border-t border-gray-200">
-                    <span className="text-sm font-semibold text-gray-700">Total</span>
-                    <span className="text-base font-bold text-gray-900">R$ {p.valor_total}</span>
-                  </div>
-                )}
-              </div>
-            </Section>
-          )}
-
-          {/* ── Ação ── */}
-          {action && (
             <>
               <Divider />
-              <div>{action}</div>
+              <Section label="Financeiro">
+                <div className="bg-gray-50 rounded-xl px-3 py-1">
+                  {p.valor_frete && <Row label="Frete" value={`R$ ${p.valor_frete}`} />}
+                  {p.valor_total && (
+                    <div className="flex justify-between gap-4 pt-2 mt-1 border-t border-gray-200">
+                      <span className="text-sm font-semibold text-gray-700">Total</span>
+                      <span className="text-base font-bold text-gray-900">R$ {p.valor_total}</span>
+                    </div>
+                  )}
+                </div>
+              </Section>
             </>
           )}
         </div>
+
+        {/* Fixed footer */}
+        {action && (
+          <div className="flex-none border-t border-gray-100 px-5 py-4">
+            {action}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -138,6 +138,7 @@ export default function VendasPage() {
       <StatusBar
         count={active.pedidos.length}
         lastUpdate={active.lastUpdate}
+        nextRefreshAt={active.nextRefreshAt}
         onRefresh={active.refresh}
         loading={active.loading}
       />

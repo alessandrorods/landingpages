@@ -241,7 +241,7 @@ export default function MotoboyPage() {
   const [motoboy, setMotoboy] = useState<string | undefined>(undefined)
   const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
   const [removidos, setRemovidos] = useState<Set<number>>(new Set())
-  const { pedidos, loading, error, lastUpdate, refresh } = useOrders('enviado')
+  const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('enviado')
 
   useEffect(() => {
     setMotoboy(localStorage.getItem(STORAGE_KEY) ?? '')
@@ -284,7 +284,7 @@ export default function MotoboyPage() {
 
       <ColetarPedido motoboy={motoboy} />
 
-      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} onRefresh={refresh} loading={loading} />
+      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} nextRefreshAt={nextRefreshAt} onRefresh={refresh} loading={loading} />
 
       {loading && (
         <div className="space-y-3">

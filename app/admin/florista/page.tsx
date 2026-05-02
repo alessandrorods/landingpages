@@ -99,7 +99,7 @@ function MontadoAction({
 }
 
 export default function FloristaPage() {
-  const { pedidos, loading, error, lastUpdate, refresh } = useOrders('aprovado')
+  const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('aprovado')
   const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
   const [removidos, setRemovidos] = useState<Set<number>>(new Set())
 
@@ -114,7 +114,7 @@ export default function FloristaPage() {
     <div>
       <h1 className="text-xl font-bold text-gray-900 mb-4">Montagem</h1>
 
-      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} onRefresh={refresh} loading={loading} />
+      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} nextRefreshAt={nextRefreshAt} onRefresh={refresh} loading={loading} />
 
       {loading && (
         <div className="space-y-3">

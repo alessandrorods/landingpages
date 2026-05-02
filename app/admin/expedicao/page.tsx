@@ -99,9 +99,18 @@ function BuscaPedido() {
         <div className="border-t border-gray-100 pt-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold font-mono text-gray-900">#{pedido.numero}</span>
-            <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-              {labelSituacao(pedido.situacao)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+                {labelSituacao(pedido.situacao)}
+              </span>
+              <button
+                onClick={() => { setPedido(null); setNumero('') }}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1"
+                aria-label="Fechar resultado"
+              >
+                ×
+              </button>
+            </div>
           </div>
 
           {pedido.data_prevista && (
@@ -186,7 +195,7 @@ function groupByPeriodo(pedidos: TinyPedidoCompleto[]): [string, TinyPedidoCompl
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ExpedicaoPage() {
-  const { pedidos, loading, error, lastUpdate, refresh } = useOrders('pronto_envio')
+  const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('pronto_envio')
   const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
 
   const grupos = groupByPeriodo(pedidos)
@@ -200,6 +209,7 @@ export default function ExpedicaoPage() {
       <StatusBar
         count={pedidos.length}
         lastUpdate={lastUpdate}
+        nextRefreshAt={nextRefreshAt}
         onRefresh={refresh}
         loading={loading}
       />

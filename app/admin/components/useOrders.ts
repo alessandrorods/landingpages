@@ -10,6 +10,7 @@ export function useOrders(situacao: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [nextRefreshAt, setNextRefreshAt] = useState<number | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -47,6 +48,7 @@ export function useOrders(situacao: string) {
     async function run() {
       await fetchRef.current()
       if (!cancelled) {
+        setNextRefreshAt(Date.now() + POLL_INTERVAL)
         timerRef.current = setTimeout(run, POLL_INTERVAL)
       }
     }
@@ -60,5 +62,5 @@ export function useOrders(situacao: string) {
     }
   }, []) // roda uma única vez por montagem
 
-  return { pedidos, loading, error, lastUpdate, refresh: fetch_ }
+  return { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh: fetch_ }
 }
