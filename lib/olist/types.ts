@@ -141,3 +141,19 @@ export interface TinyPedidoObterResponse {
     pedido?: TinyPedidoCompleto
   }
 }
+
+export interface TinyAlterarPedidoDados {
+  obs?: string
+  obs_interna?: string
+  data_prevista?: string
+  data_envio?: string
+}
+
+export interface TinyAlterarResponse {
+  retorno?: {
+    status_processamento?: string
+    status?: string
+    codigo_erro?: number
+    erros?: Array<{ erro: string; campo?: string }>
+  }
+}

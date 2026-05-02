@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
+import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 
 type Tab = 'pagos' | 'recuperar'
@@ -19,72 +20,83 @@ function whatsappMsg(p: TinyPedidoCompleto): string {
   )
 }
 
-function PedidoPago({ p }: { p: TinyPedidoCompleto }) {
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
+function PedidoCard({
+  p,
+  variant,
+  onOpen,
+}: {
+  p: TinyPedidoCompleto
+  variant: Tab
+  onOpen: () => void
+}) {
   const produto = p.itens?.[0]?.item?.descricao ?? '—'
+  const phone = fone(p)
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <p className="font-semibold text-gray-900 leading-tight">{p.cliente?.nome}</p>
-        <span className="text-xs bg-green-100 text-green-800 font-semibold px-2 py-0.5 rounded-full shrink-0">
-          Pago
+    <button
+      onClick={onOpen}
+      className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
+    >
+      {/* número em destaque */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-2xl font-bold font-mono text-gray-900 bg-gray-100 px-3 py-1 rounded-xl leading-none">
+          #{p.numero}
+        </span>
+        <span
+          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+            variant === 'pagos'
+              ? 'bg-green-100 text-green-800'
+              : 'bg-amber-100 text-amber-800'
+          }`}
+        >
+          {variant === 'pagos' ? 'Pago' : 'Pendente'}
         </span>
       </div>
-      <p className="text-sm text-gray-600 mb-0.5">{produto}</p>
-      {endereco && (
-        <p className="text-xs text-gray-400">{endereco.bairro} · {p.data_prevista}</p>
-      )}
-      {p.obs_internas && (
-        <p className="text-xs text-gray-500 italic mt-2 bg-gray-50 rounded-lg px-2 py-1.5">
-          {p.obs_internas}
-        </p>
-      )}
-    </div>
+
+      <p className="font-semibold text-gray-900 leading-tight">{p.cliente?.nome}</p>
+      <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
+
+      <div className="flex items-center justify-between mt-2">
+        {p.data_prevista && (
+          <p className="text-xs text-gray-400">Entrega: {p.data_prevista}</p>
+        )}
+        {variant === 'recuperar' && phone && (
+          <span className="text-xs text-green-700 font-semibold">Tem telefone ›</span>
+        )}
+        {variant === 'pagos' && (
+          <span className="text-xs text-gray-400">Ver detalhes ›</span>
+        )}
+      </div>
+    </button>
   )
 }
 
-function PedidoRecuperar({ p }: { p: TinyPedidoCompleto }) {
+function RecuperarAction({ p }: { p: TinyPedidoCompleto }) {
   const phone = fone(p)
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
-
+  if (!phone) return <p className="text-sm text-gray-400 text-center">Sem telefone cadastrado</p>
   return (
-    <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-4 mb-3">
-      <div className="flex items-start justify-between gap-2 mb-1">
-        <p className="font-semibold text-gray-900 leading-tight">{p.cliente?.nome}</p>
-        <span className="text-xs bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full shrink-0">
-          Pendente
-        </span>
-      </div>
-      <p className="text-sm text-gray-600 mb-0.5">{produto}</p>
-      <p className="text-xs text-gray-400 mb-3">Pedido #{p.numero} · {p.data_prevista}</p>
-
-      {phone ? (
-        <div className="flex gap-2">
-          <a
-            href={`https://wa.me/55${phone}?text=${whatsappMsg(p)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
-          >
-            <span>WhatsApp</span>
-          </a>
-          <a
-            href={`tel:${phone}`}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold py-2.5 rounded-xl transition-colors"
-          >
-            <span>Ligar</span>
-          </a>
-        </div>
-      ) : (
-        <p className="text-xs text-gray-400">Sem telefone cadastrado</p>
-      )}
+    <div className="flex gap-2">
+      <a
+        href={`https://wa.me/55${phone}?text=${whatsappMsg(p)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex-1 text-center text-base font-semibold bg-green-500 hover:bg-green-600 text-white py-3.5 rounded-xl transition-colors"
+      >
+        WhatsApp
+      </a>
+      <a
+        href={`tel:${phone}`}
+        className="flex-1 text-center text-base font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-3.5 rounded-xl transition-colors"
+      >
+        Ligar
+      </a>
     </div>
   )
 }
 
 export default function VendasPage() {
   const [tab, setTab] = useState<Tab>('pagos')
+  const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
   const pagos = useOrders('aprovado')
   const recuperar = useOrders('aberto')
 
@@ -109,7 +121,9 @@ export default function VendasPage() {
                 <span
                   className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                     tab === t
-                      ? t === 'recuperar' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                      ? t === 'recuperar'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-green-100 text-green-700'
                       : 'bg-gray-200 text-gray-500'
                   }`}
                 >
@@ -131,7 +145,7 @@ export default function VendasPage() {
       {active.loading && (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-24" />
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-28" />
           ))}
         </div>
       )}
@@ -148,12 +162,17 @@ export default function VendasPage() {
       )}
 
       {!active.loading &&
-        tab === 'pagos' &&
-        pagos.pedidos.map((p) => <PedidoPago key={p.id} p={p} />)}
+        active.pedidos.map((p) => (
+          <PedidoCard key={p.id} p={p} variant={tab} onOpen={() => setAberto(p)} />
+        ))}
 
-      {!active.loading &&
-        tab === 'recuperar' &&
-        recuperar.pedidos.map((p) => <PedidoRecuperar key={p.id} p={p} />)}
+      {aberto && (
+        <OrderDrawer
+          pedido={aberto}
+          onClose={() => setAberto(null)}
+          action={tab === 'recuperar' ? <RecuperarAction p={aberto} /> : undefined}
+        />
+      )}
     </div>
   )
 }

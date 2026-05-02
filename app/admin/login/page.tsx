@@ -8,6 +8,7 @@ const AREAS: { role: Role; label: string; icon: string }[] = [
   { role: 'vendas', label: 'Vendas', icon: '💰' },
   { role: 'florista', label: 'Florista', icon: '🌸' },
   { role: 'expedicao', label: 'Expedição', icon: '🚚' },
+  { role: 'motoboy', label: 'Motoboy', icon: '🏍️' },
   { role: 'admin', label: 'Administrador', icon: '🔑' },
 ]
 
@@ -15,6 +16,7 @@ const REDIRECT: Record<Role, string> = {
   vendas: '/admin/vendas',
   florista: '/admin/florista',
   expedicao: '/admin/expedicao',
+  motoboy: '/admin/motoboy',
   admin: '/admin',
 }
 

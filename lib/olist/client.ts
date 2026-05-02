@@ -1,4 +1,4 @@
-import type { TinyPedidoPayload, TinyResponse, SituacaoPedido, TinyPedidosResponse, TinyPedidoObterResponse } from './types'
+import type { TinyPedidoPayload, TinyResponse, SituacaoPedido, TinyPedidosResponse, TinyPedidoObterResponse, TinyAlterarPedidoDados, TinyAlterarResponse } from './types'
 
 const BASE_URL = 'https://api.tiny.com.br/api2'
 
@@ -49,6 +49,12 @@ export function createOlistClient(token: string) {
 
     obterPedido: (id: number) =>
       post<TinyPedidoObterResponse>('pedido.obter.php', { id: String(id) }),
+
+    alterarPedido: (id: number, dados: TinyAlterarPedidoDados) =>
+      post<TinyAlterarResponse>('pedido.alterar.php', {
+        id: String(id),
+        dados_pedido: JSON.stringify(dados),
+      }),
   }
 }
 
