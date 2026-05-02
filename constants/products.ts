@@ -273,7 +273,7 @@ export const PRODUCTS: Product[] = [
     isHighlight: false,
     inStock: true,
     stockCount: 3,
-  },,
+  },
   {
     id: 'T01',
     sku: 'T01',
@@ -288,5 +288,5 @@ export const PRODUCTS: Product[] = [
     isHighlight: false,
     inStock: true,
     stockCount: 3,
-  },
+  }
 ]
