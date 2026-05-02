@@ -274,4 +274,19 @@ export const PRODUCTS: Product[] = [
     inStock: true,
     stockCount: 3,
   },
+  {
+    id: 'T01',
+    sku: 'T01',
+    name: 'Botão de rosa',
+    shortDescription: 'Flores preservadas + doces artesanais + cartão com sua mensagem',
+    description:
+      'Uma caixinha cheia de amor e surpresas. Flores preservadas que duram mais de um ano sem água — lindas para sempre, assim como o seu carinho. Acompanha uma seleção de doces artesanais feitos com ingredientes naturais e cartão manuscrito com a sua mensagem. Uma experiência de unboxing inesquecível que ela vai querer mostrar para todo mundo.',
+    price: 1.90,
+    image: '',
+    category: 'orquideas',
+    badges: ['poucas-unidades'],
+    isHighlight: false,
+    inStock: true,
+    stockCount: 3,
+  }
 ]

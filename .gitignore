@@ -43,3 +43,6 @@ next-env.d.ts
 
 # MCPs
 .mcp.json
+
+# Claude Code worktrees
+.claude/worktrees/
