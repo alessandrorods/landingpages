@@ -283,7 +283,7 @@ export const PRODUCTS: Product[] = [
       'Uma caixinha cheia de amor e surpresas. Flores preservadas que duram mais de um ano sem água — lindas para sempre, assim como o seu carinho. Acompanha uma seleção de doces artesanais feitos com ingredientes naturais e cartão manuscrito com a sua mensagem. Uma experiência de unboxing inesquecível que ela vai querer mostrar para todo mundo.',
     price: 1.90,
     image: '',
-    category: 'presentes',
+    category: 'orquideas',
     badges: ['poucas-unidades'],
     isHighlight: false,
     inStock: true,
