@@ -125,17 +125,21 @@ export default function CheckoutForm({ sku }: { sku: string }) {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const res = await fetch('/api/pedido', {
+      const res = await fetch('/api/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sku, endereco: form.endereco, destinatario: form.destinatario, comprador: form.comprador }),
       })
-      const data = (await res.json()) as { id?: number; numero?: string; error?: string }
+      const data = (await res.json()) as { id?: number; numero?: string; redirectUrl?: string; error?: string }
       if (!res.ok) { setSubmitError(data.error ?? 'Erro ao criar pedido. Tente novamente.'); return }
+      try { sessionStorage.removeItem(STORAGE_KEY) } catch { /* ignore */ }
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl
+        return
+      }
       const orderId = data.numero ?? data.id ?? `ORD-${Date.now()}`
       const params = new URLSearchParams({ pedido: String(orderId), sku, valor: String(product.price), nome: form.comprador.nome })
-      try { sessionStorage.removeItem(STORAGE_KEY) } catch { /* ignore */ }
-      router.push(`/dia-das-maes/confirmacao?${params.toString()}`)
+      router.push(`/payment/finish?${params.toString()}`)
     } catch {
       setSubmitError('Erro de conexão. Verifique sua internet e tente novamente.')
     } finally {

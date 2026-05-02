@@ -21,12 +21,8 @@ export interface PedidoBody {
   }
 }
 
-export interface TinyResponse {
-  retorno?: {
-    status?: string
-    erros?: Array<{ erro: string }>
-    registros?: {
-      registro?: { id: number; numero: string; status?: string }
-    }
-  }
+export interface CheckoutResult {
+  pedidoId: number
+  pedidoNumero: string
+  redirectUrl: string
 }

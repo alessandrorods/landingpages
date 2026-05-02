@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      { source: '/', destination: '/dia-das-maes', permanent: false },
+    ]
+  },
   images: {
     remotePatterns: [{
         protocol: 'https',
