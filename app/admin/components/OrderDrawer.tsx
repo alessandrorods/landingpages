@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
+import { parseMotoboy, parseRecebidoPor, parseEntregue, parseObsUsuario } from '@/app/admin/lib/parseObs'
 
 interface Props {
   pedido: TinyPedidoCompleto
@@ -38,6 +39,18 @@ function Divider() {
   return <div className="border-t border-gray-100" />
 }
 
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  aberto:           { label: 'Aguardando pagamento', cls: 'bg-gray-100 text-gray-600' },
+  aprovado:         { label: 'Pago',                 cls: 'bg-green-100 text-green-700' },
+  preparando_envio: { label: 'Preparando',           cls: 'bg-blue-100 text-blue-700' },
+  faturado:         { label: 'Faturado',             cls: 'bg-blue-100 text-blue-700' },
+  pronto_envio:     { label: 'Pronto para envio',    cls: 'bg-blue-100 text-blue-700' },
+  enviado:          { label: 'Saiu para entrega',    cls: 'bg-orange-100 text-orange-700' },
+  entregue:         { label: 'Entregue',             cls: 'bg-green-100 text-green-800' },
+  nao_entregue:     { label: 'Não entregue',         cls: 'bg-red-100 text-red-700' },
+  cancelado:        { label: 'Cancelado',            cls: 'bg-red-100 text-red-700' },
+}
+
 function CopyPhoneButton({ number, display }: { number: string; display: string }) {
   const [copied, setCopied] = useState(false)
 
@@ -64,6 +77,10 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
   const mesmaPessoa = !destinatario || destinatario === p.cliente?.nome
   const telefoneComprador = p.cliente?.fone ? fmt(p.cliente.fone) : ''
   const celularComprador = p.cliente?.celular ? fmt(p.cliente.celular) : ''
+  const obsUsuario = parseObsUsuario(p.obs)
+  const motoboy = parseMotoboy(p.obs)
+  const recebidoPor = parseRecebidoPor(p.obs)
+  const entregueEm = parseEntregue(p.obs)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
@@ -97,14 +114,52 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-          {/* ── Pedido ── */}
+          {/* ── Situação + datas + entrega ── */}
           <Section label="Pedido">
-            <div className="bg-gray-50 rounded-xl px-3 py-1">
-              <Row label="Situação" value={p.situacao} />
-              <Row label="Data do pedido" value={p.data_pedido} />
-              <Row label="Entrega prevista" value={p.data_prevista} />
-              <Row label="Período" value={p.forma_frete} />
+            {/* Status + data do pedido */}
+            <div className="flex items-center justify-between gap-3 mb-4">
+              {(() => {
+                const badge = STATUS_BADGE[p.situacao?.toLowerCase().replace(/\s+/g, '_') ?? '']
+                return (
+                  <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${badge?.cls ?? 'bg-gray-100 text-gray-600'}`}>
+                    {badge?.label ?? p.situacao}
+                  </span>
+                )
+              })()}
+              {p.data_pedido && (
+                <span className="text-xs text-gray-400 shrink-0">{p.data_pedido}</span>
+              )}
             </div>
+
+            {/* Entrega prevista — destaque */}
+            {(p.data_prevista || p.forma_frete) && (
+              <div className="bg-gray-50 rounded-xl px-3 py-3 mb-4">
+                <p className="text-xs text-gray-400 mb-0.5">Entrega prevista</p>
+                {p.data_prevista && (
+                  <p className="text-xl font-bold text-gray-900">{p.data_prevista}</p>
+                )}
+                {p.forma_frete && (
+                  <p className="text-xs text-gray-500 mt-0.5">{p.forma_frete}</p>
+                )}
+              </div>
+            )}
+
+            {/* Dados de entrega */}
+            {(motoboy || entregueEm || recebidoPor) && (
+              <>
+                <Divider />
+                <div className="bg-gray-50 rounded-xl px-3 py-1 mt-4">
+                  <Row label="Motoboy" value={motoboy} />
+                  {entregueEm && (
+                    <div className="flex justify-between gap-4 py-1.5 border-b border-gray-50 last:border-0">
+                      <span className="text-xs text-gray-400 shrink-0">Entregue em</span>
+                      <span className="text-sm font-semibold text-gray-900 text-right">{entregueEm}</span>
+                    </div>
+                  )}
+                  <Row label="Recebido por" value={recebidoPor} />
+                </div>
+              </>
+            )}
           </Section>
 
           <Divider />
@@ -172,6 +227,18 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
               <p className="text-xs text-gray-400">{endereco?.cidade} / {endereco?.uf}</p>
             </div>
           </Section>
+
+          {/* ── Observações ── */}
+          {obsUsuario && (
+            <>
+              <Divider />
+              <Section label="Observações">
+                <p className="text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2.5 leading-relaxed whitespace-pre-line">
+                  {obsUsuario}
+                </p>
+              </Section>
+            </>
+          )}
 
           <Divider />
 

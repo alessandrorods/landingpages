@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
@@ -104,7 +105,15 @@ export default function VendasPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-4">Pedidos</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-gray-900">Pedidos</h1>
+        <Link
+          href="/admin/vendas/novo"
+          className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+        >
+          + Novo pedido
+        </Link>
+      </div>
 
       <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
         {([['pagos', 'Pagos', pagos.pedidos.length], ['recuperar', 'Recuperar', recuperar.pedidos.length]] as const).map(

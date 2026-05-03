@@ -2,11 +2,12 @@ export interface TinyPedidoPayload {
   pedido: {
     situacao: string
     data_prevista: string
-    ecommerce: string
+    ecommerce?: string
     marcadores: Array<{ marcador: { descricao: string } }>
     valor_frete: number
     frete_por_conta: string
     forma_frete?: string
+    obs?: string
     obs_internas?: string
     forma_envio: string
     cliente: {
@@ -148,6 +149,24 @@ export interface TinyAlterarPedidoDados {
   obs_interna?: string
   data_prevista?: string
   data_envio?: string
+}
+
+export interface TinyProduto {
+  id: number
+  codigo: string
+  nome: string
+  preco: string
+  situacao: string
+  unidade?: string
+}
+
+export interface TinyProdutosResponse {
+  retorno?: {
+    status?: string
+    codigo_erro?: number
+    erros?: Array<{ erro: string }>
+    produtos?: Array<{ produto: TinyProduto }>
+  }
 }
 
 export interface TinyAlterarResponse {
