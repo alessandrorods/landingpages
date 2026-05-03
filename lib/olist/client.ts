@@ -1,4 +1,4 @@
-import type { TinyPedidoPayload, TinyResponse, SituacaoPedido, TinyPedidosResponse, TinyPedidoObterResponse, TinyAlterarPedidoDados, TinyAlterarResponse } from './types'
+import type { TinyPedidoPayload, TinyResponse, SituacaoPedido, TinyPedidosResponse, TinyPedidoObterResponse, TinyAlterarPedidoDados, TinyAlterarResponse, TinyProdutosResponse } from './types'
 
 const BASE_URL = 'https://api.tiny.com.br/api2'
 
@@ -25,7 +25,6 @@ async function handleResponse<T>(res: Response, endpoint: string, logParams: Rec
   if (retorno?.codigo_erro === 6)  console.warn('[olist] rate limit (cod 6 — muitos acessos/minuto)', { endpoint })
   if (retorno?.codigo_erro === 11) console.warn('[olist] rate limit (cod 11 — muitos acessos concorrentes)', { endpoint })
 
-  console.log('[olist]', endpoint, logParams, '->', JSON.stringify(json))
   return json
 }
 
@@ -91,6 +90,9 @@ export function createOlistClient(token: string) {
 
     alterarPedido: (id: number, dados: TinyAlterarPedidoDados) =>
       postJson<TinyAlterarResponse>('pedido.alterar.php', { id: String(id) }, { dados_pedido: dados }),
+
+    buscarProdutos: (pesquisa: string) =>
+      post<TinyProdutosResponse>('produtos.pesquisa.php', { pesquisa }),
   }
 }
 
