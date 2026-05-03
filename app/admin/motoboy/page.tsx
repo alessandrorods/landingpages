@@ -5,6 +5,7 @@ import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
+import { parseMotoboy } from '@/app/admin/lib/parseObs'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 
 const STORAGE_KEY = 'motoboy_nome'
@@ -247,7 +248,6 @@ export default function MotoboyPage() {
     setMotoboy(localStorage.getItem(STORAGE_KEY) ?? '')
   }, [])
 
-  // Aguarda hidratação para não piscar antes de ler o localStorage
   if (motoboy === undefined) {
     return <div className="py-16 text-center text-gray-300 text-sm">...</div>
   }
@@ -256,7 +256,9 @@ export default function MotoboyPage() {
     return <NomeSetup onSalvar={setMotoboy} />
   }
 
-  const visiveis = pedidos.filter((p) => !removidos.has(p.id))
+  const visiveis = pedidos.filter(
+    (p) => !removidos.has(p.id) && parseMotoboy(p.obs) === motoboy,
+  )
 
   function remover(id: number) {
     setAberto(null)
@@ -284,7 +286,13 @@ export default function MotoboyPage() {
 
       <ColetarPedido motoboy={motoboy} />
 
-      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} nextRefreshAt={nextRefreshAt} onRefresh={refresh} loading={loading} />
+      <StatusBar
+        count={visiveis.length}
+        lastUpdate={lastUpdate}
+        nextRefreshAt={nextRefreshAt}
+        onRefresh={refresh}
+        loading={loading}
+      />
 
       {loading && (
         <div className="space-y-3">
@@ -299,12 +307,13 @@ export default function MotoboyPage() {
       )}
 
       {!loading && !error && visiveis.length === 0 && (
-        <EmptyState icon="🎉" message="Nenhuma entrega pendente" />
+        <EmptyState icon="🎉" message="Nenhuma entrega em rota" />
       )}
 
-      {!loading && visiveis.map((p) => (
-        <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
-      ))}
+      {!loading &&
+        visiveis.map((p) => (
+          <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
+        ))}
 
       {aberto && (
         <OrderDrawer

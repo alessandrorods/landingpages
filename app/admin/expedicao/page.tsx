@@ -7,15 +7,9 @@ import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+import { parseMotoboy } from '@/app/admin/lib/parseObs'
 
-function parseMotoboy(obs?: string): string | null {
-  if (!obs) return null
-  // Lê apenas nossa seção (após o divisor)
-  const sepIdx = obs.indexOf('\n---\n')
-  const section = sepIdx !== -1 ? obs.slice(sepIdx) : obs
-  return section.match(/^Motoboy:\s*(.+)$/m)?.[1]?.trim() ?? null
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
   aberto: 'Aguardando pagamento',
