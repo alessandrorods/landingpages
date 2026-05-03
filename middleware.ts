@@ -5,7 +5,7 @@ import type { Role } from '@/lib/admin/auth'
 async function sign(data: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(secret || 'dev-secret'),
+    new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
@@ -17,12 +17,14 @@ async function sign(data: string, secret: string): Promise<string> {
 }
 
 async function getRole(cookieValue: string): Promise<Role | null> {
+  const secret = process.env.ADMIN_SECRET
+  if (!secret) return null
   const dot = cookieValue.lastIndexOf('.')
   if (dot === -1) return null
   const role = cookieValue.slice(0, dot) as Role
   const sig = cookieValue.slice(dot + 1)
   if (!ROLES.includes(role)) return null
-  const expected = await sign(role, process.env.ADMIN_SECRET ?? '')
+  const expected = await sign(role, secret)
   if (sig !== expected) return null
   return role
 }

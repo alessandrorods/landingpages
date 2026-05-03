@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createOlistClient } from '@/lib/olist/client'
+import { getRequestRole } from '@/lib/admin/auth'
 import type { SituacaoPedido, TinyPedidoCompleto } from '@/lib/olist/types'
 
 const VALID: SituacaoPedido[] = [
@@ -27,6 +28,10 @@ function dataInicial30d(): string {
 }
 
 export async function GET(request: NextRequest) {
+  if (!getRequestRole(request)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  }
+
   const situacao = request.nextUrl.searchParams.get('situacao') as SituacaoPedido | null
 
   if (!situacao || !VALID.includes(situacao)) {

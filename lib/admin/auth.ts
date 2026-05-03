@@ -15,7 +15,7 @@ export const COOKIE_NAME = '_dq'
 async function sign(data: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(secret || 'dev-secret'),
+    new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
@@ -27,18 +27,28 @@ async function sign(data: string, secret: string): Promise<string> {
 }
 
 export async function createSession(role: Role): Promise<string> {
-  const sig = await sign(role, process.env.ADMIN_SECRET ?? '')
+  const secret = process.env.ADMIN_SECRET
+  if (!secret) throw new Error('ADMIN_SECRET não configurado')
+  const sig = await sign(role, secret)
   return `${role}.${sig}`
 }
 
 export async function verifySession(cookie: string): Promise<Role | null> {
+  const secret = process.env.ADMIN_SECRET
+  if (!secret) return null
   const dot = cookie.lastIndexOf('.')
   if (dot === -1) return null
   const role = cookie.slice(0, dot) as Role
   const sig = cookie.slice(dot + 1)
   if (!ROLES.includes(role)) return null
-  const expected = await sign(role, process.env.ADMIN_SECRET ?? '')
+  const expected = await sign(role, secret)
   if (sig !== expected) return null
+  return role
+}
+
+export function getRequestRole(request: { headers: { get(name: string): string | null } }): Role | null {
+  const role = request.headers.get('x-admin-role') as Role
+  if (!role || !ROLES.includes(role)) return null
   return role
 }
 

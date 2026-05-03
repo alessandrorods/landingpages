@@ -1,4 +1,5 @@
 import { createOlistClient } from '@/lib/olist/client'
+import { getRequestRole } from '@/lib/admin/auth'
 
 function getEnv(key: string): string {
   const value = process.env[key]
@@ -7,6 +8,11 @@ function getEnv(key: string): string {
 }
 
 export async function GET(request: Request) {
+  const role = getRequestRole(request)
+  if (!role || !['vendas', 'admin'].includes(role)) {
+    return Response.json({ error: 'Não autorizado' }, { status: 403 })
+  }
+
   const { searchParams } = new URL(request.url)
   const q = searchParams.get('q')?.trim()
   if (!q) return Response.json({ error: 'Parâmetro q obrigatório' }, { status: 400 })

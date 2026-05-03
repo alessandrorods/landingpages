@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createOlistClient } from '@/lib/olist/client'
+import { getRequestRole } from '@/lib/admin/auth'
 
 function fmtDate(d: Date): string {
   const dd = String(d.getDate()).padStart(2, '0')
@@ -35,6 +36,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const role = getRequestRole(request)
+  if (!role || !['motoboy', 'admin'].includes(role)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  }
+
   const { id } = await params
   const tag = `[deliver] id=${id}`
 

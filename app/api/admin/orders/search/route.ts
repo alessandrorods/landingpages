@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createOlistClient } from '@/lib/olist/client'
+import { getRequestRole } from '@/lib/admin/auth'
 
 export async function GET(request: NextRequest) {
+  const role = getRequestRole(request)
+  if (!role || !['vendas', 'admin'].includes(role)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  }
+
   const numero = request.nextUrl.searchParams.get('numero')?.trim()
   if (!numero) {
     return NextResponse.json({ error: 'Parâmetro numero obrigatório' }, { status: 400 })

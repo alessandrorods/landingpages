@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createOlistClient } from '@/lib/olist/client'
+import { getRequestRole } from '@/lib/admin/auth'
 import type { SituacaoPedido } from '@/lib/olist/types'
 
 const VALID: SituacaoPedido[] = [
@@ -11,6 +12,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const role = getRequestRole(request)
+  if (!role || !['florista', 'expedicao', 'admin'].includes(role)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  }
+
   const { id } = await params
 
   let body: { situacao?: string }

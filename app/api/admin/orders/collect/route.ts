@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createOlistClient } from '@/lib/olist/client'
+import { getRequestRole } from '@/lib/admin/auth'
 
 function fmtDate(d: Date): string {
   const dd = String(d.getDate()).padStart(2, '0')
@@ -35,6 +36,11 @@ function buildObs(existing: string | undefined, ourSection: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const role = getRequestRole(request)
+  if (!role || !['expedicao', 'admin'].includes(role)) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  }
+
   let body: { numero?: string; motoboy?: string }
   try {
     body = await request.json()
