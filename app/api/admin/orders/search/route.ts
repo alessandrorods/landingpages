@@ -4,7 +4,7 @@ import { getRequestRole } from '@/lib/admin/auth'
 
 export async function GET(request: NextRequest) {
   const role = getRequestRole(request)
-  if (!role || !['vendas', 'admin'].includes(role)) {
+  if (!role || !['vendas', 'expedicao', 'admin'].includes(role)) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 
