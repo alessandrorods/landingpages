@@ -37,7 +37,7 @@ function buildObs(existing: string | undefined, ourSection: string): string {
 
 export async function POST(request: NextRequest) {
   const role = getRequestRole(request)
-  if (!role || !['expedicao', 'admin'].includes(role)) {
+  if (!role) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 
