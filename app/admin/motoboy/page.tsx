@@ -321,6 +321,7 @@ export default function MotoboyPage() {
           onClose={() => setAberto(null)}
           hideBuyer
           hidePrices
+          hideCardMessage
           action={
             <EntregaAction
               pedido={aberto}
