@@ -16,7 +16,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <Suspense>
         <DynamicHeader />
       </Suspense>
-      <main className="max-w-2xl mx-auto px-4 pb-24 pt-4">{children}</main>
+      <main className="max-w-2xl mx-auto px-4 pb-24 pt-4">
+        <Suspense>{children}</Suspense>
+      </main>
     </div>
   )
 }
