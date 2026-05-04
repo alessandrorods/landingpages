@@ -37,7 +37,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const role = getRequestRole(request)
-  if (!role || !['motoboy', 'admin'].includes(role)) {
+  if (!role) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 
