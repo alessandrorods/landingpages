@@ -12,6 +12,7 @@ interface Props {
   action?: React.ReactNode
   hideBuyer?: boolean
   hidePrices?: boolean
+  hideCardMessage?: boolean
 }
 
 function fmt(phone: string) {
@@ -73,7 +74,7 @@ function CopyPhoneButton({ number, display }: { number: string; display: string 
   )
 }
 
-export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hidePrices }: Props) {
+export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hidePrices, hideCardMessage }: Props) {
   const fromLI = isOrderFromLI(p.obs_interna)
   const liData = fromLI ? parseLIData(p.obs_interna) : null
 
@@ -299,7 +300,7 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
           )}
 
           {/* ── Mensagem do cartão ── */}
-          {cardMessage && (
+          {(!hideCardMessage && cardMessage) && (
             <>
               <Divider />
               <Section label="Mensagem do cartão">
