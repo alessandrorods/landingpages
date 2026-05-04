@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createOlistClient } from '@/lib/olist/client'
+import { obterPedidoCached } from '@/lib/olist/pedido-cache'
 import { getRequestRole } from '@/lib/admin/auth'
 import type { SituacaoPedido, TinyPedidoCompleto } from '@/lib/olist/types'
 
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
     let falhas = 0
     const tasks = resumos.map((r) => async (): Promise<TinyPedidoCompleto | null> => {
       try {
-        const detail = await client.obterPedido(r.id)
+        const detail = await obterPedidoCached(r.id)
         if (detail.retorno?.status !== 'OK') {
           console.error(tag, `obterPedido falhou para id=${r.id}`, detail.retorno)
           falhas++

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createOlistClient } from '@/lib/olist/client'
 import { getRequestRole } from '@/lib/admin/auth'
 import type { SituacaoPedido } from '@/lib/olist/types'
@@ -49,6 +50,7 @@ export async function PATCH(
       return NextResponse.json({ error: erros || 'Erro ao atualizar' }, { status: 422 })
     }
 
+    revalidateTag(`pedido-${id}`)
     console.log(tag, 'status atualizado com sucesso')
     return NextResponse.json({ ok: true })
   } catch (err) {
