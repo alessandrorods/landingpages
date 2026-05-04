@@ -5,10 +5,29 @@ import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
-import { parseMotoboy } from '@/app/admin/lib/parseObs'
-import type { TinyPedidoCompleto } from '@/lib/olist/types'
+import type { TinyPedidoResumo, TinyPedidoCompleto } from '@/lib/olist/types'
 
 const STORAGE_KEY = 'motoboy_nome'
+const STORAGE_IDS_KEY = 'motoboy_ids'
+
+// ── Helpers de localStorage ───────────────────────────────────────────────────
+
+function getIds(): Set<number> {
+  try { return new Set(JSON.parse(localStorage.getItem(STORAGE_IDS_KEY) ?? '[]') as number[]) }
+  catch { return new Set() }
+}
+
+function addId(id: number) {
+  const ids = getIds()
+  ids.add(id)
+  localStorage.setItem(STORAGE_IDS_KEY, JSON.stringify([...ids]))
+}
+
+function removeId(id: number) {
+  const ids = getIds()
+  ids.delete(id)
+  localStorage.setItem(STORAGE_IDS_KEY, JSON.stringify([...ids]))
+}
 
 // ── Nome setup ────────────────────────────────────────────────────────────────
 
@@ -53,7 +72,7 @@ function NomeSetup({ onSalvar }: { onSalvar: (nome: string) => void }) {
 
 // ── Coletar pedido ────────────────────────────────────────────────────────────
 
-function ColetarPedido({ motoboy }: { motoboy: string }) {
+function ColetarPedido({ motoboy, onColetado }: { motoboy: string; onColetado: (id: number, numero: string) => void }) {
   const [numero, setNumero] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState<string | null>(null)
@@ -73,11 +92,9 @@ function ColetarPedido({ motoboy }: { motoboy: string }) {
         body: JSON.stringify({ numero: n, motoboy }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        setErr(data.error ?? 'Erro ao coletar pedido')
-        return
-      }
-      setDone(n)
+      if (!res.ok) { setErr(data.error ?? 'Erro ao coletar pedido'); return }
+      onColetado(data.id, String(data.numero))
+      setDone(String(data.numero))
       setNumero('')
     } catch {
       setErr('Erro de conexão')
@@ -198,12 +215,9 @@ function EntregaAction({
   )
 }
 
-// ── Card da lista ─────────────────────────────────────────────────────────────
+// ── Card ──────────────────────────────────────────────────────────────────────
 
-function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }) {
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
-
+function PedidoCard({ p, onOpen }: { p: TinyPedidoResumo; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
@@ -218,16 +232,7 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
         )}
       </div>
 
-      <p className="font-semibold text-gray-900">
-        {endereco?.nome_destinatario ?? p.cliente?.nome}
-      </p>
-      <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
-
-      {endereco?.bairro && (
-        <p className="text-xs text-gray-400 mt-2 bg-gray-50 rounded-lg px-2 py-1 inline-block">
-          {endereco.bairro}
-        </p>
-      )}
+      <p className="font-semibold text-gray-900">{p.nome}</p>
 
       <div className="flex justify-end mt-2">
         <span className="text-xs text-orange-600 font-semibold">Confirmar entrega ›</span>
@@ -240,12 +245,13 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
 
 export default function MotoboyPage() {
   const [motoboy, setMotoboy] = useState<string | undefined>(undefined)
-  const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
-  const [removidos, setRemovidos] = useState<Set<number>>(new Set())
+  const [ids, setIds] = useState<Set<number>>(new Set())
+  const [aberto, setAberto] = useState<TinyPedidoResumo | null>(null)
   const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('enviado')
 
   useEffect(() => {
     setMotoboy(localStorage.getItem(STORAGE_KEY) ?? '')
+    setIds(getIds())
   }, [])
 
   if (motoboy === undefined) {
@@ -256,14 +262,19 @@ export default function MotoboyPage() {
     return <NomeSetup onSalvar={setMotoboy} />
   }
 
-  const visiveis = pedidos.filter(
-    (p) => !removidos.has(p.id) && parseMotoboy(p.obs) === motoboy,
-  )
+  function handleColetado(id: number) {
+    addId(id)
+    setIds(getIds())
+    refresh()
+  }
 
   function remover(id: number) {
+    removeId(id)
+    setIds(getIds())
     setAberto(null)
-    setRemovidos((prev) => new Set([...prev, id]))
   }
+
+  const visiveis = pedidos.filter((p) => ids.has(p.id))
 
   return (
     <div>
@@ -284,7 +295,7 @@ export default function MotoboyPage() {
         Motoboy: <span className="font-semibold text-gray-800">{motoboy}</span>
       </p>
 
-      <ColetarPedido motoboy={motoboy} />
+      <ColetarPedido motoboy={motoboy} onColetado={handleColetado} />
 
       <StatusBar
         count={visiveis.length}
@@ -317,18 +328,18 @@ export default function MotoboyPage() {
 
       {aberto && (
         <OrderDrawer
-          pedido={aberto}
+          pedidoId={aberto.id}
           onClose={() => setAberto(null)}
           hideBuyer
           hidePrices
           hideCardMessage
-          action={
+          action={(p) => (
             <EntregaAction
-              pedido={aberto}
+              pedido={p}
               motoboy={motoboy}
               onEntregue={remover}
             />
-          }
+          )}
         />
       )}
     </div>

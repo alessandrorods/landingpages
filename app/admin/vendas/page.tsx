@@ -6,13 +6,9 @@ import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
-import type { TinyPedidoCompleto } from '@/lib/olist/types'
+import type { TinyPedidoResumo, TinyPedidoCompleto } from '@/lib/olist/types'
 
 type Tab = 'pagos' | 'recuperar'
-
-function fone(p: TinyPedidoCompleto): string {
-  return (p.cliente?.fone ?? p.cliente?.celular ?? '').replace(/\D/g, '')
-}
 
 function whatsappMsg(p: TinyPedidoCompleto): string {
   const produto = p.itens?.[0]?.item?.descricao ?? 'produto'
@@ -26,19 +22,15 @@ function PedidoCard({
   variant,
   onOpen,
 }: {
-  p: TinyPedidoCompleto
+  p: TinyPedidoResumo
   variant: Tab
   onOpen: () => void
 }) {
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
-  const phone = fone(p)
-
   return (
     <button
       onClick={onOpen}
       className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
     >
-      {/* número em destaque */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-2xl font-bold font-mono text-gray-900 bg-gray-100 px-3 py-1 rounded-xl leading-none">
           #{p.numero}
@@ -54,26 +46,22 @@ function PedidoCard({
         </span>
       </div>
 
-      <p className="font-semibold text-gray-900 leading-tight">{p.cliente?.nome}</p>
-      <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
+      <p className="font-semibold text-gray-900 leading-tight">{p.nome}</p>
 
       <div className="flex items-center justify-between mt-2">
         {p.data_prevista && (
           <p className="text-xs text-gray-400">Entrega: {p.data_prevista}</p>
         )}
-        {variant === 'recuperar' && phone && (
-          <span className="text-xs text-green-700 font-semibold">Tem telefone ›</span>
-        )}
-        {variant === 'pagos' && (
-          <span className="text-xs text-gray-400">Ver detalhes ›</span>
-        )}
+        <span className="text-xs text-gray-400">
+          {variant === 'recuperar' ? 'Ver detalhes ›' : 'Ver detalhes ›'}
+        </span>
       </div>
     </button>
   )
 }
 
 function RecuperarAction({ p }: { p: TinyPedidoCompleto }) {
-  const phone = fone(p)
+  const phone = (p.cliente?.fone ?? p.cliente?.celular ?? '').replace(/\D/g, '')
   if (!phone) return <p className="text-sm text-gray-400 text-center">Sem telefone cadastrado</p>
   return (
     <div className="flex gap-2">
@@ -97,7 +85,7 @@ function RecuperarAction({ p }: { p: TinyPedidoCompleto }) {
 
 export default function VendasPage() {
   const [tab, setTab] = useState<Tab>('pagos')
-  const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
+  const [aberto, setAberto] = useState<TinyPedidoResumo | null>(null)
   const pagos = useOrders('aprovado')
   const recuperar = useOrders('aberto')
 
@@ -178,9 +166,9 @@ export default function VendasPage() {
 
       {aberto && (
         <OrderDrawer
-          pedido={aberto}
+          pedidoId={aberto.id}
           onClose={() => setAberto(null)}
-          action={tab === 'recuperar' ? <RecuperarAction p={aberto} /> : undefined}
+          action={tab === 'recuperar' ? (p) => <RecuperarAction p={p} /> : undefined}
         />
       )}
     </div>

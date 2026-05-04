@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 import { parseMotoboy, parseRecebidoPor, parseEntregue, parseObsUsuario, isOrderFromLI, parseLIData } from '@/app/admin/lib/parseObs'
 import type { TinyEndereco } from '@/lib/olist/types'
 import { IoPrintOutline } from 'react-icons/io5'
 
 interface Props {
-  pedido: TinyPedidoCompleto
+  pedidoId: number
   onClose: () => void
-  action?: React.ReactNode
+  action?: (pedido: TinyPedidoCompleto) => React.ReactNode
   hideBuyer?: boolean
   hidePrices?: boolean
   hideCardMessage?: boolean
@@ -74,7 +74,31 @@ function CopyPhoneButton({ number, display }: { number: string; display: string 
   )
 }
 
-export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hidePrices, hideCardMessage }: Props) {
+function LoadingSkeleton() {
+  return (
+    <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 animate-pulse">
+      <div className="h-8 bg-gray-100 rounded-xl w-1/2" />
+      <div className="h-20 bg-gray-100 rounded-xl" />
+      <div className="h-16 bg-gray-100 rounded-xl" />
+      <div className="h-16 bg-gray-100 rounded-xl" />
+      <div className="h-24 bg-gray-100 rounded-xl" />
+    </div>
+  )
+}
+
+function PedidoContent({
+  p,
+  hideBuyer,
+  hidePrices,
+  hideCardMessage,
+  action,
+}: {
+  p: TinyPedidoCompleto
+  hideBuyer?: boolean
+  hidePrices?: boolean
+  hideCardMessage?: boolean
+  action?: (pedido: TinyPedidoCompleto) => React.ReactNode
+}) {
   const fromLI = isOrderFromLI(p.obs_interna)
   const liData = fromLI ? parseLIData(p.obs_interna) : null
 
@@ -103,6 +127,248 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
   const entregueEm = parseEntregue(p.obs)
 
   return (
+    <>
+      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+        {/* ── Situação + datas + entrega ── */}
+        <Section label="Pedido">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            {(() => {
+              const badge = STATUS_BADGE[p.situacao?.toLowerCase().replace(/\s+/g, '_') ?? '']
+              return (
+                <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${badge?.cls ?? 'bg-gray-100 text-gray-600'}`}>
+                  {badge?.label ?? p.situacao}
+                </span>
+              )
+            })()}
+            {p.data_pedido && (
+              <span className="text-xs text-gray-400 shrink-0">{p.data_pedido}</span>
+            )}
+          </div>
+
+          {(p.data_prevista || liData?.scheduledDelivery || p.forma_frete) && (
+            <div className="bg-gray-50 rounded-xl px-3 py-3 mb-4">
+              <p className="text-xs text-gray-400 mb-0.5">Entrega prevista</p>
+              {(p.data_prevista || liData?.scheduledDelivery) && (
+                <p className="text-xl font-bold text-gray-900">
+                  {liData?.scheduledDelivery ?? p.data_prevista}
+                </p>
+              )}
+              {p.forma_frete && (
+                <p className="text-xs text-gray-500 mt-0.5">{p.forma_frete}</p>
+              )}
+            </div>
+          )}
+
+          {(motoboy || entregueEm || recebidoPor) && (
+            <>
+              <Divider />
+              <div className="bg-gray-50 rounded-xl px-3 py-1 mt-4">
+                <Row label="Motoboy" value={motoboy} />
+                {entregueEm && (
+                  <div className="flex justify-between gap-4 py-1.5 border-b border-gray-50 last:border-0">
+                    <span className="text-xs text-gray-400 shrink-0">Entregue em</span>
+                    <span className="text-sm font-semibold text-gray-900 text-right">{entregueEm}</span>
+                  </div>
+                )}
+                <Row label="Recebido por" value={recebidoPor} />
+              </div>
+            </>
+          )}
+        </Section>
+
+        <Divider />
+
+        {/* ── Comprador ── */}
+        {!hideBuyer && (
+          <>
+            <Section label="Comprador">
+              <p className="font-semibold text-gray-900 mb-1">{p.cliente?.nome}</p>
+
+              {(telefoneComprador || celularComprador) && (
+                <div className="space-y-2">
+                  {telefoneComprador && (
+                    <div className="flex gap-2">
+                      <a
+                        href={`https://wa.me/55${telefoneComprador}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 text-center text-sm font-semibold bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl transition-colors"
+                      >
+                        WhatsApp
+                      </a>
+                      <CopyPhoneButton number={telefoneComprador} display={p.cliente?.fone ?? telefoneComprador} />
+                    </div>
+                  )}
+                  {celularComprador && celularComprador !== telefoneComprador && (
+                    <CopyPhoneButton number={celularComprador} display={`Celular: ${p.cliente?.celular}`} />
+                  )}
+                </div>
+              )}
+
+              {p.cliente?.email && (
+                <p className="text-xs text-gray-400 mt-2">{p.cliente.email}</p>
+              )}
+            </Section>
+
+            <Divider />
+          </>
+        )}
+
+        {/* ── Destinatário ── */}
+        <Section label="Destinatário">
+          <p className="font-semibold text-gray-900 mb-0.5">
+            {destinatario ?? p.cliente?.nome}
+          </p>
+          {mesmaPessoa && (
+            <p className="text-xs text-gray-400 mb-1">Mesmo que o comprador</p>
+          )}
+          {endereco?.fone && (
+            <CopyPhoneButton number={fmt(endereco.fone)} display={endereco.fone} />
+          )}
+        </Section>
+
+        <Divider />
+
+        {/* ── Endereço de entrega ── */}
+        <Section label="Endereço de entrega">
+          <div className="bg-gray-50 rounded-xl px-3 py-2 space-y-0.5">
+            <p className="text-sm font-medium text-gray-900">
+              {endereco?.endereco}, {endereco?.numero}
+              {endereco?.complemento ? ` — ${endereco.complemento}` : ''}
+            </p>
+            <p className="text-sm text-gray-600">{endereco?.bairro}</p>
+            <p className="text-xs text-gray-400">CEP {endereco?.cep}</p>
+            <p className="text-xs text-gray-400">{endereco?.cidade} / {endereco?.uf}</p>
+          </div>
+          {hideBuyer && endereco && (() => {
+            const addr = [
+              endereco.endereco,
+              endereco.numero,
+              endereco.complemento,
+              endereco.bairro,
+              endereco.cidade,
+              endereco.uf,
+            ].filter(Boolean).join(', ')
+            const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes`
+            const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(addr)}`
+            return (
+              <div className="flex gap-2 mt-3">
+                <a
+                  href={wazeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 text-center text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl transition-colors"
+                >
+                  Abrir no Waze
+                </a>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 text-center text-sm font-semibold bg-gray-700 hover:bg-gray-800 text-white py-2.5 rounded-xl transition-colors"
+                >
+                  Abrir no Maps
+                </a>
+              </div>
+            )
+          })()}
+        </Section>
+
+        {/* ── Observações ── */}
+        {obsUsuario && (
+          <>
+            <Divider />
+            <Section label="Observações">
+              <p className="text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2.5 leading-relaxed whitespace-pre-line">
+                {obsUsuario}
+              </p>
+            </Section>
+          </>
+        )}
+
+        <Divider />
+
+        {/* ── Produtos ── */}
+        {p.itens && p.itens.length > 0 && (
+          <Section label="Produtos">
+            <div className="space-y-2">
+              {p.itens.map((i, idx) => (
+                <div key={idx} className="bg-gray-50 rounded-xl px-3 py-2.5">
+                  <p className="text-sm font-semibold text-gray-900">{i.item.descricao}</p>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-xs text-gray-400">
+                      {i.item.codigo ? `SKU ${i.item.codigo} · ` : ''}
+                      {i.item.quantidade} {i.item.unidade ?? 'un'}
+                    </span>
+                    {!hidePrices && (
+                      <span className="text-sm font-medium text-gray-700">
+                        R$ {i.item.valor_total ?? i.item.valor_unitario}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* ── Mensagem do cartão ── */}
+        {(!hideCardMessage && cardMessage) && (
+          <>
+            <Divider />
+            <Section label="Mensagem do cartão">
+              <p className="text-sm text-pink-900 italic bg-pink-50 rounded-xl px-3 py-2.5 leading-relaxed">
+                {cardMessage}
+              </p>
+            </Section>
+          </>
+        )}
+
+        {/* ── Financeiro ── */}
+        {!hidePrices && (
+          <>
+            <Divider />
+            <Section label="Financeiro">
+              <div className="bg-gray-50 rounded-xl px-3 py-1">
+                {p.valor_frete && <Row label="Frete" value={`R$ ${p.valor_frete}`} />}
+                {p.valor_total && (
+                  <div className="flex justify-between gap-4 pt-2 mt-1 border-t border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">Total</span>
+                    <span className="text-base font-bold text-gray-900">R$ {p.valor_total}</span>
+                  </div>
+                )}
+              </div>
+            </Section>
+          </>
+        )}
+      </div>
+
+      {action && (
+        <div className="flex-none border-t border-gray-100 px-5 py-4">
+          {action(p)}
+        </div>
+      )}
+    </>
+  )
+}
+
+export default function OrderDrawer({ pedidoId, onClose, action, hideBuyer, hidePrices, hideCardMessage }: Props) {
+  const [pedido, setPedido] = useState<TinyPedidoCompleto | null>(null)
+  const [erro, setErro] = useState('')
+
+  useEffect(() => {
+    setPedido(null)
+    setErro('')
+    fetch(`/api/admin/orders/${pedidoId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.pedido) setPedido(data.pedido)
+        else setErro(data.error ?? 'Erro ao carregar pedido')
+      })
+      .catch(() => setErro('Erro de conexão'))
+  }, [pedidoId])
+
+  return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
@@ -117,14 +383,14 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
           </div>
           <div className="px-5 pb-3 pt-3 flex items-center justify-between border-b border-gray-100">
             <div>
-              <span className="text-3xl font-bold font-mono text-gray-900">#{p.numero}</span>
-              {p.numero_ecommerce && (
-                <p className="text-xs text-gray-400 mt-0.5">Ref: {p.numero_ecommerce}</p>
+              <span className="text-3xl font-bold font-mono text-gray-900">#{pedidoId}</span>
+              {pedido?.numero_ecommerce && (
+                <p className="text-xs text-gray-400 mt-0.5">Ref: {pedido.numero_ecommerce}</p>
               )}
             </div>
             <div className="flex items-center gap-2">
               <a
-                href={`/print/${p.id}`}
+                href={`/print/${pedidoId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
@@ -143,230 +409,21 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
           </div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-          {/* ── Situação + datas + entrega ── */}
-          <Section label="Pedido">
-            {/* Status + data do pedido */}
-            <div className="flex items-center justify-between gap-3 mb-4">
-              {(() => {
-                const badge = STATUS_BADGE[p.situacao?.toLowerCase().replace(/\s+/g, '_') ?? '']
-                return (
-                  <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${badge?.cls ?? 'bg-gray-100 text-gray-600'}`}>
-                    {badge?.label ?? p.situacao}
-                  </span>
-                )
-              })()}
-              {p.data_pedido && (
-                <span className="text-xs text-gray-400 shrink-0">{p.data_pedido}</span>
-              )}
-            </div>
-
-            {/* Entrega prevista — destaque */}
-            {(p.data_prevista || liData?.scheduledDelivery || p.forma_frete) && (
-              <div className="bg-gray-50 rounded-xl px-3 py-3 mb-4">
-                <p className="text-xs text-gray-400 mb-0.5">Entrega prevista</p>
-                {(p.data_prevista || liData?.scheduledDelivery) && (
-                  <p className="text-xl font-bold text-gray-900">
-                    {liData?.scheduledDelivery ?? p.data_prevista}
-                  </p>
-                )}
-                {p.forma_frete && (
-                  <p className="text-xs text-gray-500 mt-0.5">{p.forma_frete}</p>
-                )}
-              </div>
-            )}
-
-            {/* Dados de entrega */}
-            {(motoboy || entregueEm || recebidoPor) && (
-              <>
-                <Divider />
-                <div className="bg-gray-50 rounded-xl px-3 py-1 mt-4">
-                  <Row label="Motoboy" value={motoboy} />
-                  {entregueEm && (
-                    <div className="flex justify-between gap-4 py-1.5 border-b border-gray-50 last:border-0">
-                      <span className="text-xs text-gray-400 shrink-0">Entregue em</span>
-                      <span className="text-sm font-semibold text-gray-900 text-right">{entregueEm}</span>
-                    </div>
-                  )}
-                  <Row label="Recebido por" value={recebidoPor} />
-                </div>
-              </>
-            )}
-          </Section>
-
-          <Divider />
-
-          {/* ── Comprador ── */}
-          {!hideBuyer && (
-            <>
-              <Section label="Comprador">
-                <p className="font-semibold text-gray-900 mb-1">{p.cliente?.nome}</p>
-
-                {(telefoneComprador || celularComprador) && (
-                  <div className="space-y-2">
-                    {telefoneComprador && (
-                      <div className="flex gap-2">
-                        <a
-                          href={`https://wa.me/55${telefoneComprador}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 text-center text-sm font-semibold bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl transition-colors"
-                        >
-                          WhatsApp
-                        </a>
-                        <CopyPhoneButton number={telefoneComprador} display={p.cliente?.fone ?? telefoneComprador} />
-                      </div>
-                    )}
-                    {celularComprador && celularComprador !== telefoneComprador && (
-                      <CopyPhoneButton number={celularComprador} display={`Celular: ${p.cliente?.celular}`} />
-                    )}
-                  </div>
-                )}
-
-                {p.cliente?.email && (
-                  <p className="text-xs text-gray-400 mt-2">{p.cliente.email}</p>
-                )}
-              </Section>
-
-              <Divider />
-            </>
-          )}
-
-          {/* ── Destinatário ── */}
-          <Section label="Destinatário">
-            <p className="font-semibold text-gray-900 mb-0.5">
-              {destinatario ?? p.cliente?.nome}
-            </p>
-            {mesmaPessoa && (
-              <p className="text-xs text-gray-400 mb-1">Mesmo que o comprador</p>
-            )}
-            {endereco?.fone && (
-              <CopyPhoneButton number={fmt(endereco.fone)} display={endereco.fone} />
-            )}
-          </Section>
-
-          <Divider />
-
-          {/* ── Endereço de entrega ── */}
-          <Section label="Endereço de entrega">
-            <div className="bg-gray-50 rounded-xl px-3 py-2 space-y-0.5">
-              <p className="text-sm font-medium text-gray-900">
-                {endereco?.endereco}, {endereco?.numero}
-                {endereco?.complemento ? ` — ${endereco.complemento}` : ''}
-              </p>
-              <p className="text-sm text-gray-600">{endereco?.bairro}</p>
-              <p className="text-xs text-gray-400">CEP {endereco?.cep}</p>
-              <p className="text-xs text-gray-400">{endereco?.cidade} / {endereco?.uf}</p>
-            </div>
-            {hideBuyer && endereco && (() => {
-              const addr = [
-                endereco.endereco,
-                endereco.numero,
-                endereco.complemento,
-                endereco.bairro,
-                endereco.cidade,
-                endereco.uf,
-              ].filter(Boolean).join(', ')
-              const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes`
-              const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(addr)}`
-              return (
-                <div className="flex gap-2 mt-3">
-                  <a
-                    href={wazeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 text-center text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl transition-colors"
-                  >
-                    Abrir no Waze
-                  </a>
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 text-center text-sm font-semibold bg-gray-700 hover:bg-gray-800 text-white py-2.5 rounded-xl transition-colors"
-                  >
-                    Abrir no Maps
-                  </a>
-                </div>
-              )
-            })()}
-          </Section>
-
-          {/* ── Observações ── */}
-          {obsUsuario && (
-            <>
-              <Divider />
-              <Section label="Observações">
-                <p className="text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2.5 leading-relaxed whitespace-pre-line">
-                  {obsUsuario}
-                </p>
-              </Section>
-            </>
-          )}
-
-          <Divider />
-
-          {/* ── Produtos ── */}
-          {p.itens && p.itens.length > 0 && (
-            <Section label="Produtos">
-              <div className="space-y-2">
-                {p.itens.map((i, idx) => (
-                  <div key={idx} className="bg-gray-50 rounded-xl px-3 py-2.5">
-                    <p className="text-sm font-semibold text-gray-900">{i.item.descricao}</p>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs text-gray-400">
-                        {i.item.codigo ? `SKU ${i.item.codigo} · ` : ''}
-                        {i.item.quantidade} {i.item.unidade ?? 'un'}
-                      </span>
-                      {!hidePrices && (
-                        <span className="text-sm font-medium text-gray-700">
-                          R$ {i.item.valor_total ?? i.item.valor_unitario}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Section>
-          )}
-
-          {/* ── Mensagem do cartão ── */}
-          {(!hideCardMessage && cardMessage) && (
-            <>
-              <Divider />
-              <Section label="Mensagem do cartão">
-                <p className="text-sm text-pink-900 italic bg-pink-50 rounded-xl px-3 py-2.5 leading-relaxed">
-                  {cardMessage}
-                </p>
-              </Section>
-            </>
-          )}
-
-          {/* ── Financeiro ── */}
-          {!hidePrices && (
-            <>
-              <Divider />
-              <Section label="Financeiro">
-                <div className="bg-gray-50 rounded-xl px-3 py-1">
-                  {p.valor_frete && <Row label="Frete" value={`R$ ${p.valor_frete}`} />}
-                  {p.valor_total && (
-                    <div className="flex justify-between gap-4 pt-2 mt-1 border-t border-gray-200">
-                      <span className="text-sm font-semibold text-gray-700">Total</span>
-                      <span className="text-base font-bold text-gray-900">R$ {p.valor_total}</span>
-                    </div>
-                  )}
-                </div>
-              </Section>
-            </>
-          )}
-        </div>
-
-        {/* Fixed footer */}
-        {action && (
-          <div className="flex-none border-t border-gray-100 px-5 py-4">
-            {action}
+        {/* Content */}
+        {erro ? (
+          <div className="flex-1 flex items-center justify-center px-5">
+            <p className="text-sm text-red-600">{erro}</p>
           </div>
+        ) : !pedido ? (
+          <LoadingSkeleton />
+        ) : (
+          <PedidoContent
+            p={pedido}
+            hideBuyer={hideBuyer}
+            hidePrices={hidePrices}
+            hideCardMessage={hideCardMessage}
+            action={action}
+          />
         )}
       </div>
     </div>

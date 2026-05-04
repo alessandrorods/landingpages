@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { TinyPedidoCompleto } from '@/lib/olist/types'
+import type { TinyPedidoResumo } from '@/lib/olist/types'
 
 const POLL_INTERVAL = 60_000
 
 export function useOrders(situacao: string) {
-  const [pedidos, setPedidos] = useState<TinyPedidoCompleto[]>([])
+  const [pedidos, setPedidos] = useState<TinyPedidoResumo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)

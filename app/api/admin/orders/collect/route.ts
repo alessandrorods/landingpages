@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(tag, 'coleta registrada com sucesso', { obs, obsGravada: alterarRes.retorno?.status === 'OK' })
-    return NextResponse.json({ ok: true, numero: pedido.numero })
+    return NextResponse.json({ ok: true, id: pedido.id, numero: pedido.numero })
   } catch (err) {
     console.error(tag, 'erro inesperado', err)
     return NextResponse.json({ error: 'Erro interno ao processar coleta' }, { status: 500 })

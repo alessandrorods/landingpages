@@ -5,14 +5,9 @@ import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
-import type { TinyPedidoCompleto } from '@/lib/olist/types'
+import type { TinyPedidoResumo, TinyPedidoCompleto } from '@/lib/olist/types'
 
-function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }) {
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
-  const destinatario = endereco?.nome_destinatario
-  const mesmaPessoa = !destinatario || destinatario === p.cliente?.nome
-
+function PedidoCard({ p, onOpen }: { p: TinyPedidoResumo; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
@@ -22,22 +17,14 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
         <span className="text-2xl font-bold font-mono text-gray-900 bg-pink-50 px-3 py-1 rounded-xl leading-none">
           #{p.numero}
         </span>
-        {p.obs_interna && (
-          <span className="text-xs bg-pink-100 text-pink-700 font-semibold px-2 py-0.5 rounded-full">
-            Tem mensagem
-          </span>
+        {p.data_prevista && (
+          <span className="text-xs text-gray-400 font-medium">{p.data_prevista}</span>
         )}
       </div>
 
-      <p className="font-semibold text-gray-900">{produto}</p>
-      <p className="text-sm text-gray-500 mt-0.5">
-        {mesmaPessoa ? p.cliente?.nome : `Para: ${destinatario}`}
-      </p>
+      <p className="font-semibold text-gray-900">{p.nome}</p>
 
-      <div className="flex items-center justify-between mt-2">
-        {p.data_prevista && (
-          <p className="text-xs text-gray-400">Entrega: {p.data_prevista}</p>
-        )}
+      <div className="flex justify-end mt-2">
         <span className="text-xs text-pink-600 font-semibold">Montar ›</span>
       </div>
     </button>
@@ -100,7 +87,7 @@ function MontadoAction({
 
 export default function FloristaPage() {
   const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('aprovado')
-  const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
+  const [aberto, setAberto] = useState<TinyPedidoResumo | null>(null)
   const [removidos, setRemovidos] = useState<Set<number>>(new Set())
 
   const visiveis = pedidos.filter((p) => !removidos.has(p.id))
@@ -138,9 +125,9 @@ export default function FloristaPage() {
 
       {aberto && (
         <OrderDrawer
-          pedido={aberto}
+          pedidoId={aberto.id}
           onClose={() => setAberto(null)}
-          action={<MontadoAction p={aberto} onMontado={remover} />}
+          action={(p) => <MontadoAction p={p} onMontado={remover} />}
         />
       )}
     </div>
