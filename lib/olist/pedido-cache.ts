@@ -9,6 +9,6 @@ export function obterPedidoCached(id: number) {
       return client.obterPedido(id)
     },
     [`pedido-${id}`],
-    { revalidate: 120, tags: [`pedido-${id}`] },
+    { revalidate: 600, tags: [`pedido-${id}`] },
   )()
 }
