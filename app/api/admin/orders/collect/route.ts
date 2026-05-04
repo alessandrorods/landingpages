@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createOlistClient } from '@/lib/olist/client'
+import { obterPedidoCached } from '@/lib/olist/pedido-cache'
 import { getRequestRole } from '@/lib/admin/auth'
 
 function fmtDate(d: Date): string {
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const detalhe = await client.obterPedido(pedido.id)
+    const detalhe = await obterPedidoCached(pedido.id)
     const obsAtual = detalhe.retorno?.pedido?.obs
 
     const ourSection = `Saiu para entrega: ${fmtDate(new Date())}\nMotoboy: ${motoboy.trim()}`
@@ -113,6 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: erros || 'Erro ao atualizar situação' }, { status: 422 })
     }
 
+    revalidateTag(`pedido-${pedido.id}`, { expire: 0 })
     console.log(tag, 'coleta registrada com sucesso', { obs, obsGravada: alterarRes.retorno?.status === 'OK' })
     return NextResponse.json({ ok: true, numero: pedido.numero })
   } catch (err) {

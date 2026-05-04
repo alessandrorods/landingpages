@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 import { parseMotoboy, parseRecebidoPor, parseEntregue, parseObsUsuario, isOrderFromLI, parseLIData } from '@/app/admin/lib/parseObs'
 import type { TinyEndereco } from '@/lib/olist/types'
-import { IoPrintOutline } from 'react-icons/io5'
+import { IoPrintOutline, IoRefreshOutline } from 'react-icons/io5'
 
 interface Props {
   pedido: TinyPedidoCompleto
@@ -74,7 +74,23 @@ function CopyPhoneButton({ number, display }: { number: string; display: string 
   )
 }
 
-export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hidePrices, hideCardMessage }: Props) {
+export default function OrderDrawer({ pedido: initialPedido, onClose, action, hideBuyer, hidePrices, hideCardMessage }: Props) {
+  const [p, setP] = useState(initialPedido)
+  const [syncing, setSyncing] = useState(false)
+
+  const sync = useCallback(async () => {
+    setSyncing(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${p.id}`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setP(data.pedido)
+      }
+    } finally {
+      setSyncing(false)
+    }
+  }, [p.id])
+
   const fromLI = isOrderFromLI(p.obs_interna)
   const liData = fromLI ? parseLIData(p.obs_interna) : null
 
@@ -123,6 +139,14 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
               )}
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={sync}
+                disabled={syncing}
+                className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-40"
+                aria-label="Sincronizar pedido"
+              >
+                <IoRefreshOutline size={20} className={syncing ? 'animate-spin' : ''} />
+              </button>
               <a
                 href={`/print/${p.id}`}
                 target="_blank"
