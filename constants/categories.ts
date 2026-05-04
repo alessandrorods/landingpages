@@ -1,10 +1,10 @@
 import type { ProductCategory } from './products.types'
 
-export const CATEGORY_LABELS: Partial<Record<ProductCategory, { label: string; shortLabel: string; emoji: string; image: string; color: string }>> = {
-  flores:    { label: 'Flores do Campo', shortLabel: 'Flores do Campo', emoji: '🌹', image: '/categories/margarida.webp', color: '#b058d3' },
-  plantas:   { label: 'Girassóis', shortLabel: 'Girassóis', emoji: '🌿', image: '/categories/girassol.webp', color: '#cccf0c' },
-  cestas:    { label: 'Café da Manhã', shortLabel: 'Café da Manhã', emoji: '🎁', image: '/categories/cafe-manha.jpg', color: '#835623' },
-  orquideas: { label: 'Orquídeas', shortLabel: 'Orquídeas', emoji: '✨', image: '/categories/orquidea.webp', color: '#7c3aed' },
+export const CATEGORY_LABELS: Partial<Record<ProductCategory, { label: string; shortLabel: string; emoji: string; image: string; color: string; subtitle: string }>> = {
+  flores:    { label: 'Flores do Campo', shortLabel: 'Flores do Campo', emoji: '🌹', image: '/categories/margarida.webp', color: '#b058d3', subtitle: 'Buquês e arranjos frescos para emocionar no Dia das Mães' },
+  plantas:   { label: 'Girassóis',       shortLabel: 'Girassóis',       emoji: '🌿', image: '/categories/girassol.webp',  color: '#cccf0c', subtitle: 'Plantas que ficam muito além do Dia das Mães' },
+  cestas:    { label: 'Café da Manhã',   shortLabel: 'Café da Manhã',   emoji: '🎁', image: '/categories/cafe-manha.jpg', color: '#835623', subtitle: 'Cestas e kits para mimar com muito carinho' },
+  orquideas: { label: 'Orquídeas',       shortLabel: 'Orquídeas',       emoji: '✨', image: '/categories/orquidea.webp',  color: '#7c3aed', subtitle: 'Elegância que dura meses — o presente inesquecível' },
 }
 
 export const CATEGORY_GRADIENT: Partial<Record<ProductCategory, string>> = {

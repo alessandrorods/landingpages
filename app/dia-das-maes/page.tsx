@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { PRODUCTS, CATEGORY_LABELS, ProductCategory } from '@/constants/products'
 import HeroSection from './components/HeroSection'
+import BestSellersSection from './components/BestSellersSection'
 import TrustBar from './components/TrustBar'
 import FilterTabs from './components/FilterTabs'
 import ProductGrid from './components/ProductGrid'
@@ -11,7 +12,7 @@ import type { AnalyticsItem } from '@/lib/analytics'
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://floramundoplanta.com.br'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://l.floramundoplanta.com.br'
 const PAGE_URL = `${SITE_URL}/dia-das-maes`
 const OG_IMAGE = `${SITE_URL}/og/dia-das-maes.jpg`
 
@@ -58,6 +59,10 @@ export const metadata: Metadata = {
   },
 }
 
+function formatBRL(n: number) {
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const VALID_CATEGORIES = Object.keys(CATEGORY_LABELS) as ProductCategory[]
@@ -101,6 +106,7 @@ export default async function DiaDasMaesPage({
       </header>
 
       <HeroSection />
+      <BestSellersSection />
 
       <section id="produtos" className="scroll-mt-16">
         <div className="sticky top-16 z-40 shadow-sm">
@@ -108,12 +114,31 @@ export default async function DiaDasMaesPage({
         </div>
 
         <div className="max-w-5xl mx-auto px-4 pt-8 text-center">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1">
-            Escolha o presente perfeito 🌸
-          </h2>
-          <p className="text-gray-400 text-sm">
-            A partir de <strong className="text-gray-600">R$ 59,90</strong> · entrega garantida até 10 de Maio
-          </p>
+          {activeCategory && CATEGORY_LABELS[activeCategory] ? (
+            <>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1">
+                {CATEGORY_LABELS[activeCategory]!.label} {CATEGORY_LABELS[activeCategory]!.emoji}
+              </h2>
+              <p className="text-gray-400 text-sm">
+                {CATEGORY_LABELS[activeCategory]!.subtitle}
+                {' '}·{' '}
+                <strong className="text-gray-600">entrega garantida até 10 de Maio</strong>
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1">
+                Escolha o presente perfeito 🌸
+              </h2>
+              <p className="text-gray-400 text-sm">
+                A partir de{' '}
+                <strong className="text-gray-600">
+                  {formatBRL(Math.min(...filteredProducts.map(p => p.price)))}
+                </strong>
+                {' '}· entrega garantida até 10 de Maio
+              </p>
+            </>
+          )}
         </div>
 
         <ProductGrid products={filteredProducts} activeCategory={activeCategory} />

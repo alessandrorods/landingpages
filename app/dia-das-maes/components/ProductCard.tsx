@@ -58,7 +58,7 @@ export default function ProductCard({ product }: { product: Product }) {
               {product.badges.slice(0, 2).map((badge) => (
                 <span
                   key={badge}
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full leading-tight ${BADGE_CONFIG[badge].className}`}
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full leading-tight ${BADGE_CONFIG[badge].className}`}
                 >
                   {BADGE_CONFIG[badge].label}
                 </span>
@@ -87,7 +87,7 @@ export default function ProductCard({ product }: { product: Product }) {
             {product.originalPrice && (
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="text-xs text-gray-400 line-through">{formatPrice(product.originalPrice)}</span>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                <span className="text-[12px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
                   -{discountPct(product.originalPrice, product.price)}%
                 </span>
               </div>
@@ -111,6 +111,90 @@ export default function ProductCard({ product }: { product: Product }) {
       {modalOpen && (
         <ProductModal product={product} onClose={() => setModalOpen(false)} />
       )}
+    </>
+  )
+}
+
+// ─── Horizontal card ──────────────────────────────────────────────────────────
+
+export function HorizontalProductCard({ product }: { product: Product }) {
+  const gradient = CATEGORY_GRADIENT[product.category] ?? 'from-gray-100 to-gray-200'
+  const { emoji } = CATEGORY_LABELS[product.category] ?? { emoji: '🎁' }
+  const lowStock = product.stockCount !== undefined && product.stockCount <= 10
+  const [modalOpen, setModalOpen] = useState(false)
+
+  return (
+    <>
+      <div className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-row h-36 group hover:shadow-md transition-shadow cursor-pointer">
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          aria-label={`Ver detalhes de ${product.name}`}
+          className="absolute inset-0 z-10 rounded-2xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1E7439]"
+        />
+
+        {/* Image — left */}
+        <div className={`relative bg-gradient-to-br ${gradient} w-32 flex-shrink-0 overflow-hidden`}>
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-cover group-hover:scale-[1.04] transition-transform duration-300"
+              sizes="128px"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-4xl select-none">
+              {emoji}
+            </div>
+          )}
+          {lowStock && (
+            <div className="absolute bottom-0 left-0 right-0 bg-red-600/90 text-white text-[9px] text-center py-0.5 font-semibold">
+              ⚠️ {product.stockCount} un.
+            </div>
+          )}
+        </div>
+
+        {/* Content — right */}
+        <div className="p-3 flex flex-col justify-between flex-1 min-w-0">
+          <div>
+            {product.badges[0] && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full inline-block mb-1 leading-tight ${BADGE_CONFIG[product.badges[0]].className}`}>
+                {BADGE_CONFIG[product.badges[0]].label}
+              </span>
+            )}
+            <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 group-hover:text-[#1E7439] transition-colors">
+              {product.name}
+            </h3>
+          </div>
+
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              {product.originalPrice && (
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-400 line-through">{formatPrice(product.originalPrice)}</span>
+                  <span className="text-[12px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded-full">
+                    -{discountPct(product.originalPrice, product.price)}%
+                  </span>
+                </div>
+              )}
+              <span className="text-lg font-extrabold text-gray-900">{formatPrice(product.price)}</span>
+            </div>
+            <div className="relative z-20 flex-shrink-0">
+              <BuyButton
+                sku={product.sku}
+                name={product.name}
+                price={product.price}
+                category={product.category}
+                variant="icon"
+              />
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+      {modalOpen && <ProductModal product={product} onClose={() => setModalOpen(false)} />}
     </>
   )
 }
@@ -153,7 +237,7 @@ export function HighlightProductCard({ product }: { product: Product }) {
         />
 
         {/* Badges — top left */}
-        <div className="absolute top-3 left-3 z-20 flex flex-col gap-1">
+        <div className="absolute top-3 left-3 z-20 flex flex-row gap-1">
           <span className="bg-[#1E7439] text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow inline-flex items-center gap-1">
             <FaStar className="text-yellow-300" /> Destaque
           </span>
@@ -172,9 +256,12 @@ export function HighlightProductCard({ product }: { product: Product }) {
 
           <div className="flex items-center justify-between gap-3 mt-2">
             <div className="flex items-baseline gap-2">
-              {product.originalPrice && (
+              {product.originalPrice && (<>
                 <span className="text-xs text-white/60 line-through">{formatPrice(product.originalPrice)}</span>
-              )}
+                <span className="text-[12px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded-full">
+                  -{discountPct(product.originalPrice, product.price)}%
+                </span>
+              </>)}
               <span className="text-2xl font-extrabold drop-shadow-sm">{formatPrice(product.price)}</span>
             </div>
             {/* z-30 keeps BuyButton above the full-card overlay */}
