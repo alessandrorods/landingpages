@@ -50,7 +50,7 @@ export async function PATCH(
       return NextResponse.json({ error: erros || 'Erro ao atualizar' }, { status: 422 })
     }
 
-    revalidateTag(`pedido-${id}`)
+    revalidateTag(`pedido-${id}`, { expire: 0 })
     console.log(tag, 'status atualizado com sucesso')
     return NextResponse.json({ ok: true })
   } catch (err) {

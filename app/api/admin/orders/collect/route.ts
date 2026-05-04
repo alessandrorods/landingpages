@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: erros || 'Erro ao atualizar situação' }, { status: 422 })
     }
 
-    revalidateTag(`pedido-${pedido.id}`)
+    revalidateTag(`pedido-${pedido.id}`, { expire: 0 })
     console.log(tag, 'coleta registrada com sucesso', { obs, obsGravada: alterarRes.retorno?.status === 'OK' })
     return NextResponse.json({ ok: true, numero: pedido.numero })
   } catch (err) {

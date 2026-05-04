@@ -88,7 +88,7 @@ export async function POST(
       return NextResponse.json({ error: erros || 'Erro ao atualizar situação' }, { status: 422 })
     }
 
-    revalidateTag(`pedido-${id}`)
+    revalidateTag(`pedido-${id}`, { expire: 0 })
     console.log(tag, 'entrega registrada', { motoboy, recebidoPor, obs, obsGravada: alterarRes.retorno?.status === 'OK' })
     return NextResponse.json({ ok: true })
   } catch (err) {
