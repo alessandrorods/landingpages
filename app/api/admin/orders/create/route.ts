@@ -57,7 +57,7 @@ function buildPayload(body: PedidoManualBody): TinyPedidoPayload {
       frete_por_conta: FRETE_POR_CONTA,
       forma_envio: 'T',
       ...(formaFrete && { forma_frete: formaFrete }),
-      ...(mensagem && { obs_internas: mensagem }),
+      ...(mensagem && { obs_interna: mensagem }),
       ...(body.obs?.trim() && { obs: body.obs.trim() }),
       cliente: {
         nome: body.comprador.nome,
