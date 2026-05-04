@@ -57,7 +57,7 @@ function buildPayload(body: PedidoManualBody): TinyPedidoPayload {
       frete_por_conta: FRETE_POR_CONTA,
       forma_envio: 'T',
       ...(formaFrete && { forma_frete: formaFrete }),
-      ...(mensagem && { obs_interna: mensagem }),
+      ...(mensagem && { obs_internas: mensagem }),
       ...(body.obs?.trim() && { obs: body.obs.trim() }),
       cliente: {
         nome: body.comprador.nome,
@@ -149,16 +149,6 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof OlistClientError) return Response.json({ error: err.message }, { status: 502 })
     throw err
-  }
-
-  // pedido.incluir.php não persiste obs_interna — definir via alterar
-  const mensagemCartao = body.destinatario.mensagemCartao?.trim() ?? ''
-  if (mensagemCartao) {
-    try {
-      await olistClient.alterarPedido(pedidoId, { obs_interna: mensagemCartao })
-    } catch (err) {
-      console.error('[orders/create] falha ao definir obs_interna', { pedidoId, err })
-    }
   }
 
   // PIX / cartão → aprovar imediatamente

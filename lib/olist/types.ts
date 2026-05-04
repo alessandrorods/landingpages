@@ -8,7 +8,7 @@ export interface TinyPedidoPayload {
     frete_por_conta: string
     forma_frete?: string
     obs?: string
-    obs_interna?: string
+    obs_internas?: string
     forma_envio: string
     cliente: {
       nome: string
