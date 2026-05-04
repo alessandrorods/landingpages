@@ -292,8 +292,8 @@ export default function ExpedicaoPage() {
     entregues.refresh()
   }, [prontos, enviados, entregues])
 
-  const prontosFiltrados  = prontos.pedidos.filter((p) => isToday(p.data_prevista))
-  const enviadosFiltrados  = enviados.pedidos.filter((p) => isToday(p.data_prevista))
+  const prontosFiltrados   = prontos.pedidos
+  const enviadosFiltrados  = enviados.pedidos
   const entreguesFiltrados = entregues.pedidos.filter((p) => isToday(p.data_prevista))
 
   const total = prontosFiltrados.length + enviadosFiltrados.length + entreguesFiltrados.length
@@ -326,7 +326,7 @@ export default function ExpedicaoPage() {
       )}
 
       {vazio && (
-        <EmptyState icon="📦" message="Nenhum pedido no dia atual" />
+        <EmptyState icon="📦" message="Nenhum pedido para exibir" />
       )}
 
       {!loading && !error && (
