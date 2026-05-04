@@ -259,6 +259,38 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
               <p className="text-xs text-gray-400">CEP {endereco?.cep}</p>
               <p className="text-xs text-gray-400">{endereco?.cidade} / {endereco?.uf}</p>
             </div>
+            {hideBuyer && endereco && (() => {
+              const addr = [
+                endereco.endereco,
+                endereco.numero,
+                endereco.complemento,
+                endereco.bairro,
+                endereco.cidade,
+                endereco.uf,
+              ].filter(Boolean).join(', ')
+              const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes`
+              const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(addr)}`
+              return (
+                <div className="flex gap-2 mt-3">
+                  <a
+                    href={wazeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl transition-colors"
+                  >
+                    Abrir no Waze
+                  </a>
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center text-sm font-semibold bg-gray-700 hover:bg-gray-800 text-white py-2.5 rounded-xl transition-colors"
+                  >
+                    Abrir no Maps
+                  </a>
+                </div>
+              )
+            })()}
           </Section>
 
           {/* ── Observações ── */}

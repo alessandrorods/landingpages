@@ -151,6 +151,16 @@ export async function POST(request: Request) {
     throw err
   }
 
+  // pedido.incluir.php não persiste obs_interna — definir via alterar
+  const mensagemCartao = body.destinatario.mensagemCartao?.trim() ?? ''
+  if (mensagemCartao) {
+    try {
+      await olistClient.alterarPedido(pedidoId, { obs_interna: mensagemCartao })
+    } catch (err) {
+      console.error('[orders/create] falha ao definir obs_interna', { pedidoId, err })
+    }
+  }
+
   // PIX / cartão → aprovar imediatamente
   if (body.pagamento !== 'link_mp') {
     try {
