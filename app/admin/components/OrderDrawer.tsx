@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
-import { parseMotoboy, parseRecebidoPor, parseEntregue, parseObsUsuario } from '@/app/admin/lib/parseObs'
+import { parseMotoboy, parseRecebidoPor, parseEntregue, parseObsUsuario, isOrderFromLI, parseLIData } from '@/app/admin/lib/parseObs'
+import type { TinyEndereco } from '@/lib/olist/types'
+import { IoPrintOutline } from 'react-icons/io5'
 
 interface Props {
   pedido: TinyPedidoCompleto
@@ -72,12 +74,29 @@ function CopyPhoneButton({ number, display }: { number: string; display: string 
 }
 
 export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hidePrices }: Props) {
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
-  const destinatario = endereco?.nome_destinatario
+  const fromLI = isOrderFromLI(p.obs_interna)
+  const liData = fromLI ? parseLIData(p.obs_interna) : null
+
+  const clienteEndereco: TinyEndereco | undefined = fromLI && p.cliente.endereco
+    ? {
+        nome_destinatario: liData?.recipientName ?? '',
+        endereco: p.cliente.endereco ?? '',
+        numero: p.cliente.numero ?? '',
+        complemento: p.cliente.complemento,
+        bairro: p.cliente.bairro ?? '',
+        cep: p.cliente.cep ?? '',
+        cidade: p.cliente.cidade ?? '',
+        uf: p.cliente.uf ?? '',
+      }
+    : undefined
+
+  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega ?? clienteEndereco
+  const destinatario = fromLI ? liData?.recipientName : endereco?.nome_destinatario
   const mesmaPessoa = !destinatario || destinatario === p.cliente?.nome
   const telefoneComprador = p.cliente?.fone ? fmt(p.cliente.fone) : ''
   const celularComprador = p.cliente?.celular ? fmt(p.cliente.celular) : ''
-  const obsUsuario = parseObsUsuario(p.obs)
+  const obsUsuario = fromLI ? liData?.observations : parseObsUsuario(p.obs)
+  const cardMessage = fromLI ? liData?.cardMessage : p.obs_interna
   const motoboy = parseMotoboy(p.obs)
   const recebidoPor = parseRecebidoPor(p.obs)
   const entregueEm = parseEntregue(p.obs)
@@ -102,13 +121,24 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
                 <p className="text-xs text-gray-400 mt-0.5">Ref: {p.numero_ecommerce}</p>
               )}
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 text-2xl leading-none p-1"
-              aria-label="Fechar"
-            >
-              ×
-            </button>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/print/${p.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Imprimir pedido"
+              >
+                <IoPrintOutline size={20} />
+              </a>
+              <button
+                onClick={onClose}
+                className="text-gray-400 text-2xl leading-none p-1"
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
           </div>
         </div>
 
@@ -132,11 +162,13 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
             </div>
 
             {/* Entrega prevista — destaque */}
-            {(p.data_prevista || p.forma_frete) && (
+            {(p.data_prevista || liData?.scheduledDelivery || p.forma_frete) && (
               <div className="bg-gray-50 rounded-xl px-3 py-3 mb-4">
                 <p className="text-xs text-gray-400 mb-0.5">Entrega prevista</p>
-                {p.data_prevista && (
-                  <p className="text-xl font-bold text-gray-900">{p.data_prevista}</p>
+                {(p.data_prevista || liData?.scheduledDelivery) && (
+                  <p className="text-xl font-bold text-gray-900">
+                    {liData?.scheduledDelivery ?? p.data_prevista}
+                  </p>
                 )}
                 {p.forma_frete && (
                   <p className="text-xs text-gray-500 mt-0.5">{p.forma_frete}</p>
@@ -267,12 +299,12 @@ export default function OrderDrawer({ pedido: p, onClose, action, hideBuyer, hid
           )}
 
           {/* ── Mensagem do cartão ── */}
-          {p.obs_internas && (
+          {cardMessage && (
             <>
               <Divider />
               <Section label="Mensagem do cartão">
                 <p className="text-sm text-pink-900 italic bg-pink-50 rounded-xl px-3 py-2.5 leading-relaxed">
-                  {p.obs_internas}
+                  {cardMessage}
                 </p>
               </Section>
             </>

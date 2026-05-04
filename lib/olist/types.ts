@@ -8,7 +8,7 @@ export interface TinyPedidoPayload {
     frete_por_conta: string
     forma_frete?: string
     obs?: string
-    obs_internas?: string
+    obs_interna?: string
     forma_envio: string
     cliente: {
       nome: string
@@ -80,6 +80,14 @@ export interface TinyPedidoCliente {
   fone: string
   celular?: string
   email?: string
+  // Present in LI orders (address comes via cliente, not endereco_entrega)
+  endereco?: string
+  numero?: string
+  complemento?: string
+  bairro?: string
+  cidade?: string
+  uf?: string
+  cep?: string
 }
 
 export interface TinyEndereco {
@@ -113,8 +121,10 @@ export interface TinyPedidoCompleto {
   data_pedido?: string
   data_prevista?: string
   obs?: string
+  obs_interna?: string  // used by Loja Integrada; contains delivery data + card message
   obs_internas?: string
   forma_frete?: string
+  nome_transportador?: string
   valor_frete?: string
   valor_total?: string
   cliente: TinyPedidoCliente
