@@ -2,6 +2,7 @@ import { headers } from 'next/headers'
 import AdminHeader from './AdminHeader'
 import type { Role } from '@/lib/admin/auth'
 
+export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Operacional | Mundo Planta', robots: { index: false } }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
