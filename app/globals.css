@@ -43,3 +43,6 @@ body {
 .animate-modal-slide-up  { animation: modal-slide-up  0.32s cubic-bezier(0.32, 0.72, 0, 1) both; }
 .animate-modal-scale-in  { animation: modal-scale-in  0.22s ease-out both; }
 .animate-modal-backdrop  { animation: modal-backdrop-in 0.2s ease-out both; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
