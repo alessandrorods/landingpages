@@ -5,7 +5,7 @@ export type ProductBadge =
   | 'novidade'
   | 'oferta'
 
-export type ProductCategory = 'flores' | 'plantas' | 'cestas' | 'presentes' | 'orquideas' 
+export type ProductCategory = 'flores' | 'girassois' | 'cafe-da-manha' | 'chocolates' | 'presentes' | 'orquideas' 
 
 export interface Product {
   id: string
