@@ -55,6 +55,27 @@ export const PRODUCTS: Product[] = [
     inStock: true,
     stockCount: 12,
   },
+  {
+    id: 'AR15',
+    sku: 'AR15',
+    name: 'Arranjo Mix Vermelho e Rosé em Cachepo de Madeira com Balão e Pelúcia',
+    shortDescription: 'Rosas vermelhas e cor de rosa, para encantar',
+    description: 'Rosas vermelhas e cor de rosa, para encantar',
+    price: 144.90,
+    originalPrice: 159.90,
+    image: 'https://cdn.awsli.com.br/600x700/399/399569/produto/182942135/1-7ny3ga2rvf.png',
+    images: [
+      'https://cdn.awsli.com.br/600x700/399/399569/produto/182942135/1-cbrdxh1yim.png',
+      'https://cdn.awsli.com.br/600x700/399/399569/produto/182942135/7-9sbuco44oa.png',
+      'https://cdn.awsli.com.br/600x700/399/399569/produto/182942135/9-0kicu8hm24.png',
+      'https://cdn.awsli.com.br/600x700/399/399569/produto/182942135/5-napmjhjlio.png'
+    ],
+    category: 'flores',
+    badges: ['oferta', 'exclusivo'],
+    isHighlight: false,
+    inStock: true,
+    stockCount: 12,
+  },
 
   // ── GIRASSÓIS ───────────────────────────────────────────────────────────────
   {
