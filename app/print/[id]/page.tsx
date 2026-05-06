@@ -75,7 +75,7 @@ export default function PrintPage() {
       const [msg] = part?.split('------------------') ?? []
       setGreetingMessage(msg?.trim() ?? null)
     } else {
-      setGreetingMessage(order.obs_internas ?? null)
+      setGreetingMessage(order.obs_interna || order.obs_internas || null)
     }
 
     const retrier = setInterval(() => {
