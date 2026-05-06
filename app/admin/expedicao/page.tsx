@@ -201,11 +201,6 @@ function PedidoResumoCard({ r, onOpen }: { r: TinyPedidoResumo; onOpen: () => vo
         <span className="text-xl font-bold font-mono text-gray-900 bg-blue-50 px-3 py-1 rounded-xl leading-none">
           #{r.numero}
         </span>
-        {r.valor && (
-          <span className="text-sm font-semibold text-gray-700">
-            R$ {parseFloat(r.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </span>
-        )}
       </div>
 
       <p className="font-semibold text-gray-900 truncate">{r.nome}</p>
@@ -330,24 +325,31 @@ export default function ExpedicaoPage() {
   const [drawerPedidoId, setDrawerPedidoId] = useState<number | null>(null)
   const [openSection, setOpenSection] = useState<string>('pronto_envio')
 
+  function filtrar(resumos: typeof prontoEnvio.resumos) {
+    return resumos.filter((r) => r.nome !== 'Consumidor Final')
+  }
+
   const colunas = [
     {
       key: 'pronto_envio',
       titulo: 'Pronto para envio',
       cor: 'bg-blue-100 text-blue-700',
       ...prontoEnvio,
+      resumos: filtrar(prontoEnvio.resumos),
     },
     {
       key: 'enviado',
       titulo: 'Enviado',
       cor: 'bg-orange-100 text-orange-700',
       ...enviado,
+      resumos: filtrar(enviado.resumos),
     },
     {
       key: 'entregue',
       titulo: 'Entregue',
       cor: 'bg-green-100 text-green-800',
       ...entregue,
+      resumos: filtrar(entregue.resumos),
     },
   ]
 
