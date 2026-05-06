@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   const session = await createSession(role as Role)
 
-  const res = NextResponse.json({ ok: true, role })
+  const res = NextResponse.json({ ok: true, role, token: session })
   res.cookies.set(COOKIE_NAME, session, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

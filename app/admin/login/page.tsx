@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Role } from '@/lib/admin/auth'
 
@@ -20,12 +20,49 @@ const REDIRECT: Record<Role, string> = {
   admin: '/admin',
 }
 
+export const LS_KEY = '_dq_session'
+
+export type StoredSession = { token: string; role: Role; expiresAt: number }
+
 export default function LoginPage() {
   const router = useRouter()
   const [role, setRole] = useState<Role>('vendas')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [restoring, setRestoring] = useState(true)
+
+  useEffect(() => {
+    async function tryRestore() {
+      try {
+        const raw = localStorage.getItem(LS_KEY)
+        if (!raw) return
+        const session: StoredSession = JSON.parse(raw)
+        if (!session.token || !session.role || session.expiresAt < Date.now()) {
+          localStorage.removeItem(LS_KEY)
+          return
+        }
+        const res = await fetch('/api/admin/auth/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: session.token }),
+        })
+        if (res.ok) {
+          // Refresh expiry on each restore so active users stay logged in
+          const updated: StoredSession = { ...session, expiresAt: Date.now() + 8 * 60 * 60 * 1000 }
+          localStorage.setItem(LS_KEY, JSON.stringify(updated))
+          router.replace(REDIRECT[session.role])
+        } else {
+          localStorage.removeItem(LS_KEY)
+        }
+      } catch {
+        // ignore — show login form normally
+      } finally {
+        setRestoring(false)
+      }
+    }
+    tryRestore()
+  }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,10 +74,18 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role, password }),
       })
+      const data = await res.json()
       if (!res.ok) {
-        const data = await res.json()
         setError(data.error ?? 'Erro ao entrar')
         return
+      }
+      if (data.token) {
+        const session: StoredSession = {
+          token: data.token,
+          role,
+          expiresAt: Date.now() + 8 * 60 * 60 * 1000,
+        }
+        localStorage.setItem(LS_KEY, JSON.stringify(session))
       }
       router.push(REDIRECT[role])
     } catch {
@@ -48,6 +93,14 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (restoring) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+        <p className="text-2xl">🌿</p>
+      </div>
+    )
   }
 
   return (

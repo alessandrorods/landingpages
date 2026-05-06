@@ -9,6 +9,7 @@ export default function AdminHeader({ role }: { role: Role }) {
 
   async function logout() {
     await fetch('/api/admin/logout', { method: 'POST' })
+    localStorage.removeItem('_dq_session')
     router.push('/admin/login')
   }
 
