@@ -63,7 +63,16 @@ export async function middleware(request: NextRequest) {
 
   const headers = new Headers(request.headers)
   headers.set('x-admin-role', role)
-  return NextResponse.next({ request: { headers } })
+  const res = NextResponse.next({ request: { headers } })
+  // Sliding window: renew the cookie on every authenticated request
+  res.cookies.set(COOKIE_NAME, cookieValue, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 8,
+    path: '/',
+  })
+  return res
 }
 
 export const config = {

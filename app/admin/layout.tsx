@@ -8,7 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const role = (await headers()).get('x-admin-role') as Role | null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 [color-scheme:light]">
       {role && <AdminHeader role={role} />}
       <main className="max-w-2xl mx-auto px-4 pb-24 pt-4">{children}</main>
     </div>
