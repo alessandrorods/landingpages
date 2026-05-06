@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Suspense } from 'react'
+import { headers } from 'next/headers'
 import './globals.css'
 import AnalyticsScripts from '@/app/components/AnalyticsScripts'
 import RouteChangeTracker from '@/app/components/RouteChangeTracker'
@@ -21,15 +22,18 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.png' },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const skipAnalytics = (await headers()).get('x-skip-analytics') === '1'
+
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <AnalyticsScripts />
-        {/* Suspense obrigatório pelo useSearchParams dentro de RouteChangeTracker */}
-        <Suspense fallback={null}>
-          <RouteChangeTracker />
-        </Suspense>
+        {!skipAnalytics && <AnalyticsScripts />}
+        {!skipAnalytics && (
+          <Suspense fallback={null}>
+            <RouteChangeTracker />
+          </Suspense>
+        )}
         {children}
       </body>
     </html>

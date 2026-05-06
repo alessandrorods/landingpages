@@ -25,6 +25,23 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Force light mode in admin — prevents dark-mode UA styles from bleeding into inputs */
+.admin-root {
+  color-scheme: light;
+}
+
+.admin-root input,
+.admin-root select,
+.admin-root textarea {
+  color: #111827;
+  background-color: #ffffff;
+}
+
+.admin-root input::placeholder,
+.admin-root textarea::placeholder {
+  color: #9ca3af;
+}
+
 @keyframes modal-slide-up {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }

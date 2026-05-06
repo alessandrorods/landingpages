@@ -41,7 +41,13 @@ const PUBLIC_PATHS = ['/admin/login', '/api/admin/auth', '/api/admin/logout']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) return NextResponse.next()
+  // All routes reaching this middleware are admin/print — never track them
+  const baseHeaders = new Headers(request.headers)
+  baseHeaders.set('x-skip-analytics', '1')
+
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next({ request: { headers: baseHeaders } })
+  }
 
   const cookieValue = request.cookies.get(COOKIE_NAME)?.value
   if (!cookieValue) {
@@ -61,7 +67,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const headers = new Headers(request.headers)
+  const headers = baseHeaders
   headers.set('x-admin-role', role)
   const res = NextResponse.next({ request: { headers } })
   // Sliding window: renew the cookie on every authenticated request

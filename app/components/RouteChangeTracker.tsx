@@ -20,6 +20,8 @@ export default function RouteChangeTracker() {
       return
     }
 
+    if (pathname.startsWith('/admin') || pathname.startsWith('/print')) return
+
     const qs  = searchParams.toString()
     const url = pathname + (qs ? `?${qs}` : '')
 
