@@ -9,6 +9,16 @@ export interface TinyPedidoPayload {
     forma_frete?: string
     obs?: string
     obs_internas?: string
+    forma_pagamento?: string
+    parcelas?: Array<{
+      parcela: {
+        dias: number
+        data: string
+        valor: number
+        forma_pagamento: string
+        meio_pagamento: string
+      }
+    }>
     forma_envio: string
     cliente: {
       nome: string

@@ -44,9 +44,18 @@ function getEnv(key: string): string {
   return value
 }
 
+const FORMA_PAGAMENTO: Record<FormaPagamento, string> = {
+  pix: 'pix',
+  cartao: 'credito',
+  link_mp: 'credito',
+}
+
 function buildPayload(body: PedidoManualBody): TinyPedidoPayload {
   const formaFrete = PERIODOS_ENTREGA.find((p) => p.id === body.endereco.periodoEntrega)?.idOlist
   const mensagem = body.destinatario.mensagemCartao?.trim() ?? ''
+  const formaPag = FORMA_PAGAMENTO[body.pagamento]
+  const total = body.itens.reduce((s, i) => s + i.preco * i.quantidade, 0) + body.frete
+  const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
 
   return {
     pedido: {
@@ -59,6 +68,16 @@ function buildPayload(body: PedidoManualBody): TinyPedidoPayload {
       ...(formaFrete && { forma_frete: formaFrete }),
       ...(mensagem && { obs_internas: mensagem }),
       ...(body.obs?.trim() && { obs: body.obs.trim() }),
+      forma_pagamento: formaPag,
+      parcelas: [{
+        parcela: {
+          dias: 0,
+          data: hoje,
+          valor: total,
+          forma_pagamento: formaPag,
+          meio_pagamento: 'Mercado Pago (PJ) ⭐',
+        },
+      }],
       cliente: {
         nome: body.comprador.nome,
         fone: body.comprador.telefone,
