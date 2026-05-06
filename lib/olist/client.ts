@@ -76,11 +76,15 @@ export function createOlistClient(token: string) {
     atualizarSituacaoPedido: (id: number, situacao: SituacaoPedido) =>
       post<TinyResponse>('pedido.alterar.situacao', { id: String(id), situacao }),
 
-    buscarPedidos: (situacao: SituacaoPedido, dataInicial?: string) =>
-      post<TinyPedidosResponse>('pedidos.pesquisa.php', {
+    buscarPedidos: (situacao: SituacaoPedido, opts?: { dataInicial?: string; dataAtualizacao?: string } | string) => {
+      // Accept legacy string (dataInicial) or new options object
+      const options = typeof opts === 'string' ? { dataInicial: opts } : (opts ?? {})
+      return post<TinyPedidosResponse>('pedidos.pesquisa.php', {
         situacao,
-        ...(dataInicial && { dataInicial }),
-      }),
+        ...(options.dataInicial    && { dataInicial:    options.dataInicial }),
+        ...(options.dataAtualizacao && { dataAtualizacao: options.dataAtualizacao }),
+      })
+    },
 
     buscarPedidoPorNumero: (numero: string) =>
       post<TinyPedidosResponse>('pedidos.pesquisa.php', { numero }),
