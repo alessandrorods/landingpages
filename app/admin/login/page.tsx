@@ -97,14 +97,14 @@ export default function LoginPage() {
 
   if (restoring) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+      <div className="min-h-screen bg-gray-50 [color-scheme:light] flex flex-col items-center justify-center px-4">
         <p className="text-2xl">🌿</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 [color-scheme:light] flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <p className="text-3xl mb-2">🌿</p>
