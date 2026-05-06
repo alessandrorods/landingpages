@@ -151,6 +151,16 @@ export async function POST(request: Request) {
     throw err
   }
 
+  // pedido.incluir.php does not persist obs_interna — use pedido.alterar.php to set it
+  const cardMessage = body.destinatario.mensagemCartao?.trim()
+  if (cardMessage) {
+    try {
+      await olistClient.alterarPedido(pedidoId, { obs_interna: cardMessage })
+    } catch (err) {
+      console.error('[orders/create] falha ao gravar mensagem do cartão', { pedidoId, err })
+    }
+  }
+
   // PIX / cartão → aprovar imediatamente
   if (body.pagamento !== 'link_mp') {
     try {
