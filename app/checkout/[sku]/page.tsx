@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PRODUCTS } from '@/constants/products'
 import CheckoutForm from '../CheckoutForm'
+import HotjarInit from '@/app/components/HotjarInit'
 
 export const metadata: Metadata = {
   title: 'Finalizar Pedido',
@@ -18,6 +19,7 @@ export default async function CheckoutPage({
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
+      <HotjarInit />
       <header className="bg-[#1E7439]">
         <div className="max-w-4xl mx-auto px-5 py-3 flex items-center justify-between">
         <img src="/logo-mp.png" alt="Mundo Planta" className="h-10 w-auto" />

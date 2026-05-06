@@ -8,6 +8,7 @@ import ProductGrid from './components/ProductGrid'
 import FooterCTA from './components/FooterCTA'
 import JsonLd from './components/JsonLd'
 import PageViewEvents from './components/PageViewEvents'
+import HotjarInit from '@/app/components/HotjarInit'
 import type { AnalyticsItem } from '@/lib/analytics'
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
@@ -94,6 +95,8 @@ export default async function DiaDasMaesPage({
     <main className="min-h-screen bg-white">
       {/* JSON-LD — renderizado no <head> via position no DOM do server component */}
       <JsonLd products={filteredProducts} />
+
+      <HotjarInit />
 
       {/* Dispara view_item_list assim que o cliente monta */}
       <PageViewEvents items={ga4Items} />
