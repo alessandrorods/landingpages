@@ -1,15 +1,17 @@
 'use client'
 
-import { useState } from 'react'
-import { useOrders } from '@/app/admin/components/useOrders'
-import StatusBar from '@/app/admin/components/StatusBar'
-import EmptyState from '@/app/admin/components/EmptyState'
+import { useState, useEffect } from 'react'
+import { useOrdersSummary } from '@/app/admin/components/useOrdersSummary'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
-import type { TinyPedidoCompleto } from '@/lib/olist/types'
-
+import type { TinyPedidoCompleto, TinyPedidoResumo } from '@/lib/olist/types'
 import { parseMotoboy } from '@/app/admin/lib/parseObs'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function todayFormatted(): string {
+  const d = new Date()
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
 
 const STATUS_LABEL: Record<string, string> = {
   aberto: 'Aguardando pagamento',
@@ -139,32 +141,77 @@ function BuscaPedido() {
   )
 }
 
-// ── Card da lista ─────────────────────────────────────────────────────────────
+// ── OrderDrawerLoader ─────────────────────────────────────────────────────────
 
-function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }) {
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
+function OrderDrawerLoader({ id, onClose }: { id: number; onClose: () => void }) {
+  const [pedido, setPedido] = useState<TinyPedidoCompleto | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
 
+  useEffect(() => {
+    fetch(`/api/admin/orders/${id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.pedido) setPedido(data.pedido)
+        else setErr(data.error ?? 'Pedido não encontrado')
+      })
+      .catch(() => setErr('Erro de conexão'))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-xl">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-500">Carregando pedido…</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (err || !pedido) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-xl max-w-xs text-center">
+          <p className="text-sm text-red-600">{err || 'Pedido não encontrado'}</p>
+          <button
+            onClick={onClose}
+            className="text-sm text-blue-600 font-semibold underline"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <OrderDrawer pedido={pedido} onClose={onClose} />
+}
+
+// ── Card de resumo ────────────────────────────────────────────────────────────
+
+function PedidoResumoCard({ r, onOpen }: { r: TinyPedidoResumo; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
       className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
     >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-2xl font-bold font-mono text-gray-900 bg-blue-50 px-3 py-1 rounded-xl leading-none">
-          #{p.numero}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xl font-bold font-mono text-gray-900 bg-blue-50 px-3 py-1 rounded-xl leading-none">
+          #{r.numero}
         </span>
+        {r.valor && (
+          <span className="text-sm font-semibold text-gray-700">
+            R$ {parseFloat(r.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </span>
+        )}
       </div>
 
-      <p className="font-semibold text-gray-900">
-        {endereco?.nome_destinatario ?? p.cliente?.nome}
-      </p>
-      <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
+      <p className="font-semibold text-gray-900 truncate">{r.nome}</p>
 
-      {endereco?.bairro && (
-        <p className="text-xs text-gray-400 mt-2 bg-gray-50 rounded-lg px-2 py-1 inline-block">
-          {endereco.bairro}
-        </p>
+      {r.data_prevista && (
+        <p className="text-xs text-gray-400 mt-1">Entrega: {r.data_prevista}</p>
       )}
 
       <div className="flex justify-end mt-2">
@@ -174,25 +221,135 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
   )
 }
 
-// ── Agrupamento ───────────────────────────────────────────────────────────────
+// ── Coluna ────────────────────────────────────────────────────────────────────
 
-function groupByPeriodo(pedidos: TinyPedidoCompleto[]): [string, TinyPedidoCompleto[]][] {
-  const map = new Map<string, TinyPedidoCompleto[]>()
-  for (const p of pedidos) {
-    const key = p.forma_frete?.trim() || 'Sem período'
-    if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(p)
-  }
-  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+interface ColunaProps {
+  titulo: string
+  cor: string
+  resumos: TinyPedidoResumo[]
+  loading: boolean
+  error: string
+  lastUpdate: Date | null
+  nextRefreshAt: number | null
+  onRefresh: () => void
+  onOpenPedido: (id: number) => void
+}
+
+function Coluna({ titulo, cor, resumos, loading, error, onOpenPedido }: ColunaProps) {
+  return (
+    <div className="flex flex-col min-w-0">
+      <div className={`flex items-center gap-2 mb-3 px-1`}>
+        <h2 className="text-sm font-bold text-gray-800">{titulo}</h2>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cor}`}>
+          {loading ? '…' : resumos.length}
+        </span>
+      </div>
+
+      {loading && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-24" />
+          ))}
+        </div>
+      )}
+
+      {!loading && error && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>
+      )}
+
+      {!loading && !error && resumos.length === 0 && (
+        <p className="text-sm text-gray-400 text-center py-8">Nenhum pedido</p>
+      )}
+
+      {!loading && resumos.map((r) => (
+        <PedidoResumoCard key={r.id} r={r} onOpen={() => onOpenPedido(r.id)} />
+      ))}
+    </div>
+  )
+}
+
+// ── Accordion (mobile) ────────────────────────────────────────────────────────
+
+interface AccordionSectionProps extends ColunaProps {
+  open: boolean
+  onToggle: () => void
+}
+
+function AccordionSection({ titulo, cor, resumos, loading, error, onOpenPedido, open, onToggle }: AccordionSectionProps) {
+  return (
+    <div className="border border-gray-100 rounded-2xl bg-white shadow-sm mb-3 overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3"
+      >
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-sm text-gray-800">{titulo}</span>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cor}`}>
+            {loading ? '…' : resumos.length}
+          </span>
+        </div>
+        <span className="text-gray-400 text-lg leading-none">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4">
+          {loading && (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-gray-50 rounded-2xl border border-gray-100 p-4 animate-pulse h-20" />
+              ))}
+            </div>
+          )}
+
+          {!loading && error && (
+            <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>
+          )}
+
+          {!loading && !error && resumos.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">Nenhum pedido</p>
+          )}
+
+          {!loading && resumos.map((r) => (
+            <PedidoResumoCard key={r.id} r={r} onOpen={() => onOpenPedido(r.id)} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ExpedicaoPage() {
-  const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('pronto_envio')
-  const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
+  const today = todayFormatted()
 
-  const grupos = groupByPeriodo(pedidos)
+  const prontoEnvio = useOrdersSummary('pronto_envio')
+  const enviado = useOrdersSummary('enviado')
+  const entregue = useOrdersSummary('entregue', today)
+
+  const [drawerPedidoId, setDrawerPedidoId] = useState<number | null>(null)
+  const [openSection, setOpenSection] = useState<string>('pronto_envio')
+
+  const colunas = [
+    {
+      key: 'pronto_envio',
+      titulo: 'Pronto para envio',
+      cor: 'bg-blue-100 text-blue-700',
+      ...prontoEnvio,
+    },
+    {
+      key: 'enviado',
+      titulo: 'Enviado',
+      cor: 'bg-orange-100 text-orange-700',
+      ...enviado,
+    },
+    {
+      key: 'entregue',
+      titulo: 'Entregue',
+      cor: 'bg-green-100 text-green-800',
+      ...entregue,
+    },
+  ]
 
   return (
     <div>
@@ -200,46 +357,46 @@ export default function ExpedicaoPage() {
 
       <BuscaPedido />
 
-      <StatusBar
-        count={pedidos.length}
-        lastUpdate={lastUpdate}
-        nextRefreshAt={nextRefreshAt}
-        onRefresh={refresh}
-        loading={loading}
-      />
+      {/* Desktop: 3 colunas */}
+      <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4">
+        {colunas.map((col) => (
+          <Coluna
+            key={col.key}
+            titulo={col.titulo}
+            cor={col.cor}
+            resumos={col.resumos}
+            loading={col.loading}
+            error={col.error}
+            lastUpdate={col.lastUpdate}
+            nextRefreshAt={col.nextRefreshAt}
+            onRefresh={col.refresh}
+            onOpenPedido={setDrawerPedidoId}
+          />
+        ))}
+      </div>
 
-      {loading && (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-28" />
-          ))}
-        </div>
-      )}
+      {/* Mobile: accordion */}
+      <div className="lg:hidden">
+        {colunas.map((col) => (
+          <AccordionSection
+            key={col.key}
+            titulo={col.titulo}
+            cor={col.cor}
+            resumos={col.resumos}
+            loading={col.loading}
+            error={col.error}
+            lastUpdate={col.lastUpdate}
+            nextRefreshAt={col.nextRefreshAt}
+            onRefresh={col.refresh}
+            onOpenPedido={setDrawerPedidoId}
+            open={openSection === col.key}
+            onToggle={() => setOpenSection(openSection === col.key ? '' : col.key)}
+          />
+        ))}
+      </div>
 
-      {!loading && error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-xl p-4">{error}</p>
-      )}
-
-      {!loading && !error && pedidos.length === 0 && (
-        <EmptyState icon="📦" message="Nenhum pedido pronto para expedição" />
-      )}
-
-      {!loading && grupos.map(([periodo, itens]) => (
-        <div key={periodo} className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">{periodo}</h2>
-            <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
-              {itens.length}
-            </span>
-          </div>
-          {itens.map((p) => (
-            <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
-          ))}
-        </div>
-      ))}
-
-      {aberto && (
-        <OrderDrawer pedido={aberto} onClose={() => setAberto(null)} />
+      {drawerPedidoId !== null && (
+        <OrderDrawerLoader id={drawerPedidoId} onClose={() => setDrawerPedidoId(null)} />
       )}
     </div>
   )
