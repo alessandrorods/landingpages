@@ -5,11 +5,16 @@ import { obterPedidoCached } from '@/lib/olist/pedido-cache'
 import { getRequestRole } from '@/lib/admin/auth'
 
 function fmtDate(d: Date): string {
-  const dd = String(d.getDate()).padStart(2, '0')
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${dd}/${mm} ${hh}:${min}`
+  const parts = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d)
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00'
+  return `${get('day')}/${get('month')} ${get('hour')}:${get('minute')}`
 }
 
 const DIVISOR = '\n---\n'
