@@ -199,16 +199,25 @@ function ListaItens({ itens, onUpdatePreco, onUpdateQtd, onRemover }: {
 
 // ── Sucesso ───────────────────────────────────────────────────────────────────
 
-function Sucesso({ numero, linkPagamento, telefone, onNovo }: {
-  numero: string; linkPagamento?: string; telefone: string; onNovo: () => void
+function Sucesso({ id, numero, linkPagamento, telefone, onNovo }: {
+  id: number; numero: string; linkPagamento?: string; telefone: string; onNovo: () => void
 }) {
   const [copiado, setCopiado] = useState(false)
+  const [copiadoConfirmacao, setCopiadoConfirmacao] = useState(false)
 
   function copiar() {
     if (!linkPagamento) return
     navigator.clipboard.writeText(linkPagamento).then(() => {
       setCopiado(true)
       setTimeout(() => setCopiado(false), 2500)
+    })
+  }
+
+  function copiarConfirmacao() {
+    const msg = `Obrigado por sua compra!\n\n➡️ O número do seu pedido é *${numero}*\n\nAcompanhe seu pedido pelo link abaixo:\nhttps://florapp.com.br/tracking/${id}`
+    navigator.clipboard.writeText(msg).then(() => {
+      setCopiadoConfirmacao(true)
+      setTimeout(() => setCopiadoConfirmacao(false), 2500)
     })
   }
 
@@ -245,6 +254,12 @@ function Sucesso({ numero, linkPagamento, telefone, onNovo }: {
           </div>
         </div>
       )}
+      <button
+        onClick={copiarConfirmacao}
+        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 rounded-xl text-sm transition-colors"
+      >
+        {copiadoConfirmacao ? '✓ Copiado!' : 'Copiar mensagem de confirmação'}
+      </button>
       <button
         onClick={onNovo}
         className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3.5 rounded-xl text-sm transition-colors"
@@ -292,7 +307,7 @@ export default function NovoPedidoPage() {
   // submit
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
-  const [resultado, setResultado] = useState<{ numero: string; linkPagamento?: string } | null>(null)
+  const [resultado, setResultado] = useState<{ id: number; numero: string; linkPagamento?: string } | null>(null)
 
   const topRef = useRef<HTMLDivElement>(null)
 
@@ -391,7 +406,7 @@ export default function NovoPedidoPage() {
       })
       const data = await res.json()
       if (!res.ok) { setErro(data.error ?? 'Erro ao criar pedido'); return }
-      setResultado({ numero: data.numero, linkPagamento: data.linkPagamento })
+      setResultado({ id: data.id, numero: data.numero, linkPagamento: data.linkPagamento })
     } catch {
       setErro('Erro de conexão')
     } finally {
@@ -403,7 +418,7 @@ export default function NovoPedidoPage() {
     return (
       <div>
         <h1 className="text-xl font-bold text-gray-900 mb-4">Novo Pedido</h1>
-        <Sucesso numero={resultado.numero} linkPagamento={resultado.linkPagamento} telefone={comprTel} onNovo={resetar} />
+        <Sucesso id={resultado.id} numero={resultado.numero} linkPagamento={resultado.linkPagamento} telefone={comprTel} onNovo={resetar} />
       </div>
     )
   }
