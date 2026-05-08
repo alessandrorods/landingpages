@@ -303,7 +303,7 @@ export default function MotoboyPage() {
   )
 
   function remover(pedido: TinyPedidoCompleto) {
-    const nova = salvarEntregue(motoboy, pedido)
+    const nova = salvarEntregue(motoboy!, pedido)
     setEntregues(nova)
     setAberto(null)
     setRemovidos((prev) => new Set([...prev, pedido.id]))
