@@ -8,9 +8,10 @@ function extractField(obs: string | undefined, field: string): string | null {
   return section.match(new RegExp(`^${field}:\\s*(.+)$`, 'm'))?.[1]?.trim() ?? null
 }
 
-export const parseMotoboy    = (obs?: string) => extractField(obs, 'Motoboy')
+export const parseMotoboy     = (obs?: string) => extractField(obs, 'Motoboy')
 export const parseRecebidoPor = (obs?: string) => extractField(obs, 'Recebido por')
-export const parseEntregue   = (obs?: string) => extractField(obs, 'Entregue')
+export const parseEntregue    = (obs?: string) => extractField(obs, 'Entregue')
+export const parseSaiu        = (obs?: string) => extractField(obs, 'Saiu para entrega')
 
 export function parseObsUsuario(obs?: string): string | null {
   if (!obs) return null

@@ -74,12 +74,13 @@ export async function POST(
 
     const detalhe = await obterPedidoCached(Number(id))
     const obsAtual = detalhe.retorno?.pedido?.obs
+    const dataPrevista = detalhe.retorno?.pedido?.data_prevista
 
     const ourSection = `Entregue: ${fmtDate(new Date())}\nMotoboy: ${motoboy.trim()}\nRecebido por: ${recebidoPor.trim()}`
     const obs = buildObs(obsAtual, ourSection)
 
     const [alterarRes, situacaoRes] = await Promise.all([
-      client.alterarPedido(Number(id), { obs }),
+      client.alterarPedido(Number(id), { obs, ...(dataPrevista && { data_prevista: dataPrevista }) }),
       client.atualizarSituacaoPedido(Number(id), 'entregue'),
     ])
 

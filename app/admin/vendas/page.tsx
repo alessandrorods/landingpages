@@ -182,6 +182,7 @@ export default function VendasPage() {
           pedido={aberto}
           onClose={() => setAberto(null)}
           action={tab === 'recuperar' ? <RecuperarAction p={aberto} /> : undefined}
+          showConfirmationCopy={tab === 'pagos'}
         />
       )}
     </div>
