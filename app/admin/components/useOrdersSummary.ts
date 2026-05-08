@@ -27,7 +27,16 @@ export function useOrdersSummary(situacao: string, dataAtualizacao?: string) {
       const res = await fetch(`/api/admin/orders?${params}`, { signal: controller.signal })
       if (!res.ok) throw new Error('Erro ao carregar')
       const data = await res.json()
-      setResumos(data.resumos ?? [])
+      const toSortKey = (d: string | undefined) => {
+        if (!d) return ''
+        const [dd, mm, yyyy] = d.split('/')
+        return `${yyyy}${mm}${dd}`
+      }
+      const sorted = (data.resumos ?? [] as TinyPedidoResumo[]).slice().sort(
+        (a: TinyPedidoResumo, b: TinyPedidoResumo) =>
+          toSortKey(a.data_prevista).localeCompare(toSortKey(b.data_prevista)),
+      )
+      setResumos(sorted)
       setLastUpdate(new Date())
       setError('')
     } catch (err) {
