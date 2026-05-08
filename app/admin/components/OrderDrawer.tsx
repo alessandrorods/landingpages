@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
 import { parseMotoboy, parseRecebidoPor, parseEntregue, parseSaiu, parseObsUsuario, isOrderFromLI, parseLIData } from '@/app/admin/lib/parseObs'
 import type { TinyEndereco } from '@/lib/olist/types'
-import { IoPrintOutline, IoRefreshOutline } from 'react-icons/io5'
+import { IoPrintOutline, IoRefreshOutline, IoCopyOutline, IoCheckmarkOutline } from 'react-icons/io5'
 
 interface Props {
   pedido: TinyPedidoCompleto
@@ -13,6 +13,7 @@ interface Props {
   hideBuyer?: boolean
   hidePrices?: boolean
   hideCardMessage?: boolean
+  showConfirmationCopy?: boolean
 }
 
 function fmt(phone: string) {
@@ -74,9 +75,18 @@ function CopyPhoneButton({ number, display }: { number: string; display: string 
   )
 }
 
-export default function OrderDrawer({ pedido: initialPedido, onClose, action, hideBuyer, hidePrices, hideCardMessage }: Props) {
+export default function OrderDrawer({ pedido: initialPedido, onClose, action, hideBuyer, hidePrices, hideCardMessage, showConfirmationCopy }: Props) {
   const [p, setP] = useState(initialPedido)
   const [syncing, setSyncing] = useState(false)
+  const [copiedConfirmation, setCopiedConfirmation] = useState(false)
+
+  function copyConfirmation() {
+    const msg = `Obrigado por sua compra!\n\n➡️ O número do seu pedido é *${p.numero}*\n\nAcompanhe seu pedido pelo link abaixo:\nhttps://florapp.com.br/tracking/${p.id}`
+    navigator.clipboard.writeText(msg).then(() => {
+      setCopiedConfirmation(true)
+      setTimeout(() => setCopiedConfirmation(false), 2000)
+    })
+  }
 
   const sync = useCallback(async () => {
     setSyncing(true)
@@ -148,6 +158,15 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
               >
                 <IoRefreshOutline size={20} className={syncing ? 'animate-spin' : ''} />
               </button>
+              {showConfirmationCopy && (
+                <button
+                  onClick={copyConfirmation}
+                  className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  aria-label="Copiar mensagem de confirmação"
+                >
+                  {copiedConfirmation ? <IoCheckmarkOutline size={20} className="text-green-500" /> : <IoCopyOutline size={20} />}
+                </button>
+              )}
               <a
                 href={`/print/${p.id}`}
                 target="_blank"
