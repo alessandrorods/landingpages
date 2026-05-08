@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
-import { parseMotoboy, parseRecebidoPor, parseEntregue, parseObsUsuario, isOrderFromLI, parseLIData } from '@/app/admin/lib/parseObs'
+import { parseMotoboy, parseRecebidoPor, parseEntregue, parseSaiu, parseObsUsuario, isOrderFromLI, parseLIData } from '@/app/admin/lib/parseObs'
 import type { TinyEndereco } from '@/lib/olist/types'
 import { IoPrintOutline, IoRefreshOutline } from 'react-icons/io5'
 
@@ -117,6 +117,7 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
   const motoboy = parseMotoboy(p.obs)
   const recebidoPor = parseRecebidoPor(p.obs)
   const entregueEm = parseEntregue(p.obs)
+  const saiuEm = parseSaiu(p.obs)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
@@ -201,12 +202,18 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
               </div>
             )}
 
-            {/* Dados de entrega */}
-            {(motoboy || entregueEm || recebidoPor) && (
+            {/* Dados de envio/entrega */}
+            {(motoboy || saiuEm || entregueEm || recebidoPor) && (
               <>
                 <Divider />
                 <div className="bg-gray-50 rounded-xl px-3 py-1 mt-4">
                   <Row label="Motoboy" value={motoboy} />
+                  {saiuEm && (
+                    <div className="flex justify-between gap-4 py-1.5 border-b border-gray-50 last:border-0">
+                      <span className="text-xs text-gray-400 shrink-0">Saiu para entrega em</span>
+                      <span className="text-sm text-gray-900 text-right">{saiuEm}</span>
+                    </div>
+                  )}
                   {entregueEm && (
                     <div className="flex justify-between gap-4 py-1.5 border-b border-gray-50 last:border-0">
                       <span className="text-xs text-gray-400 shrink-0">Entregue em</span>
