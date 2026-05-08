@@ -27,7 +27,16 @@ export function useOrders(situacao: string) {
       })
       if (!res.ok) throw new Error('Erro ao carregar')
       const data = await res.json()
-      setPedidos(data.pedidos ?? [])
+      const toSortKey = (d: string | undefined) => {
+        if (!d) return ''
+        const [dd, mm, yyyy] = d.split('/')
+        return `${yyyy}${mm}${dd}`
+      }
+      const sorted = (data.pedidos ?? [] as TinyPedidoCompleto[]).slice().sort(
+        (a: TinyPedidoCompleto, b: TinyPedidoCompleto) =>
+          toSortKey(a.data_prevista).localeCompare(toSortKey(b.data_prevista)),
+      )
+      setPedidos(sorted)
       setLastUpdate(new Date())
       setError('')
     } catch (err) {
