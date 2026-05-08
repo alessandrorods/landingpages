@@ -182,7 +182,7 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
                 )
               })()}
               {p.data_pedido && (
-                <span className="text-xs text-gray-400 shrink-0">{p.data_pedido}</span>
+                <span className="text-xs text-gray-400 shrink-0">Criado em: {p.data_pedido}</span>
               )}
             </div>
 
