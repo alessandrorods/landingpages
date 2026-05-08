@@ -7,6 +7,7 @@ import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import { parseMotoboy } from '@/app/admin/lib/parseObs'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
+import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 const STORAGE_KEY = 'motoboy_nome'
 
@@ -209,13 +210,11 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
       onClick={onOpen}
       className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2 mb-3">
         <span className="text-2xl font-bold font-mono text-gray-900 bg-orange-50 px-3 py-1 rounded-xl leading-none">
           #{p.numero}
         </span>
-        {p.data_prevista && (
-          <span className="text-xs text-gray-500 font-medium">{p.data_prevista}</span>
-        )}
+        <DeliveryLabel data={p.data_prevista} />
       </div>
 
       <p className="font-semibold text-gray-900">

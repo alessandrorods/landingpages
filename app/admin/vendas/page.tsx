@@ -7,6 +7,7 @@ import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
+import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 type Tab = 'pagos' | 'recuperar'
 
@@ -40,9 +41,12 @@ function PedidoCard({
     >
       {/* número em destaque */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-2xl font-bold font-mono text-gray-900 bg-gray-100 px-3 py-1 rounded-xl leading-none">
-          #{p.numero}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-bold font-mono text-gray-900 bg-gray-100 px-3 py-1 rounded-xl leading-none">
+            #{p.numero}
+          </span>
+          <DeliveryLabel data={p.data_prevista} />
+        </div>
         <span
           className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
             variant === 'pagos'
@@ -58,9 +62,6 @@ function PedidoCard({
       <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
 
       <div className="flex items-center justify-between mt-2">
-        {p.data_prevista && (
-          <p className="text-xs text-gray-400">Entrega: {p.data_prevista}</p>
-        )}
         {variant === 'recuperar' && phone && (
           <span className="text-xs text-green-700 font-semibold">Tem telefone ›</span>
         )}

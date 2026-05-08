@@ -5,6 +5,7 @@ import { useOrdersSummary } from '@/app/admin/components/useOrdersSummary'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import type { TinyPedidoCompleto, TinyPedidoResumo } from '@/lib/olist/types'
 import { parseMotoboy } from '@/app/admin/lib/parseObs'
+import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -197,17 +198,14 @@ function PedidoResumoCard({ r, onOpen }: { r: TinyPedidoResumo; onOpen: () => vo
       onClick={onOpen}
       className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
     >
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center gap-2 mb-1">
         <span className="text-xl font-bold font-mono text-gray-900 bg-blue-50 px-3 py-1 rounded-xl leading-none">
           #{r.numero}
         </span>
+        <DeliveryLabel data={r.data_prevista} />
       </div>
 
       <p className="font-semibold text-gray-900 truncate">{r.nome}</p>
-
-      {r.data_prevista && (
-        <p className="text-xs text-gray-400 mt-1">Entrega: {r.data_prevista}</p>
-      )}
 
       <div className="flex justify-end mt-2">
         <span className="text-xs text-blue-600 font-semibold">Ver detalhes ›</span>

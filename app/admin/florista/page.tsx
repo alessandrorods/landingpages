@@ -6,6 +6,7 @@ import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
 import type { TinyPedidoCompleto } from '@/lib/olist/types'
+import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }) {
   const produto = p.itens?.[0]?.item?.descricao ?? '—'
@@ -19,9 +20,12 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
       className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-2xl font-bold font-mono text-gray-900 bg-pink-50 px-3 py-1 rounded-xl leading-none">
-          #{p.numero}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-bold font-mono text-gray-900 bg-pink-50 px-3 py-1 rounded-xl leading-none">
+            #{p.numero}
+          </span>
+          <DeliveryLabel data={p.data_prevista} />
+        </div>
         {p.obs_interna && (
           <span className="text-xs bg-pink-100 text-pink-700 font-semibold px-2 py-0.5 rounded-full">
             Tem mensagem
@@ -35,9 +39,6 @@ function PedidoCard({ p, onOpen }: { p: TinyPedidoCompleto; onOpen: () => void }
       </p>
 
       <div className="flex items-center justify-between mt-2">
-        {p.data_prevista && (
-          <p className="text-xs text-gray-400">Entrega: {p.data_prevista}</p>
-        )}
         <span className="text-xs text-pink-600 font-semibold">Montar ›</span>
       </div>
     </button>
