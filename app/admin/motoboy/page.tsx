@@ -11,6 +11,45 @@ import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 const STORAGE_KEY = 'motoboy_nome'
 
+// ── Entregues hoje (localStorage) ─────────────────────────────────────────────
+
+type EntregueSnapshot = {
+  id: number
+  numero: number
+  data_prevista?: string
+  destinatario?: string
+  produto?: string
+}
+
+function entreguesKey(motoboy: string) {
+  const d = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  return `motoboy_entregues_${motoboy}_${d}`
+}
+
+function lerEntregues(motoboy: string): EntregueSnapshot[] {
+  try {
+    return JSON.parse(localStorage.getItem(entreguesKey(motoboy)) ?? '[]')
+  } catch {
+    return []
+  }
+}
+
+function salvarEntregue(motoboy: string, p: TinyPedidoCompleto): EntregueSnapshot[] {
+  const lista = lerEntregues(motoboy)
+  if (lista.some((e) => e.id === p.id)) return lista
+  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
+  const snapshot: EntregueSnapshot = {
+    id: p.id,
+    numero: p.numero,
+    data_prevista: p.data_prevista,
+    destinatario: endereco?.nome_destinatario ?? p.cliente?.nome,
+    produto: p.itens?.[0]?.item?.descricao,
+  }
+  const nova = [...lista, snapshot]
+  localStorage.setItem(entreguesKey(motoboy), JSON.stringify(nova))
+  return nova
+}
+
 // ── Nome setup ────────────────────────────────────────────────────────────────
 
 function NomeSetup({ onSalvar }: { onSalvar: (nome: string) => void }) {
@@ -129,7 +168,7 @@ function EntregaAction({
 }: {
   pedido: TinyPedidoCompleto
   motoboy: string
-  onEntregue: (id: number) => void
+  onEntregue: (pedido: TinyPedidoCompleto) => void
 }) {
   const endereco = pedido.enderecos?.[0]?.endereco ?? pedido.endereco_entrega
   const nomeDefault = endereco?.nome_destinatario ?? pedido.cliente?.nome ?? ''
@@ -155,7 +194,7 @@ function EntregaAction({
         return
       }
       setDone(true)
-      setTimeout(() => onEntregue(pedido.id), 800)
+      setTimeout(() => onEntregue(pedido), 800)
     } catch {
       setErr('Erro de conexão')
     } finally {
@@ -241,10 +280,14 @@ export default function MotoboyPage() {
   const [motoboy, setMotoboy] = useState<string | undefined>(undefined)
   const [aberto, setAberto] = useState<TinyPedidoCompleto | null>(null)
   const [removidos, setRemovidos] = useState<Set<number>>(new Set())
+  const [entregues, setEntregues] = useState<EntregueSnapshot[]>([])
+  const [entreguesAberto, setEntreguesAberto] = useState(false)
   const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('enviado')
 
   useEffect(() => {
-    setMotoboy(localStorage.getItem(STORAGE_KEY) ?? '')
+    const nome = localStorage.getItem(STORAGE_KEY) ?? ''
+    setMotoboy(nome)
+    if (nome) setEntregues(lerEntregues(nome))
   }, [])
 
   if (motoboy === undefined) {
@@ -259,9 +302,11 @@ export default function MotoboyPage() {
     (p) => !removidos.has(p.id) && parseMotoboy(p.obs) === motoboy,
   )
 
-  function remover(id: number) {
+  function remover(pedido: TinyPedidoCompleto) {
+    const nova = salvarEntregue(motoboy, pedido)
+    setEntregues(nova)
     setAberto(null)
-    setRemovidos((prev) => new Set([...prev, id]))
+    setRemovidos((prev) => new Set([...prev, pedido.id]))
   }
 
   return (
@@ -313,6 +358,28 @@ export default function MotoboyPage() {
         visiveis.map((p) => (
           <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
         ))}
+
+      {entregues.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => setEntreguesAberto((v) => !v)}
+            className="w-full flex items-center justify-between py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide"
+          >
+            <span>Entregue hoje ({entregues.length})</span>
+            <span>{entreguesAberto ? '▲' : '▼'}</span>
+          </button>
+          {entreguesAberto && entregues.map((e) => (
+            <div key={e.id} className="bg-gray-50 rounded-2xl p-4 mb-2 opacity-60">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg font-bold font-mono text-gray-500">#{e.numero}</span>
+                {e.data_prevista && <span className="text-xs text-gray-400">{e.data_prevista}</span>}
+              </div>
+              {e.destinatario && <p className="text-sm text-gray-600">{e.destinatario}</p>}
+              {e.produto && <p className="text-xs text-gray-400 mt-0.5">{e.produto}</p>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {aberto && (
         <OrderDrawer
