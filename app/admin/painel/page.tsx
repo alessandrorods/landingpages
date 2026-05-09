@@ -49,9 +49,9 @@ function sortResumos(list: TinyPedidoResumo[]): TinyPedidoResumo[] {
   return [...list].sort((a, b) => toKey(a.data_prevista).localeCompare(toKey(b.data_prevista)))
 }
 
-// ── Busca de pedido ───────────────────────────────────────────────────────────
+// ── Busca de pedido (conteúdo, controlado externamente) ───────────────────────
 
-function BuscaPedido() {
+function BuscaPedidoPanel({ onClose: onClosePanel }: { onClose: () => void }) {
   const [numero, setNumero] = useState('')
   const [loading, setLoading] = useState(false)
   const [pedido, setPedido] = useState<TinyPedidoCompleto | null>(null)
@@ -82,8 +82,11 @@ function BuscaPedido() {
   const situacaoKey = pedido ? normSituacao(pedido.situacao) : ''
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Rastrear pedido</p>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Rastrear pedido</p>
+        <button onClick={onClosePanel} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+      </div>
 
       <form onSubmit={buscar} className="flex gap-2 mb-3">
         <input
@@ -92,13 +95,14 @@ function BuscaPedido() {
           value={numero}
           onChange={(e) => { setNumero(e.target.value); setErr(''); setPedido(null) }}
           placeholder="Nº do pedido"
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+          autoFocus
           required
         />
         <button
           type="submit"
           disabled={loading || !numero.trim()}
-          className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors"
+          className="bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors"
         >
           {loading ? '...' : 'Buscar'}
         </button>
@@ -139,20 +143,24 @@ function BuscaPedido() {
   )
 }
 
-// ── StatusBar global ──────────────────────────────────────────────────────────
+// ── Barra de topo (título + contagem + ações + lupa) ─────────────────────────
 
-function GlobalStatusBar({
+function PainelTopBar({
   count,
   lastUpdate,
   nextRefreshAt,
   onRefresh,
   loading,
+  searchOpen,
+  onToggleSearch,
 }: {
   count: number
   lastUpdate: Date | null
   nextRefreshAt: number | null
   onRefresh: () => void
   loading: boolean
+  searchOpen: boolean
+  onToggleSearch: () => void
 }) {
   const [secs, setSecs] = useState<number | null>(null)
 
@@ -169,22 +177,37 @@ function GlobalStatusBar({
     : null
 
   return (
-    <div className="flex items-center justify-between mb-4">
-      <p className="text-sm text-gray-500">
-        <span className="font-semibold text-gray-800">{count}</span>{' '}
-        {count === 1 ? 'pedido' : 'pedidos'} no total
-        {time && <span className="ml-1 text-gray-400">· atualizado às {time}</span>}
-      </p>
-      <div className="flex items-center gap-2">
-        {secs !== null && <span className="text-xs text-gray-400 tabular-nums">{secs}s</span>}
-        <button
-          onClick={onRefresh}
-          disabled={loading}
-          className="text-sm text-purple-700 font-medium disabled:opacity-40"
-        >
-          {loading ? '...' : '↻ Atualizar'}
-        </button>
-      </div>
+    <div className="flex items-center gap-3 mb-4 flex-wrap">
+      <h1 className="text-xl font-bold text-gray-900 shrink-0">Painel da Operação</h1>
+      <span className="text-sm font-semibold bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full shrink-0">
+        {count} {count === 1 ? 'pedido' : 'pedidos'}
+      </span>
+
+      <div className="flex-1" />
+
+      {secs !== null && (
+        <span className="text-xs text-gray-400 tabular-nums shrink-0">{secs}s</span>
+      )}
+      <button
+        onClick={onRefresh}
+        disabled={loading}
+        className="text-sm text-purple-700 font-medium disabled:opacity-40 shrink-0"
+      >
+        {loading ? '...' : '↻ Atualizar'}
+      </button>
+      {time && (
+        <span className="text-xs text-gray-400 shrink-0">· {time}</span>
+      )}
+      <button
+        onClick={onToggleSearch}
+        aria-label="Buscar pedido"
+        className={`p-1.5 rounded-lg transition-colors shrink-0 ${searchOpen ? 'bg-purple-100 text-purple-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      </button>
     </div>
   )
 }
@@ -530,6 +553,7 @@ export default function PainelPage() {
 
   const [drawerPedidoId, setDrawerPedidoId] = useState<number | null>(null)
   const [openSection, setOpenSection] = useState<string>('aberto')
+  const [searchOpen, setSearchOpen] = useState(false)
 
   // Merge aprovado + preparando_envio for "Pago/Em montagem" column
   const pagoMontandoResumos = sortResumos([...pagoHook.resumos, ...montandoHook.resumos])
@@ -617,19 +641,17 @@ export default function PainelPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-900">Painel da Operação</h1>
-      </div>
-
-      <GlobalStatusBar
+      <PainelTopBar
         count={totalCount}
         lastUpdate={lastUpdate}
         nextRefreshAt={nextRefreshAt}
         onRefresh={refreshAll}
         loading={anyLoading}
+        searchOpen={searchOpen}
+        onToggleSearch={() => setSearchOpen((v) => !v)}
       />
 
-      <BuscaPedido />
+      {searchOpen && <BuscaPedidoPanel onClose={() => setSearchOpen(false)} />}
 
       {/* Desktop: 5 colunas, largura total */}
       <div className="hidden lg:grid lg:grid-cols-5 lg:gap-4">
