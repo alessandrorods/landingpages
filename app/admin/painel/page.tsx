@@ -146,7 +146,9 @@ function BuscaPedidoPanel({ onClose: onClosePanel }: { onClose: () => void }) {
 // ── Barra de topo (título + contagem + ações + lupa) ─────────────────────────
 
 function PainelTopBar({
-  count,
+  totalCount,
+  lojaFisicaCount,
+  onlineCount,
   lastUpdate,
   nextRefreshAt,
   onRefresh,
@@ -154,7 +156,9 @@ function PainelTopBar({
   searchOpen,
   onToggleSearch,
 }: {
-  count: number
+  totalCount: number
+  lojaFisicaCount: number
+  onlineCount: number
   lastUpdate: Date | null
   nextRefreshAt: number | null
   onRefresh: () => void
@@ -177,10 +181,19 @@ function PainelTopBar({
     : null
 
   return (
-    <div className="flex items-center gap-3 mb-4 flex-wrap">
+    <div className="flex items-center gap-2 mb-4 flex-wrap">
       <h1 className="text-xl font-bold text-gray-900 shrink-0">Painel da Operação</h1>
-      <span className="text-sm font-semibold bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full shrink-0">
-        {count} {count === 1 ? 'pedido' : 'pedidos'}
+
+      <span className="text-xs font-semibold bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full shrink-0">
+        {totalCount} {totalCount === 1 ? 'pedido' : 'pedidos'}
+      </span>
+      {lojaFisicaCount > 0 && (
+        <span className="text-xs font-semibold bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full shrink-0">
+          🏪 Loja Física: {lojaFisicaCount}
+        </span>
+      )}
+      <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full shrink-0">
+        🌐 Online: {onlineCount}
       </span>
 
       <div className="flex-1" />
@@ -418,16 +431,30 @@ function AdminPainelActions({ pedido, onClose }: { pedido: TinyPedidoCompleto; o
 
 // ── Card de resumo ────────────────────────────────────────────────────────────
 
-function PedidoResumoCard({ r, onOpen, showStatus }: { r: TinyPedidoResumo; onOpen: () => void; showStatus?: boolean }) {
+function PedidoResumoCard({
+  r,
+  onOpen,
+  showStatus,
+  dimmed,
+}: {
+  r: TinyPedidoResumo
+  onOpen: () => void
+  showStatus?: boolean
+  dimmed?: boolean
+}) {
   const situacaoKey = normSituacao(r.situacao ?? '')
 
   return (
     <button
       onClick={onOpen}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
+      className={`w-full text-left rounded-2xl border p-4 mb-3 active:scale-[0.99] transition-transform ${
+        dimmed
+          ? 'bg-gray-50 border-gray-100 opacity-50 shadow-none'
+          : 'bg-white border-gray-100 shadow-sm'
+      }`}
     >
       <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <span className="text-xl font-bold font-mono text-gray-900 bg-purple-50 px-3 py-1 rounded-xl leading-none">
+        <span className={`text-xl font-bold font-mono px-3 py-1 rounded-xl leading-none ${dimmed ? 'text-gray-500 bg-gray-100' : 'text-gray-900 bg-purple-50'}`}>
           #{r.numero}
         </span>
         <DeliveryLabel data={r.data_prevista} />
@@ -438,10 +465,10 @@ function PedidoResumoCard({ r, onOpen, showStatus }: { r: TinyPedidoResumo; onOp
         )}
       </div>
 
-      <p className="font-semibold text-gray-900 truncate">{r.nome}</p>
+      <p className={`font-semibold truncate ${dimmed ? 'text-gray-500' : 'text-gray-900'}`}>{r.nome}</p>
 
       <div className="flex justify-end mt-2">
-        <span className="text-xs text-purple-600 font-semibold">Ver detalhes ›</span>
+        <span className={`text-xs font-semibold ${dimmed ? 'text-gray-400' : 'text-purple-600'}`}>Ver detalhes ›</span>
       </div>
     </button>
   )
@@ -457,16 +484,23 @@ interface ColunaProps {
   error: string
   onOpenPedido: (id: number) => void
   showStatus?: boolean
+  dimCards?: boolean
+  lojaFisicaCount?: number
 }
 
-function Coluna({ titulo, cor, resumos, loading, error, onOpenPedido, showStatus }: ColunaProps) {
+function Coluna({ titulo, cor, resumos, loading, error, onOpenPedido, showStatus, dimCards, lojaFisicaCount }: ColunaProps) {
   return (
     <div className="flex flex-col min-w-0">
-      <div className="flex items-center gap-2 mb-3 px-1">
+      <div className="flex items-center gap-2 mb-3 px-1 flex-wrap">
         <h2 className="text-sm font-bold text-gray-800 truncate">{titulo}</h2>
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${cor}`}>
           {loading ? '…' : resumos.length}
         </span>
+        {!loading && (lojaFisicaCount ?? 0) > 0 && (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 bg-amber-100 text-amber-700">
+            🏪 {lojaFisicaCount}
+          </span>
+        )}
       </div>
 
       {loading && (
@@ -486,7 +520,7 @@ function Coluna({ titulo, cor, resumos, loading, error, onOpenPedido, showStatus
       )}
 
       {!loading && resumos.map((r) => (
-        <PedidoResumoCard key={r.id} r={r} onOpen={() => onOpenPedido(r.id)} showStatus={showStatus} />
+        <PedidoResumoCard key={r.id} r={r} onOpen={() => onOpenPedido(r.id)} showStatus={showStatus} dimmed={dimCards} />
       ))}
     </div>
   )
@@ -499,20 +533,25 @@ interface AccordionSectionProps extends ColunaProps {
   onToggle: () => void
 }
 
-function AccordionSection({ titulo, cor, resumos, loading, error, onOpenPedido, showStatus, open, onToggle }: AccordionSectionProps) {
+function AccordionSection({ titulo, cor, resumos, loading, error, onOpenPedido, showStatus, dimCards, lojaFisicaCount, open, onToggle }: AccordionSectionProps) {
   return (
     <div className="border border-gray-100 rounded-2xl bg-white shadow-sm mb-3 overflow-hidden">
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between px-4 py-3"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-sm text-gray-800">{titulo}</span>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cor}`}>
             {loading ? '…' : resumos.length}
           </span>
+          {!loading && (lojaFisicaCount ?? 0) > 0 && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              🏪 {lojaFisicaCount}
+            </span>
+          )}
         </div>
-        <span className="text-gray-400 text-lg leading-none">{open ? '▲' : '▼'}</span>
+        <span className="text-gray-400 text-lg leading-none ml-2">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
@@ -531,7 +570,7 @@ function AccordionSection({ titulo, cor, resumos, loading, error, onOpenPedido, 
             <p className="text-sm text-gray-400 text-center py-4">Nenhum pedido</p>
           )}
           {!loading && resumos.map((r) => (
-            <PedidoResumoCard key={r.id} r={r} onOpen={() => onOpenPedido(r.id)} showStatus={showStatus} />
+            <PedidoResumoCard key={r.id} r={r} onOpen={() => onOpenPedido(r.id)} showStatus={showStatus} dimmed={dimCards} />
           ))}
         </div>
       )}
@@ -555,10 +594,28 @@ export default function PainelPage() {
   const [openSection, setOpenSection] = useState<string>('aberto')
   const [searchOpen, setSearchOpen] = useState(false)
 
-  // Merge aprovado + preparando_envio for "Pago/Em montagem" column
-  const pagoMontandoResumos = sortResumos([...pagoHook.resumos, ...montandoHook.resumos])
+  const CF = 'Consumidor Final'
+
+  // Merge aprovado + preparando_envio
+  const pagoMontandoAll = sortResumos([...pagoHook.resumos, ...montandoHook.resumos])
   const pagoMontandoLoading = pagoHook.loading || montandoHook.loading
   const pagoMontandoError = pagoHook.error || montandoHook.error
+
+  // Online (non-CF) visible lists per paid column
+  const pagoMontandoOnline = pagoMontandoAll.filter((r) => r.nome !== CF)
+  const prontoOnline       = prontoHook.resumos.filter((r) => r.nome !== CF)
+  const enviadoOnline      = enviadoHook.resumos.filter((r) => r.nome !== CF)
+  const entregueOnline     = entregueHook.resumos.filter((r) => r.nome !== CF)
+
+  // Loja Física counts per paid column
+  const lfPagoMontando = pagoMontandoAll.length - pagoMontandoOnline.length
+  const lfPronto       = prontoHook.resumos.length - prontoOnline.length
+  const lfEnviado      = enviadoHook.resumos.length - enviadoOnline.length
+  const lfEntregue     = entregueHook.resumos.length - entregueOnline.length
+
+  const lojaFisicaCount = lfPagoMontando + lfPronto + lfEnviado + lfEntregue
+  const onlineCount     = pagoMontandoOnline.length + prontoOnline.length + enviadoOnline.length + entregueOnline.length
+  const totalCount      = lojaFisicaCount + onlineCount
 
   function refreshAll() {
     abertoHook.refresh()
@@ -569,17 +626,8 @@ export default function PainelPage() {
     entregueHook.refresh()
   }
 
-  // Aggregate status bar
   const allHooks = [abertoHook, pagoHook, montandoHook, prontoHook, enviadoHook, entregueHook]
   const anyLoading = allHooks.some((h) => h.loading)
-  const entregueResumos = entregueHook.resumos.filter((r) => r.nome !== 'Consumidor Final')
-
-  const totalCount =
-    abertoHook.resumos.length +
-    pagoMontandoResumos.length +
-    prontoHook.resumos.length +
-    enviadoHook.resumos.length +
-    entregueResumos.length
 
   const lastUpdate = allHooks.reduce<Date | null>((best, h) => {
     if (!h.lastUpdate) return best
@@ -600,49 +648,61 @@ export default function PainelPage() {
       loading: abertoHook.loading,
       error: abertoHook.error,
       showStatus: false,
+      dimCards: true,
+      lojaFisicaCount: 0,
     },
     {
       key: 'pago_montando',
       titulo: 'Pago / Em montagem',
       cor: 'bg-yellow-100 text-yellow-700',
-      resumos: pagoMontandoResumos,
+      resumos: pagoMontandoOnline,
       loading: pagoMontandoLoading,
       error: pagoMontandoError,
       showStatus: true,
+      dimCards: false,
+      lojaFisicaCount: lfPagoMontando,
     },
     {
       key: 'pronto_envio',
       titulo: 'Pronto para Envio',
       cor: 'bg-blue-100 text-blue-700',
-      resumos: prontoHook.resumos,
+      resumos: prontoOnline,
       loading: prontoHook.loading,
       error: prontoHook.error,
       showStatus: false,
+      dimCards: false,
+      lojaFisicaCount: lfPronto,
     },
     {
       key: 'enviado',
       titulo: 'Enviado',
       cor: 'bg-orange-100 text-orange-700',
-      resumos: enviadoHook.resumos,
+      resumos: enviadoOnline,
       loading: enviadoHook.loading,
       error: enviadoHook.error,
       showStatus: false,
+      dimCards: false,
+      lojaFisicaCount: lfEnviado,
     },
     {
       key: 'entregue',
       titulo: 'Entregue (hoje)',
       cor: 'bg-green-100 text-green-800',
-      resumos: entregueResumos,
+      resumos: entregueOnline,
       loading: entregueHook.loading,
       error: entregueHook.error,
       showStatus: false,
+      dimCards: false,
+      lojaFisicaCount: lfEntregue,
     },
   ]
 
   return (
     <div>
       <PainelTopBar
-        count={totalCount}
+        totalCount={totalCount}
+        lojaFisicaCount={lojaFisicaCount}
+        onlineCount={onlineCount}
         lastUpdate={lastUpdate}
         nextRefreshAt={nextRefreshAt}
         onRefresh={refreshAll}
