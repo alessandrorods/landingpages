@@ -416,7 +416,7 @@ export default function NovoPedidoPage() {
 
   if (resultado) {
     return (
-      <div>
+      <div className="max-w-2xl mx-auto">
         <h1 className="text-xl font-bold text-gray-900 mb-4">Novo Pedido</h1>
         <Sucesso id={resultado.id} numero={resultado.numero} linkPagamento={resultado.linkPagamento} telefone={comprTel} onNovo={resetar} />
       </div>
@@ -424,7 +424,7 @@ export default function NovoPedidoPage() {
   }
 
   return (
-    <div ref={topRef}>
+    <div ref={topRef} className="max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-4">
         <Link href="/admin/vendas" className="text-gray-400 hover:text-gray-600 text-sm">← Pedidos</Link>
         <h1 className="text-xl font-bold text-gray-900">Novo Pedido</h1>

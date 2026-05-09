@@ -34,6 +34,7 @@ const AREA_ROUTES: Record<string, Role> = {
   '/admin/florista': 'florista',
   '/admin/expedicao': 'expedicao',
   '/admin/motoboy': 'motoboy',
+  '/admin/painel': 'admin',
 }
 
 const PUBLIC_PATHS = ['/admin/login', '/api/admin/auth', '/api/admin/logout']

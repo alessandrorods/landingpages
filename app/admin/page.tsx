@@ -18,25 +18,39 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="py-4">
+    <div className="max-w-2xl mx-auto py-4">
       <h1 className="text-xl font-bold text-gray-900 mb-1">Dashboard</h1>
       <p className="text-sm text-gray-500 mb-6">Selecione a área</p>
 
       <div className="space-y-3">
-        {AREAS.map((a) => (
-          <Link
-            key={a.role}
-            href={a.href}
-            className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:border-green-200 hover:shadow transition-all"
-          >
-            <span className="text-3xl">{a.icon}</span>
-            <div>
-              <p className="font-semibold text-gray-900">{a.label}</p>
-              <p className="text-sm text-gray-500">{a.desc}</p>
-            </div>
-            <span className="ml-auto text-gray-300">›</span>
-          </Link>
-        ))}
+        <Link
+          href="/admin/painel"
+          className="flex items-center gap-4 bg-purple-50 rounded-2xl p-4 shadow-sm border border-purple-100 hover:border-purple-300 hover:shadow transition-all"
+        >
+          <span className="text-3xl">📊</span>
+          <div>
+            <p className="font-semibold text-gray-900">Painel da Operação</p>
+            <p className="text-sm text-gray-500">Visão completa de todos os pedidos</p>
+          </div>
+          <span className="ml-auto text-gray-300">›</span>
+        </Link>
+
+        <div className="border-t border-gray-100 pt-3">
+          {AREAS.map((a) => (
+            <Link
+              key={a.role}
+              href={a.href}
+              className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:border-green-200 hover:shadow transition-all mb-3 last:mb-0"
+            >
+              <span className="text-3xl">{a.icon}</span>
+              <div>
+                <p className="font-semibold text-gray-900">{a.label}</p>
+                <p className="text-sm text-gray-500">{a.desc}</p>
+              </div>
+              <span className="ml-auto text-gray-300">›</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   )
