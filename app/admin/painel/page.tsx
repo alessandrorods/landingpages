@@ -548,12 +548,14 @@ export default function PainelPage() {
   // Aggregate status bar
   const allHooks = [abertoHook, pagoHook, montandoHook, prontoHook, enviadoHook, entregueHook]
   const anyLoading = allHooks.some((h) => h.loading)
+  const entregueResumos = entregueHook.resumos.filter((r) => r.nome !== 'Consumidor Final')
+
   const totalCount =
     abertoHook.resumos.length +
     pagoMontandoResumos.length +
     prontoHook.resumos.length +
     enviadoHook.resumos.length +
-    entregueHook.resumos.length
+    entregueResumos.length
 
   const lastUpdate = allHooks.reduce<Date | null>((best, h) => {
     if (!h.lastUpdate) return best
@@ -606,7 +608,7 @@ export default function PainelPage() {
       key: 'entregue',
       titulo: 'Entregue (hoje)',
       cor: 'bg-green-100 text-green-800',
-      resumos: entregueHook.resumos,
+      resumos: entregueResumos,
       loading: entregueHook.loading,
       error: entregueHook.error,
       showStatus: false,
