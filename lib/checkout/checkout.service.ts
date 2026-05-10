@@ -97,6 +97,31 @@ const MP_SITUACAO: Partial<Record<string, SituacaoPedido>> = {
   rejected:  'cancelado',
 }
 
+// Ordered progression: a situacao só pode avançar, nunca regredir.
+// 'cancelado' e 'nao_entregue' são terminais fora da progressão linear.
+const ORDEM_SITUACAO: SituacaoPedido[] = [
+  'aberto',
+  'aprovado',
+  'preparando_envio',
+  'faturado',
+  'pronto_envio',
+  'enviado',
+  'entregue',
+]
+
+function transicaoPermitida(atual: string | undefined, destino: SituacaoPedido): boolean {
+  if (destino === 'cancelado') {
+    // Só cancela se o pedido ainda não avançou além de 'aprovado'
+    const idxAtual = ORDEM_SITUACAO.indexOf((atual ?? '') as SituacaoPedido)
+    const idxAprovado = ORDEM_SITUACAO.indexOf('aprovado')
+    return idxAtual <= idxAprovado
+  }
+  const idxAtual = ORDEM_SITUACAO.indexOf((atual ?? '') as SituacaoPedido)
+  const idxDestino = ORDEM_SITUACAO.indexOf(destino)
+  // Permite apenas avançar; estados desconhecidos (idxAtual === -1) também bloqueiam
+  return idxAtual !== -1 && idxDestino > idxAtual
+}
+
 export async function processarPagamento(pedidoId: number, mpPagamentoId: string): Promise<void> {
   const olistClient = createOlistClient(getEnv('TINY_TOKEN'))
   const pedidoService = createPedidoService(olistClient)
@@ -104,19 +129,37 @@ export async function processarPagamento(pedidoId: number, mpPagamentoId: string
   const pagamentoService = createPagamentoService(mpClient)
 
   const pagamento = await pagamentoService.buscarPagamento(mpPagamentoId)
-  const situacao = MP_SITUACAO[pagamento.status]
+  const situacaoDestino = MP_SITUACAO[pagamento.status]
 
-  if (!situacao) {
+  if (!situacaoDestino) {
     console.log('Status sem ação no Olist', { mpPagamentoId, status: pagamento.status })
     return
   }
 
+  let situacaoAtual: string | undefined
   try {
-    await pedidoService.atualizarSituacao(pedidoId, situacao)
+    situacaoAtual = await pedidoService.obterSituacao(pedidoId)
   } catch (err) {
     if (err instanceof PedidoServiceError) throw new CheckoutError(err.message, err.detalhes)
     throw err
   }
 
-  console.log('Pedido atualizado no Olist', { pedidoId, mpPagamentoId, situacao })
+  if (!transicaoPermitida(situacaoAtual, situacaoDestino)) {
+    console.warn('Transição de situação bloqueada — pedido já avançou', {
+      pedidoId,
+      mpPagamentoId,
+      situacaoAtual,
+      situacaoDestino,
+    })
+    return
+  }
+
+  try {
+    await pedidoService.atualizarSituacao(pedidoId, situacaoDestino)
+  } catch (err) {
+    if (err instanceof PedidoServiceError) throw new CheckoutError(err.message, err.detalhes)
+    throw err
+  }
+
+  console.log('Pedido atualizado no Olist', { pedidoId, mpPagamentoId, situacaoAtual, situacaoDestino })
 }
