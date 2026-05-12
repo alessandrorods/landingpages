@@ -89,6 +89,17 @@ export function createPedidoService(client: OlistClient) {
       return { id: registro.id, numero: registro.numero }
     },
 
+    async obterSituacao(id: number): Promise<string | undefined> {
+      let data: Awaited<ReturnType<OlistClient['obterPedido']>>
+      try {
+        data = await client.obterPedido(id)
+      } catch (err) {
+        if (err instanceof OlistClientError) throw new PedidoServiceError(err.message)
+        throw err
+      }
+      return data.retorno?.pedido?.situacao
+    },
+
     async atualizarSituacao(id: number, situacao: SituacaoPedido): Promise<void> {
       let data: Awaited<ReturnType<OlistClient['atualizarSituacaoPedido']>>
       try {
