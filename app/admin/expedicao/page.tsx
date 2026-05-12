@@ -352,7 +352,7 @@ export default function ExpedicaoPage() {
   ]
 
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-4">Expedição</h1>
 
       <BuscaPedido />

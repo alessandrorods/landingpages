@@ -310,7 +310,7 @@ export default function MotoboyPage() {
   }
 
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">Entregas</h1>
         <button

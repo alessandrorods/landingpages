@@ -105,7 +105,7 @@ export default function VendasPage() {
   const active = tab === 'pagos' ? pagos : recuperar
 
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">Pedidos</h1>
         <Link

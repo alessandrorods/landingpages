@@ -112,7 +112,7 @@ export default function FloristaPage() {
   }
 
   return (
-    <div>
+    <div className="max-w-2xl mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-4">Montagem</h1>
 
       <StatusBar count={visiveis.length} lastUpdate={lastUpdate} nextRefreshAt={nextRefreshAt} onRefresh={refresh} loading={loading} />
