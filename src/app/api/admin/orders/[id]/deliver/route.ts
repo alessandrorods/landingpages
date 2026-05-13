@@ -3,6 +3,7 @@ import { revalidateTag } from 'next/cache'
 import { createOlistClient } from '@/clients/olist/client'
 import { getOrderCached } from '@/core/cache/pedido.cache'
 import { getRequestRole } from '@/domains/admin/auth'
+import { can } from '@/domains/admin/permissions'
 
 function fmtDate(d: Date): string {
   const parts = new Intl.DateTimeFormat('pt-BR', {
@@ -43,8 +44,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const role = getRequestRole(request)
-  if (!role) {
+  if (!can(getRequestRole(request), 'deliverOrder')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 

@@ -2,6 +2,7 @@
 import { revalidateTag } from 'next/cache'
 import { createOlistClient } from '@/clients/olist/client'
 import { getRequestRole } from '@/domains/admin/auth'
+import { can } from '@/domains/admin/permissions'
 import type { OlistOrderStatus } from '@/clients/olist/types'
 
 const VALID: OlistOrderStatus[] = [
@@ -14,7 +15,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const role = getRequestRole(request)
-  if (!role || !['florista', 'expedicao', 'admin'].includes(role)) {
+  if (!can(role, 'updateOrderStatus')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 

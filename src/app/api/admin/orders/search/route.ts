@@ -1,10 +1,11 @@
 ﻿﻿import { NextRequest, NextResponse } from 'next/server'
 import { createOlistClient } from '@/clients/olist/client'
 import { getRequestRole } from '@/domains/admin/auth'
+import { can } from '@/domains/admin/permissions'
 
 export async function GET(request: NextRequest) {
   const role = getRequestRole(request)
-  if (!role || !['vendas', 'expedicao', 'admin'].includes(role)) {
+  if (!can(role, 'searchOrders')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 

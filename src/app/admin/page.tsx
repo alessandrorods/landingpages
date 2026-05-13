@@ -8,6 +8,7 @@ const AREAS = [
   { role: 'florista', label: 'Florista', icon: '🌸', desc: 'Montagem dos pedidos', href: '/admin/florista' },
   { role: 'expedicao', label: 'Expedição', icon: '🚚', desc: 'Separação para rota', href: '/admin/expedicao' },
   { role: 'motoboy', label: 'Motoboy', icon: '🏍️', desc: 'Confirmação de entregas', href: '/admin/motoboy' },
+  { role: 'admin', label: 'Usuários', icon: '🧑', desc: 'Gerenciar usuários', href: '/admin/users' },
 ]
 
 export default async function AdminPage() {

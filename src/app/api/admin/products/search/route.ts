@@ -1,5 +1,6 @@
 ﻿﻿import { createOlistClient } from '@/clients/olist/client'
 import { getRequestRole } from '@/domains/admin/auth'
+import { can } from '@/domains/admin/permissions'
 
 function getEnv(key: string): string {
   const value = process.env[key]
@@ -9,7 +10,7 @@ function getEnv(key: string): string {
 
 export async function GET(request: Request) {
   const role = getRequestRole(request)
-  if (!role || !['vendas', 'admin'].includes(role)) {
+  if (!can(role, 'searchProducts')) {
     return Response.json({ error: 'Não autorizado' }, { status: 403 })
   }
 

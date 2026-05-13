@@ -34,7 +34,3 @@ export function getRequestRole(request: { headers: { get(name: string): string |
   if (!role || !ROLES.includes(role)) return null
   return role
 }
-
-export function canAccess(role: Role, area: string): boolean {
-  return role === 'admin' || role === area
-}

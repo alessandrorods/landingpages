@@ -1,6 +1,7 @@
 ﻿﻿import { createOlistClient, OlistClientError } from '@/clients/olist/client'
 import { createMercadoPagoClient } from '@/clients/mercadopago/client'
 import { getRequestRole } from '@/domains/admin/auth'
+import { can } from '@/domains/admin/permissions'
 import { createPagamentoService, PagamentoServiceError } from '@/domains/pagamentos/pagamento.service'
 import { signToken } from '@/domains/checkout/token'
 import { FRETE_POR_CONTA, PERIODOS_ENTREGA } from '@/constants/pedido'
@@ -133,7 +134,7 @@ function validate(raw: unknown): PedidoManualBody {
 
 export async function POST(request: Request) {
   const role = getRequestRole(request)
-  if (!role || !['vendas', 'admin'].includes(role)) {
+  if (!can(role, 'createOrder')) {
     return Response.json({ error: 'Não autorizado' }, { status: 403 })
   }
 

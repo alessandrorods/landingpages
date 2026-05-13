@@ -3,12 +3,13 @@ import { revalidateTag } from 'next/cache'
 import { createOlistClient } from '@/clients/olist/client'
 import { getOrderCached } from '@/core/cache/pedido.cache'
 import { getRequestRole } from '@/domains/admin/auth'
+import { can } from '@/domains/admin/permissions'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!getRequestRole(request)) {
+  if (!can(getRequestRole(request), 'viewOrders')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 
@@ -43,7 +44,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!getRequestRole(request)) {
+  if (!can(getRequestRole(request), 'viewOrders')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 

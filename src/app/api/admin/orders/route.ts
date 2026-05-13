@@ -2,6 +2,7 @@
 import { createOlistClient } from '@/clients/olist/client'
 import { getOrderCached } from '@/core/cache/pedido.cache'
 import { getRequestRole } from '@/domains/admin/auth'
+import { can } from '@/domains/admin/permissions'
 import type { OlistOrderStatus, OlistOrderDetails } from '@/clients/olist/types'
 
 const VALID: OlistOrderStatus[] = [
@@ -29,7 +30,7 @@ function dataInicial30d(): string {
 }
 
 export async function GET(request: NextRequest) {
-  if (!getRequestRole(request)) {
+  if (!can(getRequestRole(request), 'viewOrders')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 
