@@ -1,6 +1,8 @@
-﻿import type { Metadata } from 'next'
+﻿import { after } from 'next/server'
+import type { Metadata } from 'next'
 import { PRODUCTS, CATEGORY_LABELS } from '@/constants/products'
 import { verifyToken } from '@/domains/checkout/token'
+import { processarPagamento } from '@/domains/checkout/checkout.service'
 import type { PurchaseData } from '@/core/analytics'
 import ConversionEvents from './components/ConversionEvents'
 import { TrackingCard } from './components/TrackingCard'
@@ -43,6 +45,16 @@ export default async function PaymentFinishPage({
   const isPending    = !isFailed && (mpStatus === 'pending' || mpStatus === 'in_process')
   const isApproved   = !isFailed && !isPending
   const trackingUrl  = isApproved && orderId ? `https://www.florapp.com.br/tracking/${orderId}` : null
+
+  // Fallback: garante processamento mesmo se o webhook do MP ainda não disparou.
+  // processarPagamento é idempotente — canTransition bloqueia dupla aprovação.
+  if (isApproved && paymentId && orderId) {
+    after(() =>
+      processarPagamento(orderId, paymentId).catch((err) =>
+        console.error('[finish] processarPagamento fallback falhou', { orderId, err }),
+      ),
+    )
+  }
 
   const waMsg = `Olá! Tenho uma dúvida sobre meu pedido${orderId ? ` nº ${orderId}` : ''}.`
   const waUrl = `https://wa.me/5511972804138?text=${encodeURIComponent(waMsg)}`

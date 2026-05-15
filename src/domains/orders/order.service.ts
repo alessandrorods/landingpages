@@ -1,4 +1,4 @@
-import type { CreateOrderInput, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod } from './order.types'
+import type { CreateOrderInput, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod, OrderHistoryEntryDTO } from './order.types'
 import type { OrderRepository } from './order.repository'
 import type { OlistSyncEventRepository } from './olist-sync-event.repository'
 
@@ -42,7 +42,7 @@ function fmtDatetime(d: Date): string {
 type PrismaOrder = Awaited<ReturnType<OrderRepository['findById']>>
 type PrismaOrderWithItems = NonNullable<PrismaOrder>
 
-function toDTO(order: PrismaOrderWithItems): OrderDTO {
+export function toOrderDTO(order: PrismaOrderWithItems, history: OrderHistoryEntryDTO[] = []): OrderDTO {
   const totalAmount = order.items.reduce(
     (s, i) => s + Number(i.price) * i.quantity,
     Number(order.freight),
@@ -81,26 +81,30 @@ function toDTO(order: PrismaOrderWithItems): OrderDTO {
     source: order.source,
     totalAmount,
     items,
+    history,
     createdAt: order.createdAt.toISOString(),
   }
 }
 
-export function createOrderService(repository: OrderRepository, syncEventRepository: OlistSyncEventRepository) {
+export function createOrderService(
+  repository: OrderRepository,
+  syncEventRepository: OlistSyncEventRepository,
+) {
   return {
     async createOrder(input: CreateOrderInput): Promise<OrderDTO> {
       const raw = await repository.create(input)
       await syncEventRepository.create(raw.id, 'order_created', input as object)
-      return toDTO(raw)
+      return toOrderDTO(raw)
     },
 
     async listByStatus(status: OrderStatus): Promise<OrderDTO[]> {
       const rows = await repository.findByStatus(status)
-      return rows.map(toDTO)
+      return rows.map((r) => toOrderDTO(r))
     },
 
     async getById(id: number): Promise<OrderDTO | null> {
       const row = await repository.findById(id)
-      return row ? toDTO(row) : null
+      return row ? toOrderDTO(row) : null
     },
 
     async updateStatus(id: number, status: OrderStatus): Promise<void> {
@@ -131,18 +135,19 @@ export function createOrderService(repository: OrderRepository, syncEventReposit
 
     async findByNumero(numero: string): Promise<OrderDTO | null> {
       const row = await repository.findByNumero(numero)
-      return row ? toDTO(row) : null
+      return row ? toOrderDTO(row) : null
     },
 
-    async approveFromPayment(orderId: number): Promise<void> {
+    async approveFromPayment(orderId: number): Promise<boolean> {
       const row = await repository.findById(orderId)
       if (!row) throw new OrderServiceError('Pedido não encontrado')
       if (!canTransition(row.status as OrderStatus, 'approved')) {
         console.warn('[orders] approveFromPayment bloqueado', { orderId, status: row.status })
-        return
+        return false
       }
       await repository.updateStatus(orderId, 'approved')
       await syncEventRepository.create(orderId, 'status_updated', { status: 'approved' })
+      return true
     },
 
     async setMpPreferenceId(id: number, mpPreferenceId: string): Promise<void> {

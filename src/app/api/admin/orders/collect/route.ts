@@ -47,7 +47,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await orderService.dispatch(order.id, motoboy.trim())
+    const role = getRequestRole(request)
+    const actor = role ? { type: 'user' as const, name: role } : { type: 'system' as const, name: 'Sistema' }
+    await orderService.dispatch(order.id, motoboy.trim(), actor)
     after(() => syncService.processPendingFor(order.id).catch((err) =>
       console.error(tag, 'sync after-collect falhou', { orderId: order.id, err }),
     ))

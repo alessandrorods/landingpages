@@ -41,9 +41,12 @@ export async function PATCH(
     return NextResponse.json({ error: 'status inválido' }, { status: 400 })
   }
 
+  const role = getRequestRole(request)
+  if (!role) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+
   try {
     const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
-    await orderService.updateStatus(id, status)
+    await orderService.updateStatus(id, status, { type: 'user', name: role })
     after(() => syncService.processPendingFor(id).catch((err) =>
       console.error('[status] sync after-update falhou', { orderId: id, err }),
     ))

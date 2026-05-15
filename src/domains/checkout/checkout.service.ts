@@ -56,7 +56,7 @@ export async function processarCheckout(body: PedidoBody): Promise<CheckoutResul
       deliveryPeriod: body.endereco.periodoEntrega,
       items: [{ sku: product.sku, name: product.name, price: product.price, quantity: 1 }],
       source: 'checkout',
-    })
+    }, { type: 'system', name: 'checkout' })
   } catch (err) {
     if (err instanceof OrderServiceError) throw new CheckoutError(err.message)
     throw err
@@ -118,8 +118,10 @@ export async function processarPagamento(orderId: number, mpPagamentoId: string)
 
   const pagamento = await pagamentoService.buscarPagamento(mpPagamentoId)
 
+  const mpActor = { type: 'system' as const, name: 'Mercado Pago' }
+
   if (pagamento.status === 'approved') {
-    await orderService.approveFromPayment(orderId)
+    await orderService.approveFromPayment(orderId, mpActor)
     after(() => syncService.processPendingFor(orderId).catch((err) =>
       console.error('[checkout] sync after-approve falhou', { orderId, err }),
     ))
@@ -129,7 +131,7 @@ export async function processarPagamento(orderId: number, mpPagamentoId: string)
 
   if (pagamento.status === 'cancelled' || pagamento.status === 'rejected') {
     try {
-      await orderService.updateStatus(orderId, 'cancelled')
+      await orderService.updateStatus(orderId, 'cancelled', mpActor)
       after(() => syncService.processPendingFor(orderId).catch((err) =>
         console.error('[checkout] sync after-cancel falhou', { orderId, err }),
       ))

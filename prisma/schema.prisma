@@ -44,6 +44,18 @@ model User {
   @@map("users")
 }
 
+enum OrderHistoryAction {
+  created
+  approved
+  preparing
+  invoiced
+  ready
+  dispatched
+  delivered
+  undelivered
+  cancelled
+}
+
 enum OlistSyncEventType {
   order_created
   status_updated
@@ -84,10 +96,25 @@ model Order {
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
-  items      OrderItem[]
-  syncEvents OlistSyncEvent[]
+  items          OrderItem[]
+  syncEvents     OlistSyncEvent[]
+  historyEntries OrderHistoryEntry[]
 
   @@map("orders")
+}
+
+model OrderHistoryEntry {
+  id        Int                @id @default(autoincrement())
+  orderId   Int                @map("order_id")
+  action    OrderHistoryAction
+  actorType String             @map("actor_type") @db.VarChar(20)
+  actorName String             @map("actor_name") @db.VarChar(255)
+  metadata  Json?
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("order_history_entries")
 }
 
 model OlistSyncEvent {

@@ -70,9 +70,10 @@ function validate(raw: unknown): PedidoManualBody {
 
 export async function POST(request: NextRequest) {
   const role = getRequestRole(request)
-  if (!can(role, 'createOrder')) {
+  if (!role || !can(role, 'createOrder')) {
     return Response.json({ error: 'Não autorizado' }, { status: 403 })
   }
+  const actor = { type: 'user' as const, name: role }
 
   let raw: unknown
   try {
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
       deliveryPeriod: body.endereco.periodoEntrega,
       items: body.itens.map((i) => ({ sku: i.sku || undefined, name: i.nome, price: i.preco, quantity: i.quantidade })),
       source: 'admin',
-    })
+    }, actor)
   } catch (err) {
     console.error('[orders/create] erro ao criar pedido', err)
     return Response.json({ error: 'Erro interno ao criar pedido' }, { status: 500 })
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
 
   if (body.pagamento !== 'mp_link') {
     try {
-      await orderService.updateStatus(order.id, 'approved')
+      await orderService.updateStatus(order.id, 'approved', actor)
     } catch (err) {
       console.error('[orders/create] falha ao aprovar pedido', { orderId: order.id, err })
     }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { COOKIE_NAME, verifySession } from '@/domains/admin/auth'
 import { AREA_ACCESS } from '@/domains/admin/permissions'
 
-const PUBLIC_PATHS = ['/admin/login', '/api/admin/auth', '/api/admin/logout']
+const PUBLIC_PATHS = ['/admin/login', '/api/admin/auth', '/api/admin/logout', '/api/admin/orders/sync']
 
 export async function authMiddleware(request: NextRequest, headers: Headers): Promise<NextResponse> {
   const { pathname } = request.nextUrl

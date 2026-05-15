@@ -1,3 +1,27 @@
+export type Actor =
+  | { type: 'user'; name: string }
+  | { type: 'system'; name: string }
+
+export type OrderHistoryAction =
+  | 'created'
+  | 'approved'
+  | 'preparing'
+  | 'invoiced'
+  | 'ready'
+  | 'dispatched'
+  | 'delivered'
+  | 'undelivered'
+  | 'cancelled'
+
+export interface OrderHistoryEntryDTO {
+  id: number
+  action: OrderHistoryAction
+  actorType: 'user' | 'system'
+  actorName: string
+  metadata: Record<string, string> | null
+  createdAt: string
+}
+
 export type OrderStatus =
   | 'pending'
   | 'approved'
@@ -66,5 +90,6 @@ export interface OrderDTO {
   source: string
   totalAmount: number
   items: OrderItemDTO[]
+  history: OrderHistoryEntryDTO[]
   createdAt: string
 }

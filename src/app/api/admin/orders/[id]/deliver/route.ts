@@ -35,9 +35,12 @@ export async function POST(
     return NextResponse.json({ error: 'Campos obrigatórios ausentes' }, { status: 400 })
   }
 
+  const role = getRequestRole(request)
+  if (!role) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+
   try {
     const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
-    await orderService.deliver(id, recebidoPor.trim(), motoboy.trim())
+    await orderService.deliver(id, recebidoPor.trim(), motoboy.trim(), { type: 'user', name: role })
     after(() => syncService.processPendingFor(id).catch((err) =>
       console.error('[deliver] sync after-deliver falhou', { orderId: id, err }),
     ))
