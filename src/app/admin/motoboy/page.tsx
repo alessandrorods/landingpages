@@ -1,22 +1,19 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
-import { parseMotoboy } from '@/domains/pedidos/parseObs'
-import type { OlistOrderDetails } from '@/clients/olist/types'
+import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 const STORAGE_KEY = 'motoboy_nome'
 
-// ── Entregues hoje (localStorage) ─────────────────────────────────────────────
-
 type EntregueSnapshot = {
-  id: number
-  numero: number
-  data_prevista?: string
+  id: string
+  numero: string | null
+  dataEntrega?: string
   destinatario?: string
   produto?: string
 }
@@ -34,16 +31,15 @@ function lerEntregues(motoboy: string): EntregueSnapshot[] {
   }
 }
 
-function salvarEntregue(motoboy: string, p: OlistOrderDetails): EntregueSnapshot[] {
+function salvarEntregue(motoboy: string, order: OrderDTO): EntregueSnapshot[] {
   const lista = lerEntregues(motoboy)
-  if (lista.some((e) => e.id === p.id)) return lista
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
+  if (lista.some((e) => e.id === order.id)) return lista
   const snapshot: EntregueSnapshot = {
-    id: p.id,
-    numero: p.numero,
-    data_prevista: p.data_prevista,
-    destinatario: endereco?.nome_destinatario ?? p.cliente?.nome,
-    produto: p.itens?.[0]?.item?.descricao,
+    id: order.id,
+    numero: order.olistNumero,
+    dataEntrega: order.deliveryDate,
+    destinatario: order.recipientName,
+    produto: order.items[0]?.name,
   }
   const nova = [...lista, snapshot]
   localStorage.setItem(entreguesKey(motoboy), JSON.stringify(nova))
@@ -67,9 +63,7 @@ function NomeSetup({ onSalvar }: { onSalvar: (nome: string) => void }) {
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
       <p className="text-4xl mb-4">🏍️</p>
       <h2 className="text-xl font-bold text-gray-900 mb-1">Qual é o seu nome?</h2>
-      <p className="text-sm text-gray-500 mb-6">
-        Vamos registrar quem fez cada entrega.
-      </p>
+      <p className="text-sm text-gray-500 mb-6">Vamos registrar quem fez cada entrega.</p>
       <form onSubmit={submit} className="w-full max-w-xs space-y-3">
         <input
           type="text"
@@ -128,9 +122,7 @@ function ColetarPedido({ motoboy }: { motoboy: string }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-        Coletar pedido
-      </p>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Coletar pedido</p>
       <form onSubmit={submit} className="flex gap-2">
         <input
           type="number"
@@ -162,18 +154,15 @@ function ColetarPedido({ motoboy }: { motoboy: string }) {
 // ── Ação de entrega no drawer ─────────────────────────────────────────────────
 
 function EntregaAction({
-  pedido,
+  order,
   motoboy,
   onEntregue,
 }: {
-  pedido: OlistOrderDetails
+  order: OrderDTO
   motoboy: string
-  onEntregue: (pedido: OlistOrderDetails) => void
+  onEntregue: (order: OrderDTO) => void
 }) {
-  const endereco = pedido.enderecos?.[0]?.endereco ?? pedido.endereco_entrega
-  const nomeDefault = endereco?.nome_destinatario ?? pedido.cliente?.nome ?? ''
-
-  const [recebidoPor, setRecebidoPor] = useState(nomeDefault)
+  const [recebidoPor, setRecebidoPor] = useState(order.recipientName)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState('')
@@ -183,7 +172,7 @@ function EntregaAction({
     setLoading(true)
     setErr('')
     try {
-      const res = await fetch(`/api/admin/orders/${pedido.id}/deliver`, {
+      const res = await fetch(`/api/admin/orders/${order.id}/deliver`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recebidoPor: recebidoPor.trim(), motoboy }),
@@ -194,7 +183,7 @@ function EntregaAction({
         return
       }
       setDone(true)
-      setTimeout(() => onEntregue(pedido), 800)
+      setTimeout(() => onEntregue(order), 800)
     } catch {
       setErr('Erro de conexão')
     } finally {
@@ -203,11 +192,7 @@ function EntregaAction({
   }
 
   if (done) {
-    return (
-      <p className="text-center text-orange-700 font-semibold py-3">
-        ✓ Entrega confirmada!
-      </p>
-    )
+    return <p className="text-center text-orange-700 font-semibold py-3">✓ Entrega confirmada!</p>
   }
 
   return (
@@ -240,9 +225,8 @@ function EntregaAction({
 
 // ── Card da lista ─────────────────────────────────────────────────────────────
 
-function PedidoCard({ p, onOpen }: { p: OlistOrderDetails; onOpen: () => void }) {
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
+function PedidoCard({ order, onOpen }: { order: OrderDTO; onOpen: () => void }) {
+  const produto = order.items[0]?.name ?? '—'
 
   return (
     <button
@@ -251,19 +235,17 @@ function PedidoCard({ p, onOpen }: { p: OlistOrderDetails; onOpen: () => void })
     >
       <div className="flex items-center gap-2 mb-3">
         <span className="text-2xl font-bold font-mono text-gray-900 bg-orange-50 px-3 py-1 rounded-xl leading-none">
-          #{p.numero}
+          #{order.olistNumero ?? '—'}
         </span>
-        <DeliveryLabel data={p.data_prevista} />
+        <DeliveryLabel data={order.deliveryDate} />
       </div>
 
-      <p className="font-semibold text-gray-900">
-        {endereco?.nome_destinatario ?? p.cliente?.nome}
-      </p>
+      <p className="font-semibold text-gray-900">{order.recipientName}</p>
       <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
 
-      {endereco?.bairro && (
+      {order.neighborhood && (
         <p className="text-xs text-gray-400 mt-2 bg-gray-50 rounded-lg px-2 py-1 inline-block">
-          {endereco.bairro}
+          {order.neighborhood}
         </p>
       )}
 
@@ -278,11 +260,11 @@ function PedidoCard({ p, onOpen }: { p: OlistOrderDetails; onOpen: () => void })
 
 export default function MotoboyPage() {
   const [motoboy, setMotoboy] = useState<string | undefined>(undefined)
-  const [aberto, setAberto] = useState<OlistOrderDetails | null>(null)
-  const [removidos, setRemovidos] = useState<Set<number>>(new Set())
+  const [aberto, setAberto] = useState<OrderDTO | null>(null)
+  const [removidos, setRemovidos] = useState<Set<string>>(new Set())
   const [entregues, setEntregues] = useState<EntregueSnapshot[]>([])
   const [entreguesAberto, setEntreguesAberto] = useState(false)
-  const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('enviado')
+  const { orders, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('dispatched')
 
   useEffect(() => {
     const nome = localStorage.getItem(STORAGE_KEY) ?? ''
@@ -298,15 +280,15 @@ export default function MotoboyPage() {
     return <NomeSetup onSalvar={setMotoboy} />
   }
 
-  const visiveis = pedidos.filter(
-    (p) => !removidos.has(p.id) && parseMotoboy(p.obs) === motoboy,
+  const visiveis = orders.filter(
+    (o) => !removidos.has(o.id) && o.courierName === motoboy,
   )
 
-  function remover(pedido: OlistOrderDetails) {
-    const nova = salvarEntregue(motoboy!, pedido)
+  function remover(order: OrderDTO) {
+    const nova = salvarEntregue(motoboy!, order)
     setEntregues(nova)
     setAberto(null)
-    setRemovidos((prev) => new Set([...prev, pedido.id]))
+    setRemovidos((prev) => new Set([...prev, order.id]))
   }
 
   return (
@@ -314,10 +296,7 @@ export default function MotoboyPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">Entregas</h1>
         <button
-          onClick={() => {
-            localStorage.removeItem(STORAGE_KEY)
-            setMotoboy('')
-          }}
+          onClick={() => { localStorage.removeItem(STORAGE_KEY); setMotoboy('') }}
           className="text-xs text-gray-400 underline"
         >
           Trocar nome
@@ -330,13 +309,7 @@ export default function MotoboyPage() {
 
       <ColetarPedido motoboy={motoboy} />
 
-      <StatusBar
-        count={visiveis.length}
-        lastUpdate={lastUpdate}
-        nextRefreshAt={nextRefreshAt}
-        onRefresh={refresh}
-        loading={loading}
-      />
+      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} nextRefreshAt={nextRefreshAt} onRefresh={refresh} loading={loading} />
 
       {loading && (
         <div className="space-y-3">
@@ -354,10 +327,9 @@ export default function MotoboyPage() {
         <EmptyState icon="🎉" message="Nenhuma entrega em rota" />
       )}
 
-      {!loading &&
-        visiveis.map((p) => (
-          <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
-        ))}
+      {!loading && visiveis.map((order) => (
+        <PedidoCard key={order.id} order={order} onOpen={() => setAberto(order)} />
+      ))}
 
       {entregues.length > 0 && (
         <div className="mt-6">
@@ -371,8 +343,8 @@ export default function MotoboyPage() {
           {entreguesAberto && entregues.map((e) => (
             <div key={e.id} className="bg-gray-50 rounded-2xl p-4 mb-2 opacity-60">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg font-bold font-mono text-gray-500">#{e.numero}</span>
-                {e.data_prevista && <span className="text-xs text-gray-400">{e.data_prevista}</span>}
+                <span className="text-lg font-bold font-mono text-gray-500">#{e.numero ?? '—'}</span>
+                {e.dataEntrega && <span className="text-xs text-gray-400">{e.dataEntrega}</span>}
               </div>
               {e.destinatario && <p className="text-sm text-gray-600">{e.destinatario}</p>}
               {e.produto && <p className="text-xs text-gray-400 mt-0.5">{e.produto}</p>}
@@ -383,14 +355,14 @@ export default function MotoboyPage() {
 
       {aberto && (
         <OrderDrawer
-          pedido={aberto}
+          order={aberto}
           onClose={() => setAberto(null)}
           hideBuyer
           hidePrices
           hideCardMessage
           action={
             <EntregaAction
-              pedido={aberto}
+              order={aberto}
               motoboy={motoboy}
               onEntregue={remover}
             />

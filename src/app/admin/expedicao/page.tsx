@@ -1,13 +1,10 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useOrdersSummary } from '@/app/admin/components/useOrdersSummary'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
-import type { OlistOrderDetails, OlistOrderSummary } from '@/clients/olist/types'
-import { parseMotoboy } from '@/domains/pedidos/parseObs'
+import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function todayFormatted(): string {
   const d = new Date()
@@ -26,17 +23,12 @@ const STATUS_LABEL: Record<string, string> = {
   cancelado: 'Cancelado',
 }
 
-function labelSituacao(situacao: string): string {
-  const key = situacao.toLowerCase().replace(/\s+/g, '_')
-  return STATUS_LABEL[key] ?? situacao
-}
-
 // ── Busca de pedido ───────────────────────────────────────────────────────────
 
 function BuscaPedido() {
   const [numero, setNumero] = useState('')
   const [loading, setLoading] = useState(false)
-  const [pedido, setPedido] = useState<OlistOrderDetails | null>(null)
+  const [order, setOrder] = useState<OrderDTO | null>(null)
   const [err, setErr] = useState('')
   const [drawerAberto, setDrawerAberto] = useState(false)
 
@@ -46,7 +38,7 @@ function BuscaPedido() {
     if (!n) return
     setLoading(true)
     setErr('')
-    setPedido(null)
+    setOrder(null)
     try {
       const res = await fetch(`/api/admin/orders/search?numero=${encodeURIComponent(n)}`)
       const data = await res.json()
@@ -54,16 +46,13 @@ function BuscaPedido() {
         setErr(data.error ?? 'Erro ao buscar pedido')
         return
       }
-      setPedido(data.pedido)
+      setOrder(data.order)
     } catch {
       setErr('Erro de conexão')
     } finally {
       setLoading(false)
     }
   }
-
-  const motoboy = pedido ? parseMotoboy(pedido.obs) : null
-  const endereco = pedido?.enderecos?.[0]?.endereco ?? pedido?.endereco_entrega
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
@@ -76,7 +65,7 @@ function BuscaPedido() {
           type="number"
           inputMode="numeric"
           value={numero}
-          onChange={(e) => { setNumero(e.target.value); setErr(''); setPedido(null) }}
+          onChange={(e) => { setNumero(e.target.value); setErr(''); setOrder(null) }}
           placeholder="Nº do pedido"
           className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
           required
@@ -92,16 +81,16 @@ function BuscaPedido() {
 
       {err && <p className="text-sm text-red-600">{err}</p>}
 
-      {pedido && (
+      {order && (
         <div className="border-t border-gray-100 pt-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold font-mono text-gray-900">#{pedido.numero}</span>
+            <span className="text-2xl font-bold font-mono text-gray-900">#{order.olistNumero ?? '—'}</span>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-                {labelSituacao(pedido.situacao)}
+                {STATUS_LABEL[order.status] ?? order.status}
               </span>
               <button
-                onClick={() => { setPedido(null); setNumero('') }}
+                onClick={() => { setOrder(null); setNumero('') }}
                 className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1"
                 aria-label="Fechar resultado"
               >
@@ -110,19 +99,17 @@ function BuscaPedido() {
             </div>
           </div>
 
-          {pedido.data_prevista && (
-            <p className="text-xs text-gray-500">Entrega prevista: <span className="font-medium text-gray-700">{pedido.data_prevista}</span></p>
+          {order.deliveryDate && (
+            <p className="text-xs text-gray-500">Entrega prevista: <span className="font-medium text-gray-700">{order.deliveryDate}</span></p>
           )}
 
-          {endereco && (
-            <p className="text-sm text-gray-700">
-              {endereco.bairro} — {endereco.endereco}, {endereco.numero}
-            </p>
-          )}
+          <p className="text-sm text-gray-700">
+            {order.neighborhood} — {order.street}, {order.streetNumber}
+          </p>
 
-          {motoboy && (
+          {order.courierName && (
             <p className="text-sm text-gray-700">
-              Motoboy: <span className="font-semibold">{motoboy}</span>
+              Motoboy: <span className="font-semibold">{order.courierName}</span>
             </p>
           )}
 
@@ -135,8 +122,8 @@ function BuscaPedido() {
         </div>
       )}
 
-      {drawerAberto && pedido && (
-        <OrderDrawer pedido={pedido} onClose={() => setDrawerAberto(false)} />
+      {drawerAberto && order && (
+        <OrderDrawer order={order} onClose={() => setDrawerAberto(false)} />
       )}
     </div>
   )
@@ -144,8 +131,8 @@ function BuscaPedido() {
 
 // ── OrderDrawerLoader ─────────────────────────────────────────────────────────
 
-function OrderDrawerLoader({ id, onClose }: { id: number; onClose: () => void }) {
-  const [pedido, setPedido] = useState<OlistOrderDetails | null>(null)
+function OrderDrawerLoader({ id, onClose }: { id: string; onClose: () => void }) {
+  const [order, setOrder] = useState<OrderDTO | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
 
@@ -153,7 +140,7 @@ function OrderDrawerLoader({ id, onClose }: { id: number; onClose: () => void })
     fetch(`/api/admin/orders/${id}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.pedido) setPedido(data.pedido)
+        if (data.order) setOrder(data.order)
         else setErr(data.error ?? 'Pedido não encontrado')
       })
       .catch(() => setErr('Erro de conexão'))
@@ -171,28 +158,23 @@ function OrderDrawerLoader({ id, onClose }: { id: number; onClose: () => void })
     )
   }
 
-  if (err || !pedido) {
+  if (err || !order) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
         <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-xl max-w-xs text-center">
           <p className="text-sm text-red-600">{err || 'Pedido não encontrado'}</p>
-          <button
-            onClick={onClose}
-            className="text-sm text-blue-600 font-semibold underline"
-          >
-            Fechar
-          </button>
+          <button onClick={onClose} className="text-sm text-blue-600 font-semibold underline">Fechar</button>
         </div>
       </div>
     )
   }
 
-  return <OrderDrawer pedido={pedido} onClose={onClose} />
+  return <OrderDrawer order={order} onClose={onClose} />
 }
 
 // ── Card de resumo ────────────────────────────────────────────────────────────
 
-function PedidoResumoCard({ r, onOpen }: { r: OlistOrderSummary; onOpen: () => void }) {
+function PedidoResumoCard({ order, onOpen }: { order: OrderDTO; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
@@ -200,13 +182,11 @@ function PedidoResumoCard({ r, onOpen }: { r: OlistOrderSummary; onOpen: () => v
     >
       <div className="flex items-center gap-2 mb-1">
         <span className="text-xl font-bold font-mono text-gray-900 bg-blue-50 px-3 py-1 rounded-xl leading-none">
-          #{r.numero}
+          #{order.olistNumero ?? '—'}
         </span>
-        <DeliveryLabel data={r.data_prevista} />
+        <DeliveryLabel data={order.deliveryDate} />
       </div>
-
-      <p className="font-semibold text-gray-900 truncate">{r.nome}</p>
-
+      <p className="font-semibold text-gray-900 truncate">{order.buyerName}</p>
       <div className="flex justify-end mt-2">
         <span className="text-xs text-blue-600 font-semibold">Ver detalhes ›</span>
       </div>
@@ -219,22 +199,19 @@ function PedidoResumoCard({ r, onOpen }: { r: OlistOrderSummary; onOpen: () => v
 interface ColunaProps {
   titulo: string
   cor: string
-  resumos: OlistOrderSummary[]
+  orders: OrderDTO[]
   loading: boolean
   error: string
-  lastUpdate: Date | null
-  nextRefreshAt: number | null
-  onRefresh: () => void
-  onOpenPedido: (id: number) => void
+  onOpenPedido: (id: string) => void
 }
 
-function Coluna({ titulo, cor, resumos, loading, error, onOpenPedido }: ColunaProps) {
+function Coluna({ titulo, cor, orders, loading, error, onOpenPedido }: ColunaProps) {
   return (
     <div className="flex flex-col min-w-0">
-      <div className={`flex items-center gap-2 mb-3 px-1`}>
+      <div className="flex items-center gap-2 mb-3 px-1">
         <h2 className="text-sm font-bold text-gray-800">{titulo}</h2>
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cor}`}>
-          {loading ? '…' : resumos.length}
+          {loading ? '…' : orders.length}
         </span>
       </div>
 
@@ -250,12 +227,12 @@ function Coluna({ titulo, cor, resumos, loading, error, onOpenPedido }: ColunaPr
         <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>
       )}
 
-      {!loading && !error && resumos.length === 0 && (
+      {!loading && !error && orders.length === 0 && (
         <p className="text-sm text-gray-400 text-center py-8">Nenhum pedido</p>
       )}
 
-      {!loading && resumos.map((r) => (
-        <PedidoResumoCard key={r.id} r={r} onOpen={() => onOpenPedido(r.id)} />
+      {!loading && orders.map((order) => (
+        <PedidoResumoCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} />
       ))}
     </div>
   )
@@ -268,7 +245,7 @@ interface AccordionSectionProps extends ColunaProps {
   onToggle: () => void
 }
 
-function AccordionSection({ titulo, cor, resumos, loading, error, onOpenPedido, open, onToggle }: AccordionSectionProps) {
+function AccordionSection({ titulo, cor, orders, loading, error, onOpenPedido, open, onToggle }: AccordionSectionProps) {
   return (
     <div className="border border-gray-100 rounded-2xl bg-white shadow-sm mb-3 overflow-hidden">
       <button
@@ -278,7 +255,7 @@ function AccordionSection({ titulo, cor, resumos, loading, error, onOpenPedido, 
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm text-gray-800">{titulo}</span>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cor}`}>
-            {loading ? '…' : resumos.length}
+            {loading ? '…' : orders.length}
           </span>
         </div>
         <span className="text-gray-400 text-lg leading-none">{open ? '▲' : '▼'}</span>
@@ -298,12 +275,12 @@ function AccordionSection({ titulo, cor, resumos, loading, error, onOpenPedido, 
             <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>
           )}
 
-          {!loading && !error && resumos.length === 0 && (
+          {!loading && !error && orders.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-4">Nenhum pedido</p>
           )}
 
-          {!loading && resumos.map((r) => (
-            <PedidoResumoCard key={r.id} r={r} onOpen={() => onOpenPedido(r.id)} />
+          {!loading && orders.map((order) => (
+            <PedidoResumoCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} />
           ))}
         </div>
       )}
@@ -320,34 +297,33 @@ export default function ExpedicaoPage() {
   const enviado = useOrdersSummary('enviado')
   const entregue = useOrdersSummary('entregue', today)
 
-  const [drawerPedidoId, setDrawerPedidoId] = useState<number | null>(null)
+  const [drawerOrderId, setDrawerOrderId] = useState<string | null>(null)
   const [openSection, setOpenSection] = useState<string>('pronto_envio')
-
-  function filtrar(resumos: typeof prontoEnvio.resumos) {
-    return resumos.filter((r) => r.nome !== 'Consumidor Final')
-  }
 
   const colunas = [
     {
       key: 'pronto_envio',
       titulo: 'Pronto para envio',
       cor: 'bg-blue-100 text-blue-700',
-      ...prontoEnvio,
-      resumos: filtrar(prontoEnvio.resumos),
+      orders: prontoEnvio.orders,
+      loading: prontoEnvio.loading,
+      error: prontoEnvio.error,
     },
     {
       key: 'enviado',
       titulo: 'Enviado',
       cor: 'bg-orange-100 text-orange-700',
-      ...enviado,
-      resumos: filtrar(enviado.resumos),
+      orders: enviado.orders,
+      loading: enviado.loading,
+      error: enviado.error,
     },
     {
       key: 'entregue',
       titulo: 'Entregue',
       cor: 'bg-green-100 text-green-800',
-      ...entregue,
-      resumos: filtrar(entregue.resumos),
+      orders: entregue.orders,
+      loading: entregue.loading,
+      error: entregue.error,
     },
   ]
 
@@ -364,13 +340,10 @@ export default function ExpedicaoPage() {
             key={col.key}
             titulo={col.titulo}
             cor={col.cor}
-            resumos={col.resumos}
+            orders={col.orders}
             loading={col.loading}
             error={col.error}
-            lastUpdate={col.lastUpdate}
-            nextRefreshAt={col.nextRefreshAt}
-            onRefresh={col.refresh}
-            onOpenPedido={setDrawerPedidoId}
+            onOpenPedido={setDrawerOrderId}
           />
         ))}
       </div>
@@ -382,21 +355,18 @@ export default function ExpedicaoPage() {
             key={col.key}
             titulo={col.titulo}
             cor={col.cor}
-            resumos={col.resumos}
+            orders={col.orders}
             loading={col.loading}
             error={col.error}
-            lastUpdate={col.lastUpdate}
-            nextRefreshAt={col.nextRefreshAt}
-            onRefresh={col.refresh}
-            onOpenPedido={setDrawerPedidoId}
+            onOpenPedido={setDrawerOrderId}
             open={openSection === col.key}
             onToggle={() => setOpenSection(openSection === col.key ? '' : col.key)}
           />
         ))}
       </div>
 
-      {drawerPedidoId !== null && (
-        <OrderDrawerLoader id={drawerPedidoId} onClose={() => setDrawerPedidoId(null)} />
+      {drawerOrderId !== null && (
+        <OrderDrawerLoader id={drawerOrderId} onClose={() => setDrawerOrderId(null)} />
       )}
     </div>
   )

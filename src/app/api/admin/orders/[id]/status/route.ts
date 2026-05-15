@@ -1,25 +1,33 @@
-﻿﻿import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
-import { createOlistClient } from '@/clients/olist/client'
+import { after } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getRequestRole } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
-import type { OlistOrderStatus } from '@/clients/olist/types'
+import { createOrderDomain } from '@/domains/orders/order.domain'
+import { OrderServiceError } from '@/domains/orders/order.service'
+import type { OrderStatus } from '@/domains/orders/order.types'
 
-const VALID: OlistOrderStatus[] = [
-  'aberto', 'aprovado', 'preparando_envio', 'faturado',
-  'pronto_envio', 'enviado', 'entregue', 'nao_entregue', 'cancelado',
+const VALID: OrderStatus[] = [
+  'pending', 'approved', 'preparing', 'invoiced',
+  'ready', 'dispatched', 'delivered', 'undelivered', 'cancelled',
 ]
+
+function getEnv(key: string): string {
+  const value = process.env[key]
+  if (!value) throw new Error(`${key} não configurado`)
+  return value
+}
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const role = getRequestRole(request)
-  if (!can(role, 'updateOrderStatus')) {
+  if (!can(getRequestRole(request), 'updateOrderStatus')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 
-  const { id } = await params
+  const { id: rawId } = await params
+  const id = parseInt(rawId, 10)
+  if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
 
   let body: { situacao?: string }
   try {
@@ -28,34 +36,23 @@ export async function PATCH(
     return NextResponse.json({ error: 'Requisição inválida' }, { status: 400 })
   }
 
-  const { situacao } = body
-  if (!situacao || !VALID.includes(situacao as OlistOrderStatus)) {
-    return NextResponse.json({ error: 'situacao inválida' }, { status: 400 })
-  }
-
-  const tag = `[status] id=${id} situacao=${situacao}`
-
-  const token = process.env.TINY_TOKEN
-  if (!token) {
-    console.error(tag, 'TINY_TOKEN não configurado')
-    return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
+  const status = (body.situacao as OrderStatus | undefined)
+  if (!status || !VALID.includes(status)) {
+    return NextResponse.json({ error: 'status inválido' }, { status: 400 })
   }
 
   try {
-    const client = createOlistClient(token)
-    const data = await client.updateOrderStatus(Number(id), situacao as OlistOrderStatus)
-
-    if (data.retorno?.status !== 'OK') {
-      const erros = (data.retorno?.erros ?? []).map((e) => e.erro).join('; ')
-      console.error(tag, 'atualizarSituacao falhou', data.retorno)
-      return NextResponse.json({ error: erros || 'Erro ao atualizar' }, { status: 422 })
-    }
-
-    revalidateTag(`pedido-${id}`, { expire: 0 })
-    console.log(tag, 'status atualizado com sucesso')
+    const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
+    await orderService.updateStatus(id, status)
+    after(() => syncService.processPendingFor(id).catch((err) =>
+      console.error('[status] sync after-update falhou', { orderId: id, err }),
+    ))
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error(tag, 'erro inesperado', err)
-    return NextResponse.json({ error: 'Erro interno ao atualizar status' }, { status: 500 })
+    if (err instanceof OrderServiceError) {
+      return NextResponse.json({ error: err.message }, { status: 422 })
+    }
+    console.error(`[status] id=${id} erro`, err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

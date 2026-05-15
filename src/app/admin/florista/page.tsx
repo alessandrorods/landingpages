@@ -1,18 +1,16 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
-import type { OlistOrderDetails } from '@/clients/olist/types'
+import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
-function PedidoCard({ p, onOpen }: { p: OlistOrderDetails; onOpen: () => void }) {
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega
-  const destinatario = endereco?.nome_destinatario
-  const mesmaPessoa = !destinatario || destinatario === p.cliente?.nome
+function PedidoCard({ order, onOpen }: { order: OrderDTO; onOpen: () => void }) {
+  const produto = order.items[0]?.name ?? '—'
+  const mesmaPessoa = order.recipientName === order.buyerName
 
   return (
     <button
@@ -22,11 +20,11 @@ function PedidoCard({ p, onOpen }: { p: OlistOrderDetails; onOpen: () => void })
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold font-mono text-gray-900 bg-pink-50 px-3 py-1 rounded-xl leading-none">
-            #{p.numero}
+            #{order.olistNumero ?? '—'}
           </span>
-          <DeliveryLabel data={p.data_prevista} />
+          <DeliveryLabel data={order.deliveryDate} />
         </div>
-        {p.obs_interna && (
+        {order.cardMessage && (
           <span className="text-xs bg-pink-100 text-pink-700 font-semibold px-2 py-0.5 rounded-full">
             Tem mensagem
           </span>
@@ -35,7 +33,7 @@ function PedidoCard({ p, onOpen }: { p: OlistOrderDetails; onOpen: () => void })
 
       <p className="font-semibold text-gray-900">{produto}</p>
       <p className="text-sm text-gray-500 mt-0.5">
-        {mesmaPessoa ? p.cliente?.nome : `Para: ${destinatario}`}
+        {mesmaPessoa ? order.buyerName : `Para: ${order.recipientName}`}
       </p>
 
       <div className="flex items-center justify-between mt-2">
@@ -46,11 +44,11 @@ function PedidoCard({ p, onOpen }: { p: OlistOrderDetails; onOpen: () => void })
 }
 
 function MontadoAction({
-  p,
+  order,
   onMontado,
 }: {
-  p: OlistOrderDetails
-  onMontado: (id: number) => void
+  order: OrderDTO
+  onMontado: (id: string) => void
 }) {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
@@ -60,10 +58,10 @@ function MontadoAction({
     setLoading(true)
     setErr('')
     try {
-      const res = await fetch(`/api/admin/orders/${p.id}/status`, {
+      const res = await fetch(`/api/admin/orders/${order.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ situacao: 'pronto_envio' }),
+        body: JSON.stringify({ situacao: 'ready' }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -71,7 +69,7 @@ function MontadoAction({
         return
       }
       setDone(true)
-      setTimeout(() => onMontado(p.id), 800)
+      setTimeout(() => onMontado(order.id), 800)
     } catch {
       setErr('Erro de conexão')
     } finally {
@@ -100,13 +98,13 @@ function MontadoAction({
 }
 
 export default function FloristaPage() {
-  const { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('aprovado')
-  const [aberto, setAberto] = useState<OlistOrderDetails | null>(null)
-  const [removidos, setRemovidos] = useState<Set<number>>(new Set())
+  const { orders, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('approved')
+  const [aberto, setAberto] = useState<OrderDTO | null>(null)
+  const [removidos, setRemovidos] = useState<Set<string>>(new Set())
 
-  const visiveis = pedidos.filter((p) => !removidos.has(p.id))
+  const visiveis = orders.filter((o) => !removidos.has(o.id))
 
-  function remover(id: number) {
+  function remover(id: string) {
     setAberto(null)
     setRemovidos((prev) => new Set([...prev, id]))
   }
@@ -133,15 +131,15 @@ export default function FloristaPage() {
         <EmptyState icon="🌸" message="Todos os pedidos estão montados!" />
       )}
 
-      {!loading && visiveis.map((p) => (
-        <PedidoCard key={p.id} p={p} onOpen={() => setAberto(p)} />
+      {!loading && visiveis.map((order) => (
+        <PedidoCard key={order.id} order={order} onOpen={() => setAberto(order)} />
       ))}
 
       {aberto && (
         <OrderDrawer
-          pedido={aberto}
+          order={aberto}
           onClose={() => setAberto(null)}
-          action={<MontadoAction p={aberto} onMontado={remover} />}
+          action={<MontadoAction order={aberto} onMontado={remover} />}
         />
       )}
     </div>

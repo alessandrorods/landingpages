@@ -1,8 +1,8 @@
 ﻿import { hmacSign, hmacVerify } from '@/core/signing'
 
 export interface PaymentTokenPayload {
-  pedidoId: number   // ID interno do Olist (para atualizar situação)
-  pedido: string     // número legível do pedido (para exibir)
+  orderId: number  // ID sequencial do nosso DB (começa em 9000)
+  pedido: string   // número do pedido no Olist (para exibir, pode diferir)
   sku: string
   nome: string
   valor: number

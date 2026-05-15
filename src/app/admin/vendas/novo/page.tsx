@@ -620,7 +620,7 @@ export default function NovoPedidoPage() {
         {/* Pagamento */}
         <Section title="Pagamento">
           <div className="grid grid-cols-3 gap-2">
-            {([['pix', 'PIX'], ['cartao', 'Cartão'], ['link_mp', 'Gerar link']] as const).map(([v, label]) => (
+            {([['pix', 'PIX'], ['card', 'Cartão'], ['mp_link', 'Gerar link']] as const).map(([v, label]) => (
               <button
                 key={v}
                 type="button"
@@ -635,7 +635,7 @@ export default function NovoPedidoPage() {
               </button>
             ))}
           </div>
-          {pagamento !== 'link_mp' ? (
+          {pagamento !== 'mp_link' ? (
             <p className="text-xs text-gray-500">Pedido criado como <strong>aprovado</strong>.</p>
           ) : (
             <p className="text-xs text-gray-500">Pedido criado como <strong>pendente</strong> — link para enviar ao cliente.</p>

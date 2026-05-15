@@ -1,4 +1,4 @@
-﻿import { createHmac, timingSafeEqual } from 'crypto'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { createMercadoPagoClient } from '@/clients/mercadopago/client'
 import { processarPagamento, CheckoutError } from '@/domains/checkout/checkout.service'
 import type { MPWebhookPayload } from '@/clients/mercadopago/types'
@@ -11,7 +11,6 @@ function verifyMPSignature(
 ): boolean {
   if (!signature) return false
 
-  // formato do header: ts=<timestamp>,v1=<hmac_hex>
   const parts: Record<string, string> = {}
   for (const part of signature.split(',')) {
     const eq = part.indexOf('=')
@@ -67,7 +66,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Configuração inválida' }, { status: 500 })
   }
 
-  let pedidoId: number
+  let orderId: number
   try {
     const mpClient = createMercadoPagoClient(accessToken)
     const pagamento = await mpClient.buscarPagamento(mpPagamentoId)
@@ -76,8 +75,8 @@ export async function POST(request: Request) {
       console.error('external_reference ausente no pagamento', { mpPagamentoId })
       return Response.json({ error: 'Referência externa ausente' }, { status: 422 })
     }
-    pedidoId = Number(externalRef)
-    if (Number.isNaN(pedidoId)) {
+    orderId = parseInt(externalRef, 10)
+    if (isNaN(orderId)) {
       console.error('external_reference inválido', { externalRef })
       return Response.json({ error: 'Referência externa inválida' }, { status: 422 })
     }
@@ -87,7 +86,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await processarPagamento(pedidoId, mpPagamentoId)
+    await processarPagamento(orderId, mpPagamentoId)
     return Response.json({ ok: true })
   } catch (err) {
     if (err instanceof CheckoutError) {

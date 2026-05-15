@@ -1,46 +1,14 @@
-﻿﻿import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
-import { createOlistClient } from '@/clients/olist/client'
-import { getOrderCached } from '@/core/cache/pedido.cache'
+import { after } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getRequestRole } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
+import { createOrderDomain } from '@/domains/orders/order.domain'
+import { OrderServiceError } from '@/domains/orders/order.service'
 
-function fmtDate(d: Date): string {
-  const parts = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(d)
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00'
-  return `${get('day')}/${get('month')} ${get('hour')}:${get('minute')}`
-}
-
-// Tudo antes do divisor é conteúdo original do pedido — preservado.
-// Tudo depois é nosso — substituído a cada operação.
-const DIVISOR = '\n---\n'
-
-function buildObs(existing: string | undefined, ourSection: string): string {
-  const MAX = 100
-  const sepAndSection = `${DIVISOR}${ourSection}`
-
-  const sepIdx = existing?.indexOf(DIVISOR) ?? -1
-  const original = existing
-    ? (sepIdx !== -1 ? existing.slice(0, sepIdx) : existing).trimEnd()
-    : ''
-
-  if (!original) return sepAndSection.slice(0, MAX)
-
-  const full = `${original}${sepAndSection}`
-  if (full.length <= MAX) return full
-
-  // Original longo demais: trunca pelo início para garantir que nossa seção caiba
-  const slack = MAX - sepAndSection.length
-  return slack > 0
-    ? `${original.slice(0, slack)}${sepAndSection}`
-    : sepAndSection.slice(0, MAX)
+function getEnv(key: string): string {
+  const value = process.env[key]
+  if (!value) throw new Error(`${key} não configurado`)
+  return value
 }
 
 export async function POST(request: NextRequest) {
@@ -60,72 +28,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Campos obrigatórios ausentes' }, { status: 400 })
   }
 
-  const token = process.env.TINY_TOKEN
-  if (!token) {
-    console.error('[collect] TINY_TOKEN não configurado')
-    return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
-  }
-
   const tag = `[collect] pedido=${numero} motoboy=${motoboy}`
 
   try {
-    const client = createOlistClient(token)
+    const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
 
-    const listData = await client.findOrderByNumber(numero.trim())
-
-    if (listData.retorno?.status !== 'OK') {
-      console.error(tag, 'busca falhou', listData.retorno)
+    const order = await orderService.findByNumero(numero.trim())
+    if (!order) {
+      console.error(tag, 'pedido não encontrado no DB')
       return NextResponse.json({ error: 'Pedido não encontrado' }, { status: 404 })
     }
 
-    const resumos = listData.retorno?.pedidos ?? []
-    if (resumos.length === 0) {
-      console.error(tag, 'nenhum resultado na busca')
-      return NextResponse.json({ error: 'Pedido não encontrado' }, { status: 404 })
-    }
-
-    const pedido = resumos.find((r) => String(r.pedido.numero) === numero.trim())?.pedido
-    if (!pedido) {
-      console.error(tag, 'número não encontrado entre os resultados', resumos.map((r) => r.pedido.numero))
-      return NextResponse.json({ error: 'Pedido não encontrado' }, { status: 404 })
-    }
-
-    const situacaoNorm = pedido.situacao?.toLowerCase()
-    if (!situacaoNorm?.includes('pronto')) {
-      console.error(tag, `situação inválida para coleta: "${pedido.situacao}"`)
+    if (order.status !== 'ready') {
+      console.error(tag, `situação inválida para coleta: "${order.status}"`)
       return NextResponse.json(
-        { error: `Pedido não está pronto para coleta (situação: ${pedido.situacao})` },
+        { error: `Pedido não está pronto para coleta (situação: ${order.status})` },
         { status: 422 },
       )
     }
 
-    const detalhe = await getOrderCached(pedido.id)
-    const obsAtual = detalhe.retorno?.pedido?.obs
-    const dataPrevista = detalhe.retorno?.pedido?.data_prevista
+    await orderService.dispatch(order.id, motoboy.trim())
+    after(() => syncService.processPendingFor(order.id).catch((err) =>
+      console.error(tag, 'sync after-collect falhou', { orderId: order.id, err }),
+    ))
 
-    const ourSection = `Saiu para entrega: ${fmtDate(new Date())}\nMotoboy: ${motoboy.trim()}`
-    const obs = buildObs(obsAtual, ourSection)
-
-    const [alterarRes, situacaoRes] = await Promise.all([
-      client.updateOrder(pedido.id, { obs, ...(dataPrevista && { data_prevista: dataPrevista }) }),
-      client.updateOrderStatus(pedido.id, 'enviado'),
-    ])
-
-    if (alterarRes.retorno?.status !== 'OK') {
-      console.error(tag, 'updateOrder (obs) falhou — não crítico', alterarRes.retorno)
-    }
-
-    if (situacaoRes.retorno?.status !== 'OK') {
-      const erros = (situacaoRes.retorno?.erros ?? []).map((e) => e.erro).join('; ')
-      console.error(tag, 'atualizarSituacao falhou', situacaoRes.retorno)
-      return NextResponse.json({ error: erros || 'Erro ao atualizar situação' }, { status: 422 })
-    }
-
-    revalidateTag(`pedido-${pedido.id}`, { expire: 0 })
-    console.log(tag, 'coleta registrada com sucesso', { obs, obsGravada: alterarRes.retorno?.status === 'OK' })
-    return NextResponse.json({ ok: true, numero: pedido.numero })
+    console.log(tag, 'coleta registrada', { orderId: order.id })
+    return NextResponse.json({ ok: true, numero: order.olistNumero ?? order.id })
   } catch (err) {
+    if (err instanceof OrderServiceError) {
+      return NextResponse.json({ error: err.message }, { status: 422 })
+    }
     console.error(tag, 'erro inesperado', err)
-    return NextResponse.json({ error: 'Erro interno ao processar coleta' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

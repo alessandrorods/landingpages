@@ -1,32 +1,19 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState, Fragment } from 'react'
 import { useParams } from 'next/navigation'
-import type { OlistOrderDetails, OlistAddress } from '@/clients/olist/types'
-import { isOrderFromLI, parseLIData } from '@/domains/pedidos/parseObs'
-
-interface Address {
-  street: string
-  number: string
-  complement: string
-  district: string
-  city: string
-  zip: string
-}
+import type { OrderDTO } from '@/domains/orders/order.types'
 
 export default function PrintPage() {
   const { id } = useParams<{ id: string }>()
-  const [order, setOrder] = useState<OlistOrderDetails | null>(null)
+  const [order, setOrder] = useState<OrderDTO | null>(null)
   const [error, setError] = useState(false)
-  const [address, setAddress] = useState<Address | null>(null)
-  const [giftedName, setGiftedName] = useState<string | null>(null)
-  const [greetingMessage, setGreetingMessage] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/admin/orders/${id}`, { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => {
-        if (data.pedido) setOrder(data.pedido)
+        if (data.order) setOrder(data.order)
         else setError(true)
       })
       .catch(() => setError(true))
@@ -34,67 +21,20 @@ export default function PrintPage() {
 
   useEffect(() => {
     if (!order) return
-
-    const fromLI = isOrderFromLI(order.obs_interna)
-    const liData = fromLI ? parseLIData(order.obs_interna) : null
-
-    const clienteEndereco: OlistAddress | undefined =
-      fromLI && order.cliente.endereco
-        ? {
-            nome_destinatario: liData?.recipientName ?? '',
-            endereco: order.cliente.endereco ?? '',
-            numero: order.cliente.numero ?? '',
-            complemento: order.cliente.complemento,
-            bairro: order.cliente.bairro ?? '',
-            cep: order.cliente.cep ?? '',
-            cidade: order.cliente.cidade ?? '',
-            uf: order.cliente.uf ?? '',
-          }
-        : undefined
-
-    const shipping =
-      order.enderecos?.[0]?.endereco ?? order.endereco_entrega ?? clienteEndereco
-
-    setAddress({
-      street: shipping?.endereco ?? '',
-      number: shipping?.numero ?? '',
-      complement: shipping?.complemento ?? '',
-      district: shipping?.bairro ?? '',
-      city: shipping?.cidade ?? '',
-      zip: shipping?.cep ?? '',
-    })
-
-    setGiftedName(
-      liData?.recipientName ?? order.endereco_entrega?.nome_destinatario ?? null,
-    )
-
-    if (!order.obs_interna && !order.obs_internas) {
-      setGreetingMessage(null)
-    } else if (fromLI) {
-      const [, part] = (order.obs_interna ?? '').split('Mensagem no Cartão:')
-      const [msg] = part?.split('------------------') ?? []
-      setGreetingMessage(msg?.trim() ?? null)
-    } else {
-      setGreetingMessage(order.obs_interna || order.obs_internas || null)
-    }
-
     const retrier = setInterval(() => {
       if (document.readyState === 'complete') {
         window.print()
+        clearInterval(retrier)
       }
-      clearInterval(retrier)
     }, 1000)
-
     return () => clearInterval(retrier)
   }, [order])
 
-  if (error) {
-    return <div className="text-red-700">Erro ao carregar o pedido</div>
-  }
-
+  if (error) return <div className="text-red-700">Erro ao carregar o pedido</div>
   if (!order) return null
 
-  const hasGreeting = !!(order.obs_interna || order.obs_internas)
+  const hasGreeting = !!order.cardMessage
+  const mesmaPessoa = order.recipientName === order.buyerName
 
   return <>
     <section className="order-wrapper flex flex-col justify-center h-[27cm]">
@@ -102,27 +42,27 @@ export default function PrintPage() {
         <div className={`version-${version} w-[17cm] h-[12cm] mx-auto mt-5 flex flex-col justify-between`}>
           <section className="order-details relative">
             <section className="header flex flex-row">
-              <div className="text-2xl basis-2/3">Pedido <strong>{order.numero}</strong></div>
+              <div className="text-2xl basis-2/3">Pedido <strong>{order.olistNumero ?? '—'}</strong></div>
               <div className="text-sm text-right basis-1/3">Via {version === 1 ? <>do entregador</> : <>da loja</>}</div>
             </section>
 
-            {address &&
-              <section className="text-left">
-                <div className="text-lg mt-3">
-                  <div>{address.street}, {address.number} {address.complement && <>({address.complement})</>}</div>
-                  <div>{address.district} - {address.city}</div>
-                  <div>{address.zip}</div>
-
-                  <div className="text-lg mt-2">Entregar para: <strong>{giftedName}</strong> {order.endereco_entrega?.fone && <>{order.endereco_entrega.fone}</>}</div>
+            <section className="text-left">
+              <div className="text-lg mt-3">
+                <div>{order.street}, {order.streetNumber} {order.complement && <>({order.complement})</>}</div>
+                <div>{order.neighborhood} - Mogi das Cruzes</div>
+                <div>{order.zipCode}</div>
+                <div className="text-lg mt-2">
+                  Entregar para: <strong>{order.recipientName}</strong>{' '}
+                  {!mesmaPessoa && order.recipientPhone}
                 </div>
-              </section>
-            }
+              </div>
+            </section>
 
-            {order.obs &&
+            {order.notes && (
               <section className="notes mt-2 text-[13px]">
-                <div><strong>Observações:</strong> {order.obs}</div>
+                <div><strong>Observações:</strong> {order.notes}</div>
               </section>
-            }
+            )}
 
             <div className="border-b-[1px] my-3"></div>
 
@@ -131,34 +71,34 @@ export default function PrintPage() {
             </section>
 
             <section className="relative pb-2 mb-2 border-b-[1px]">
-              {(order?.forma_frete || order?.nome_transportador) &&
+              {order.deliveryPeriod && (
                 <section className="text-left truncate w-1/2 float-left">
                   <div>Período de entrega:</div>
-                  <strong>{order.forma_frete || order?.nome_transportador}</strong>
+                  <strong>{order.deliveryPeriod}</strong>
                 </section>
-              }
+              )}
 
-              {(order.cliente && version === 2) &&
+              {version === 2 && (
                 <section className="text-right w-1/2 float-right">
                   <div>Comprador(a)</div>
-                  <div><strong>{order.cliente.nome}</strong></div>
-                  <div>{order.cliente.fone}</div>
+                  <div><strong>{order.buyerName}</strong></div>
+                  <div>{order.buyerPhone}</div>
                 </section>
-              }
+              )}
               <div className="clear-both"></div>
             </section>
 
-            {order.itens &&
+            {order.items.length > 0 && (
               <section className="items">
-                {order.itens.map((item, idx) => (
-                  <div key={idx} className="flex flex-row text-[13px]">
-                    <div className="basis-1/8 font-bold text-[14px]">{item.item.quantidade}x</div>
-                    <div className="basis-1/8">{item.item.codigo}</div>
-                    <div className="basis-6/8">{item.item.descricao}</div>
+                {order.items.map((item) => (
+                  <div key={item.id} className="flex flex-row text-[13px]">
+                    <div className="basis-1/8 font-bold text-[14px]">{item.quantity}x</div>
+                    <div className="basis-1/8">{item.sku ?? ''}</div>
+                    <div className="basis-6/8">{item.name}</div>
                   </div>
                 ))}
               </section>
-            }
+            )}
           </section>
 
           <section className="totals mb-8 flex flex-row justify-end gap-6">
@@ -174,9 +114,8 @@ export default function PrintPage() {
 
     <div className="page-break break-after-page"></div>
 
-    {hasGreeting &&
+    {hasGreeting && (
       <section className="greeting-card text-center flex flex-col items-center justify-center mx-auto w-[16cm] h-[27cm]">
-
         <div className="card-header mb-7 flex flex-col justify-center items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-mundoplanta.png" alt="Mundo Planta Flores e Presentes" className="w-[5cm] block" />
@@ -185,7 +124,7 @@ export default function PrintPage() {
         </div>
 
         <div className="card-content min-h-[15cm] w-full text-center text-[14px] flex items-center justify-center">
-          <div className="whitespace-pre-wrap">{greetingMessage}</div>
+          <div className="whitespace-pre-wrap">{order.cardMessage}</div>
         </div>
 
         <div className="card-footer mt-7 flex flex-col items-center">
@@ -193,16 +132,13 @@ export default function PrintPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/arabesco.png" alt="divider" className="w-[8cm] h-auto" />
           </div>
-
-          {order && <div className="my-4">Pedido {order.numero}</div>}
-
+          <div className="my-4">Pedido {order.olistNumero ?? '—'}</div>
           <div className="disclaimer">
             <div>Encontre as melhores opções de presentes para qualquer ocasião</div>
             <div className="font-bold">www.floramundoplanta.com.br</div>
           </div>
         </div>
-
       </section>
-    }
+    )}
   </>
 }

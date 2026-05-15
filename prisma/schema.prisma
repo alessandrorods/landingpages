@@ -15,6 +15,24 @@ enum Role {
   admin
 }
 
+enum OrderStatus {
+  pending
+  approved
+  preparing
+  invoiced
+  ready
+  dispatched
+  delivered
+  undelivered
+  cancelled
+}
+
+enum PaymentMethod {
+  pix
+  card
+  mp_link
+}
+
 model User {
   id        String    @id @default(uuid()) @db.Uuid
   username  String    @unique @db.VarChar(255)
@@ -24,4 +42,79 @@ model User {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
 
   @@map("users")
+}
+
+enum OlistSyncEventType {
+  order_created
+  status_updated
+}
+
+enum OlistSyncEventStatus {
+  pending
+  done
+  failed
+}
+
+model Order {
+  id               Int           @id @default(autoincrement())
+  olistId          Int?          @unique @map("olist_id")
+  olistNumero      String?       @map("olist_numero") @db.VarChar(50)
+  status           OrderStatus   @default(pending)
+  payment          PaymentMethod
+  freight          Decimal       @db.Decimal(10, 2)
+  notes            String?       @db.Text
+  buyerName        String        @map("buyer_name") @db.VarChar(255)
+  buyerPhone       String        @map("buyer_phone") @db.VarChar(50)
+  recipientName    String        @map("recipient_name") @db.VarChar(255)
+  recipientPhone   String        @map("recipient_phone") @db.VarChar(50)
+  cardMessage      String?       @map("card_message") @db.Text
+  zipCode          String        @map("zip_code") @db.VarChar(10)
+  street           String        @db.VarChar(255)
+  streetNumber     String        @map("street_number") @db.VarChar(20)
+  complement       String?       @db.VarChar(100)
+  neighborhood     String        @db.VarChar(100)
+  deliveryDate     DateTime      @map("delivery_date") @db.Date
+  deliveryPeriod   String        @map("delivery_period") @db.VarChar(50)
+  courierName      String?       @map("courier_name") @db.VarChar(100)
+  dispatchedAt     DateTime?     @map("dispatched_at") @db.Timestamptz
+  deliveredAt      DateTime?     @map("delivered_at") @db.Timestamptz
+  receivedBy       String?       @map("received_by") @db.VarChar(100)
+  mpPreferenceId   String?       @map("mp_preference_id") @db.VarChar(100)
+  source           String        @default("admin") @db.VarChar(20)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  items      OrderItem[]
+  syncEvents OlistSyncEvent[]
+
+  @@map("orders")
+}
+
+model OlistSyncEvent {
+  id          Int                  @id @default(autoincrement())
+  orderId     Int                  @map("order_id")
+  type        OlistSyncEventType
+  payload     Json
+  status      OlistSyncEventStatus @default(pending)
+  attempts    Int                  @default(0)
+  lastError   String?              @map("last_error") @db.Text
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  processedAt DateTime?            @map("processed_at") @db.Timestamptz
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("olist_sync_events")
+}
+
+model OrderItem {
+  id       String  @id @default(uuid()) @db.Uuid
+  orderId  Int     @map("order_id")
+  sku      String? @db.VarChar(100)
+  name     String  @db.VarChar(255)
+  price    Decimal @db.Decimal(10, 2)
+  quantity Int
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("order_items")
 }

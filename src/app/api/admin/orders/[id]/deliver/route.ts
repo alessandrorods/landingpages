@@ -1,43 +1,14 @@
-﻿﻿import { NextRequest, NextResponse } from 'next/server'
-import { revalidateTag } from 'next/cache'
-import { createOlistClient } from '@/clients/olist/client'
-import { getOrderCached } from '@/core/cache/pedido.cache'
+import { after } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getRequestRole } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
+import { createOrderDomain } from '@/domains/orders/order.domain'
+import { OrderServiceError } from '@/domains/orders/order.service'
 
-function fmtDate(d: Date): string {
-  const parts = new Intl.DateTimeFormat('pt-BR', {
-    timeZone: 'America/Sao_Paulo',
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(d)
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00'
-  return `${get('day')}/${get('month')} ${get('hour')}:${get('minute')}`
-}
-
-const DIVISOR = '\n---\n'
-
-function buildObs(existing: string | undefined, ourSection: string): string {
-  const MAX = 100
-  const sepAndSection = `${DIVISOR}${ourSection}`
-
-  const sepIdx = existing?.indexOf(DIVISOR) ?? -1
-  const original = existing
-    ? (sepIdx !== -1 ? existing.slice(0, sepIdx) : existing).trimEnd()
-    : ''
-
-  if (!original) return sepAndSection.slice(0, MAX)
-
-  const full = `${original}${sepAndSection}`
-  if (full.length <= MAX) return full
-
-  const slack = MAX - sepAndSection.length
-  return slack > 0
-    ? `${original.slice(0, slack)}${sepAndSection}`
-    : sepAndSection.slice(0, MAX)
+function getEnv(key: string): string {
+  const value = process.env[key]
+  if (!value) throw new Error(`${key} não configurado`)
+  return value
 }
 
 export async function POST(
@@ -48,8 +19,9 @@ export async function POST(
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 
-  const { id } = await params
-  const tag = `[deliver] id=${id}`
+  const { id: rawId } = await params
+  const id = parseInt(rawId, 10)
+  if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
 
   let body: { recebidoPor?: string; motoboy?: string }
   try {
@@ -63,42 +35,18 @@ export async function POST(
     return NextResponse.json({ error: 'Campos obrigatórios ausentes' }, { status: 400 })
   }
 
-  const token = process.env.TINY_TOKEN
-  if (!token) {
-    console.error(tag, 'TINY_TOKEN não configurado')
-    return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
-  }
-
   try {
-    const client = createOlistClient(token)
-
-    const detalhe = await getOrderCached(Number(id))
-    const obsAtual = detalhe.retorno?.pedido?.obs
-    const dataPrevista = detalhe.retorno?.pedido?.data_prevista
-
-    const ourSection = `Entregue: ${fmtDate(new Date())}\nMotoboy: ${motoboy.trim()}\nRecebido por: ${recebidoPor.trim()}`
-    const obs = buildObs(obsAtual, ourSection)
-
-    const [alterarRes, situacaoRes] = await Promise.all([
-      client.updateOrder(Number(id), { obs, ...(dataPrevista && { data_prevista: dataPrevista }) }),
-      client.updateOrderStatus(Number(id), 'entregue'),
-    ])
-
-    if (alterarRes.retorno?.status !== 'OK') {
-      console.error(tag, 'updateOrder (obs) falhou — não crítico', alterarRes.retorno)
-    }
-
-    if (situacaoRes.retorno?.status !== 'OK') {
-      const erros = (situacaoRes.retorno?.erros ?? []).map((e) => e.erro).join('; ')
-      console.error(tag, 'atualizarSituacao falhou', situacaoRes.retorno)
-      return NextResponse.json({ error: erros || 'Erro ao atualizar situação' }, { status: 422 })
-    }
-
-    revalidateTag(`pedido-${id}`, { expire: 0 })
-    console.log(tag, 'entrega registrada', { motoboy, recebidoPor, obs, obsGravada: alterarRes.retorno?.status === 'OK' })
+    const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
+    await orderService.deliver(id, recebidoPor.trim(), motoboy.trim())
+    after(() => syncService.processPendingFor(id).catch((err) =>
+      console.error('[deliver] sync after-deliver falhou', { orderId: id, err }),
+    ))
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error(tag, 'erro inesperado', err)
-    return NextResponse.json({ error: 'Erro interno ao registrar entrega' }, { status: 500 })
+    if (err instanceof OrderServiceError) {
+      return NextResponse.json({ error: err.message }, { status: 422 })
+    }
+    console.error(`[deliver] id=${id} erro`, err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

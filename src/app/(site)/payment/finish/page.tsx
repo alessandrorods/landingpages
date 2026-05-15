@@ -1,10 +1,6 @@
 ﻿import type { Metadata } from 'next'
 import { PRODUCTS, CATEGORY_LABELS } from '@/constants/products'
-import { createMercadoPagoClient } from '@/clients/mercadopago/client'
-import { createOlistClient } from '@/clients/olist/client'
-import { createPedidoService } from '@/domains/pedidos/pedido.service'
 import { verifyToken } from '@/domains/checkout/token'
-import type { OlistOrderStatus } from '@/clients/olist/types'
 import type { PurchaseData } from '@/core/analytics'
 import ConversionEvents from './components/ConversionEvents'
 import { TrackingCard } from './components/TrackingCard'
@@ -17,35 +13,6 @@ export const metadata: Metadata = {
 
 function formatPrice(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-const MP_SITUACAO: Partial<Record<string, OlistOrderStatus>> = {
-  approved:   'aprovado',
-  cancelled:  'cancelado',
-  rejected:   'cancelado',
-}
-
-async function sincronizarSituacao(pedidoId: number, mpPagamentoId: string): Promise<string | null> {
-  const accessToken = process.env.MP_ACCESS_TOKEN
-  const tinyToken   = process.env.TINY_TOKEN
-  if (!accessToken || !tinyToken || pedidoId === 0) return null
-
-  try {
-    const mpClient      = createMercadoPagoClient(accessToken)
-    const pagamento     = await mpClient.buscarPagamento(mpPagamentoId)
-    const situacao      = MP_SITUACAO[pagamento.status]
-
-    if (situacao) {
-      const olistClient   = createOlistClient(tinyToken)
-      const pedidoService = createPedidoService(olistClient)
-      await pedidoService.atualizarSituacao(pedidoId, situacao)
-    }
-
-    return pagamento.status
-  } catch (err) {
-    console.error('Erro ao sincronizar situação do pedido', { pedidoId, mpPagamentoId, err })
-    return null
-  }
 }
 
 export default async function PaymentFinishPage({
@@ -66,13 +33,8 @@ export default async function PaymentFinishPage({
   // payment_id é appendado pelo próprio MP na back_url
   const paymentId = get('payment_id') ?? get('collection_id')
 
-  if (payload && paymentId && payload.pedidoId !== 0) {
-    // não await — dispara em background para não bloquear a renderização
-    void sincronizarSituacao(payload.pedidoId, paymentId)
-  }
-
-  const pedidoId     = payload?.pedidoId ?? 0
-  const orderId      = payload?.pedido ?? null
+  const orderId      = payload?.orderId ?? null
+  const pedidoNumero = payload?.pedido ?? null
   const sku          = payload?.sku ?? null
   const customerName = payload?.nome ?? null
   const orderValue   = payload?.valor ?? 0
@@ -80,7 +42,7 @@ export default async function PaymentFinishPage({
   const isFailed     = mpStatus === 'rejected' || mpStatus === 'cancelled'
   const isPending    = !isFailed && (mpStatus === 'pending' || mpStatus === 'in_process')
   const isApproved   = !isFailed && !isPending
-  const trackingUrl  = isApproved && pedidoId > 0 ? `https://www.florapp.com.br/tracking/${pedidoId}` : null
+  const trackingUrl  = isApproved && orderId ? `https://www.florapp.com.br/tracking/${orderId}` : null
 
   const waMsg = `Olá! Tenho uma dúvida sobre meu pedido${orderId ? ` nº ${orderId}` : ''}.`
   const waUrl = `https://wa.me/5511972804138?text=${encodeURIComponent(waMsg)}`
@@ -88,9 +50,9 @@ export default async function PaymentFinishPage({
   const product       = sku ? PRODUCTS.find((p) => p.sku === sku) : undefined
   const categoryLabel = product ? CATEGORY_LABELS[product.category] : null
 
-  const purchaseData: PurchaseData | null = orderId && isApproved
+  const purchaseData: PurchaseData | null = pedidoNumero && isApproved
     ? {
-        transaction_id: orderId,
+        transaction_id: pedidoNumero,
         value: orderValue,
         items: product
           ? [{ item_id: product.sku, item_name: product.name, item_category: product.category, price: orderValue }]
@@ -164,10 +126,10 @@ export default async function PaymentFinishPage({
           </div>
 
           <div className="p-5 space-y-4">
-            {orderId && (
+            {pedidoNumero && (
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Nº do pedido</span>
-                <span className="font-mono font-bold text-gray-800">{orderId}</span>
+                <span className="font-mono font-bold text-gray-800">{pedidoNumero}</span>
               </div>
             )}
 

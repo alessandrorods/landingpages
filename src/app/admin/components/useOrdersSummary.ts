@@ -1,12 +1,12 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { OlistOrderSummary } from '@/clients/olist/types'
+import type { OrderDTO } from '@/domains/orders/order.types'
 
 const POLL_INTERVAL = 60_000
 
-export function useOrdersSummary(situacao: string, dataAtualizacao?: string) {
-  const [resumos, setResumos] = useState<OlistOrderSummary[]>([])
+export function useOrdersSummary(status: string, _dataAtualizacao?: string) {
+  const [orders, setOrders] = useState<OrderDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
@@ -22,21 +22,10 @@ export function useOrdersSummary(situacao: string, dataAtualizacao?: string) {
 
     setLoading(true)
     try {
-      const params = new URLSearchParams({ situacao, summary: 'true' })
-      if (dataAtualizacao) params.set('dataAtualizacao', dataAtualizacao)
-      const res = await fetch(`/api/admin/orders?${params}`, { signal: controller.signal })
+      const res = await fetch(`/api/admin/orders?status=${status}`, { signal: controller.signal })
       if (!res.ok) throw new Error('Erro ao carregar')
       const data = await res.json()
-      const toSortKey = (d: string | undefined) => {
-        if (!d) return ''
-        const [dd, mm, yyyy] = d.split('/')
-        return `${yyyy}${mm}${dd}`
-      }
-      const sorted = (data.resumos ?? [] as OlistOrderSummary[]).slice().sort(
-        (a: OlistOrderSummary, b: OlistOrderSummary) =>
-          toSortKey(a.data_prevista).localeCompare(toSortKey(b.data_prevista)),
-      )
-      setResumos(sorted)
+      setOrders(data.orders ?? [])
       setLastUpdate(new Date())
       setError('')
     } catch (err) {
@@ -45,7 +34,7 @@ export function useOrdersSummary(situacao: string, dataAtualizacao?: string) {
     } finally {
       setLoading(false)
     }
-  }, [situacao, dataAtualizacao])
+  }, [status])
 
   const fetchRef = useRef(fetch_)
   useEffect(() => { fetchRef.current = fetch_ }, [fetch_])
@@ -70,5 +59,5 @@ export function useOrdersSummary(situacao: string, dataAtualizacao?: string) {
     }
   }, [])
 
-  return { resumos, loading, error, lastUpdate, nextRefreshAt, refresh: fetch_ }
+  return { orders, resumos: orders, loading, error, lastUpdate, nextRefreshAt, refresh: fetch_ }
 }

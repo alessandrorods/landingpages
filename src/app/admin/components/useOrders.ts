@@ -1,12 +1,12 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { OlistOrderDetails } from '@/clients/olist/types'
+import type { OrderDTO } from '@/domains/orders/order.types'
 
 const POLL_INTERVAL = 60_000
 
-export function useOrders(situacao: string) {
-  const [pedidos, setPedidos] = useState<OlistOrderDetails[]>([])
+export function useOrders(status: string) {
+  const [orders, setOrders] = useState<OrderDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
@@ -22,21 +22,12 @@ export function useOrders(situacao: string) {
 
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/orders?situacao=${situacao}`, {
+      const res = await fetch(`/api/admin/orders?status=${status}`, {
         signal: controller.signal,
       })
       if (!res.ok) throw new Error('Erro ao carregar')
       const data = await res.json()
-      const toSortKey = (d: string | undefined) => {
-        if (!d) return ''
-        const [dd, mm, yyyy] = d.split('/')
-        return `${yyyy}${mm}${dd}`
-      }
-      const sorted = (data.pedidos ?? [] as OlistOrderDetails[]).slice().sort(
-        (a: OlistOrderDetails, b: OlistOrderDetails) =>
-          toSortKey(a.data_prevista).localeCompare(toSortKey(b.data_prevista)),
-      )
-      setPedidos(sorted)
+      setOrders(data.orders ?? [])
       setLastUpdate(new Date())
       setError('')
     } catch (err) {
@@ -45,9 +36,8 @@ export function useOrders(situacao: string) {
     } finally {
       setLoading(false)
     }
-  }, [situacao])
+  }, [status])
 
-  // Ref para ter sempre a versão mais recente de fetch_ sem recriar o efeito
   const fetchRef = useRef(fetch_)
   useEffect(() => { fetchRef.current = fetch_ }, [fetch_])
 
@@ -69,7 +59,7 @@ export function useOrders(situacao: string) {
       if (timerRef.current) clearTimeout(timerRef.current)
       abortRef.current?.abort()
     }
-  }, []) // roda uma única vez por montagem
+  }, [])
 
-  return { pedidos, loading, error, lastUpdate, nextRefreshAt, refresh: fetch_ }
+  return { orders, loading, error, lastUpdate, nextRefreshAt, refresh: fetch_ }
 }

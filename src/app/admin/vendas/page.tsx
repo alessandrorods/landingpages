@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -6,46 +6,41 @@ import { useOrders } from '@/app/admin/components/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/app/admin/components/OrderDrawer'
-import type { OlistOrderDetails } from '@/clients/olist/types'
+import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 type Tab = 'pagos' | 'recuperar'
 
-function fone(p: OlistOrderDetails): string {
-  return (p.cliente?.fone ?? p.cliente?.celular ?? '').replace(/\D/g, '')
-}
-
-function whatsappMsg(p: OlistOrderDetails): string {
-  const produto = p.itens?.[0]?.item?.descricao ?? 'produto'
+function whatsappMsg(order: OrderDTO): string {
+  const produto = order.items[0]?.name ?? 'produto'
   return encodeURIComponent(
-    `Olá ${p.cliente?.nome?.split(' ')[0] ?? ''}! Identificamos um problema no pagamento do seu pedido de *${produto}* na Mundo Planta. Podemos te ajudar a concluir a compra?`,
+    `Olá ${order.buyerName.split(' ')[0]}! Identificamos um problema no pagamento do seu pedido de *${produto}* na Mundo Planta. Podemos te ajudar a concluir a compra?`,
   )
 }
 
 function PedidoCard({
-  p,
+  order,
   variant,
   onOpen,
 }: {
-  p: OlistOrderDetails
+  order: OrderDTO
   variant: Tab
   onOpen: () => void
 }) {
-  const produto = p.itens?.[0]?.item?.descricao ?? '—'
-  const phone = fone(p)
+  const produto = order.items[0]?.name ?? '—'
+  const tel = order.buyerPhone.replace(/\D/g, '')
 
   return (
     <button
       onClick={onOpen}
       className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
     >
-      {/* número em destaque */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-2xl font-bold font-mono text-gray-900 bg-gray-100 px-3 py-1 rounded-xl leading-none">
-            #{p.numero}
+            #{order.olistNumero ?? '—'}
           </span>
-          <DeliveryLabel data={p.data_prevista} />
+          <DeliveryLabel data={order.deliveryDate} />
         </div>
         <span
           className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
@@ -58,11 +53,11 @@ function PedidoCard({
         </span>
       </div>
 
-      <p className="font-semibold text-gray-900 leading-tight">{p.cliente?.nome}</p>
+      <p className="font-semibold text-gray-900 leading-tight">{order.buyerName}</p>
       <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
 
       <div className="flex items-center justify-between mt-2">
-        {variant === 'recuperar' && phone && (
+        {variant === 'recuperar' && tel && (
           <span className="text-xs text-green-700 font-semibold">Tem telefone ›</span>
         )}
         {variant === 'pagos' && (
@@ -73,13 +68,13 @@ function PedidoCard({
   )
 }
 
-function RecuperarAction({ p }: { p: OlistOrderDetails }) {
-  const phone = fone(p)
-  if (!phone) return <p className="text-sm text-gray-400 text-center">Sem telefone cadastrado</p>
+function RecuperarAction({ order }: { order: OrderDTO }) {
+  const tel = order.buyerPhone.replace(/\D/g, '')
+  if (!tel) return <p className="text-sm text-gray-400 text-center">Sem telefone cadastrado</p>
   return (
     <div className="flex gap-2">
       <a
-        href={`https://wa.me/55${phone}?text=${whatsappMsg(p)}`}
+        href={`https://wa.me/55${tel}?text=${whatsappMsg(order)}`}
         target="_blank"
         rel="noopener noreferrer"
         className="flex-1 text-center text-base font-semibold bg-green-500 hover:bg-green-600 text-white py-3.5 rounded-xl transition-colors"
@@ -87,7 +82,7 @@ function RecuperarAction({ p }: { p: OlistOrderDetails }) {
         WhatsApp
       </a>
       <a
-        href={`tel:${phone}`}
+        href={`tel:${tel}`}
         className="flex-1 text-center text-base font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-3.5 rounded-xl transition-colors"
       >
         Ligar
@@ -98,9 +93,9 @@ function RecuperarAction({ p }: { p: OlistOrderDetails }) {
 
 export default function VendasPage() {
   const [tab, setTab] = useState<Tab>('pagos')
-  const [aberto, setAberto] = useState<OlistOrderDetails | null>(null)
-  const pagos = useOrders('aprovado')
-  const recuperar = useOrders('aberto')
+  const [aberto, setAberto] = useState<OrderDTO | null>(null)
+  const pagos = useOrders('approved')
+  const recuperar = useOrders('pending')
 
   const active = tab === 'pagos' ? pagos : recuperar
 
@@ -117,7 +112,7 @@ export default function VendasPage() {
       </div>
 
       <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
-        {([['pagos', 'Pagos', pagos.pedidos.length], ['recuperar', 'Recuperar', recuperar.pedidos.length]] as const).map(
+        {([['pagos', 'Pagos', pagos.orders.length], ['recuperar', 'Recuperar', recuperar.orders.length]] as const).map(
           ([t, label, count]) => (
             <button
               key={t}
@@ -146,7 +141,7 @@ export default function VendasPage() {
       </div>
 
       <StatusBar
-        count={active.pedidos.length}
+        count={active.orders.length}
         lastUpdate={active.lastUpdate}
         nextRefreshAt={active.nextRefreshAt}
         onRefresh={active.refresh}
@@ -165,7 +160,7 @@ export default function VendasPage() {
         <p className="text-sm text-red-600 bg-red-50 rounded-xl p-4">{active.error}</p>
       )}
 
-      {!active.loading && !active.error && active.pedidos.length === 0 && (
+      {!active.loading && !active.error && active.orders.length === 0 && (
         <EmptyState
           icon={tab === 'pagos' ? '✅' : '🎉'}
           message={tab === 'pagos' ? 'Nenhum pedido pago no momento' : 'Nenhum pedido para recuperar'}
@@ -173,16 +168,17 @@ export default function VendasPage() {
       )}
 
       {!active.loading &&
-        active.pedidos.map((p) => (
-          <PedidoCard key={p.id} p={p} variant={tab} onOpen={() => setAberto(p)} />
+        active.orders.map((order) => (
+          <PedidoCard key={order.id} order={order} variant={tab} onOpen={() => setAberto(order)} />
         ))}
 
       {aberto && (
         <OrderDrawer
-          pedido={aberto}
+          order={aberto}
           onClose={() => setAberto(null)}
-          action={tab === 'recuperar' ? <RecuperarAction p={aberto} /> : undefined}
+          action={tab === 'recuperar' ? <RecuperarAction order={aberto} /> : undefined}
           showConfirmationCopy={tab === 'pagos'}
+          onRefresh={(updated) => setAberto(updated)}
         />
       )}
     </div>

@@ -1,23 +1,18 @@
-﻿'use client'
+'use client'
 
 import { useState, useCallback } from 'react'
-import type { OlistOrderDetails } from '@/clients/olist/types'
-import { parseMotoboy, parseRecebidoPor, parseEntregue, parseSaiu, parseObsUsuario, isOrderFromLI, parseLIData } from '@/domains/pedidos/parseObs'
-import type { OlistAddress } from '@/clients/olist/types'
+import type { OrderDTO } from '@/domains/orders/order.types'
 import { IoPrintOutline, IoRefreshOutline, IoCopyOutline, IoCheckmarkOutline } from 'react-icons/io5'
 
 interface Props {
-  pedido: OlistOrderDetails
+  order: OrderDTO
   onClose: () => void
   action?: React.ReactNode
   hideBuyer?: boolean
   hidePrices?: boolean
   hideCardMessage?: boolean
   showConfirmationCopy?: boolean
-}
-
-function fmt(phone: string) {
-  return phone.replace(/\D/g, '')
+  onRefresh?: (updated: OrderDTO) => void
 }
 
 function Row({ label, value }: { label: string; value?: string | null }) {
@@ -44,15 +39,15 @@ function Divider() {
 }
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  aberto:           { label: 'Aguardando pagamento', cls: 'bg-gray-100 text-gray-600' },
-  aprovado:         { label: 'Pago',                 cls: 'bg-green-100 text-green-700' },
-  preparando_envio: { label: 'Preparando',           cls: 'bg-blue-100 text-blue-700' },
-  faturado:         { label: 'Faturado',             cls: 'bg-blue-100 text-blue-700' },
-  pronto_envio:     { label: 'Pronto para envio',    cls: 'bg-blue-100 text-blue-700' },
-  enviado:          { label: 'Saiu para entrega',    cls: 'bg-orange-100 text-orange-700' },
-  entregue:         { label: 'Entregue',             cls: 'bg-green-100 text-green-800' },
-  nao_entregue:     { label: 'Não entregue',         cls: 'bg-red-100 text-red-700' },
-  cancelado:        { label: 'Cancelado',            cls: 'bg-red-100 text-red-700' },
+  pending:     { label: 'Aguardando pagamento', cls: 'bg-gray-100 text-gray-600' },
+  approved:    { label: 'Pago',                 cls: 'bg-green-100 text-green-700' },
+  preparing:   { label: 'Preparando',           cls: 'bg-blue-100 text-blue-700' },
+  invoiced:    { label: 'Faturado',             cls: 'bg-blue-100 text-blue-700' },
+  ready:       { label: 'Pronto para envio',    cls: 'bg-blue-100 text-blue-700' },
+  dispatched:  { label: 'Saiu para entrega',    cls: 'bg-orange-100 text-orange-700' },
+  delivered:   { label: 'Entregue',             cls: 'bg-green-100 text-green-800' },
+  undelivered: { label: 'Não entregue',         cls: 'bg-red-100 text-red-700' },
+  cancelled:   { label: 'Cancelado',            cls: 'bg-red-100 text-red-700' },
 }
 
 function CopyPhoneButton({ number, display }: { number: string; display: string }) {
@@ -75,13 +70,13 @@ function CopyPhoneButton({ number, display }: { number: string; display: string 
   )
 }
 
-export default function OrderDrawer({ pedido: initialPedido, onClose, action, hideBuyer, hidePrices, hideCardMessage, showConfirmationCopy }: Props) {
-  const [p, setP] = useState(initialPedido)
+export default function OrderDrawer({ order: initialOrder, onClose, action, hideBuyer, hidePrices, hideCardMessage, showConfirmationCopy, onRefresh }: Props) {
+  const [order, setOrder] = useState(initialOrder)
   const [syncing, setSyncing] = useState(false)
   const [copiedConfirmation, setCopiedConfirmation] = useState(false)
 
   function copyConfirmation() {
-    const msg = `Obrigado por sua compra!\n\n➡️ O número do seu pedido é *${p.numero}*\n\nAcompanhe seu pedido pelo link abaixo:\nhttps://florapp.com.br/tracking/${p.id}`
+    const msg = `Obrigado por sua compra!\n\n➡️ O número do seu pedido é *${order.olistNumero ?? order.id}*\n\nAcompanhe seu pedido pelo link abaixo:\nhttps://florapp.com.br/tracking/${order.id}`
     navigator.clipboard.writeText(msg).then(() => {
       setCopiedConfirmation(true)
       setTimeout(() => setCopiedConfirmation(false), 2000)
@@ -91,43 +86,25 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
   const sync = useCallback(async () => {
     setSyncing(true)
     try {
-      const res = await fetch(`/api/admin/orders/${p.id}`, { method: 'POST' })
+      const res = await fetch(`/api/admin/orders/${order.id}`)
       if (res.ok) {
         const data = await res.json()
-        setP(data.pedido)
+        if (data.order) {
+          setOrder(data.order)
+          onRefresh?.(data.order)
+        }
       }
     } finally {
       setSyncing(false)
     }
-  }, [p.id])
+  }, [order.id, onRefresh])
 
-  const fromLI = isOrderFromLI(p.obs_interna)
-  const liData = fromLI ? parseLIData(p.obs_interna) : null
-
-  const clienteEndereco: OlistAddress | undefined = fromLI && p.cliente.endereco
-    ? {
-        nome_destinatario: liData?.recipientName ?? '',
-        endereco: p.cliente.endereco ?? '',
-        numero: p.cliente.numero ?? '',
-        complemento: p.cliente.complemento,
-        bairro: p.cliente.bairro ?? '',
-        cep: p.cliente.cep ?? '',
-        cidade: p.cliente.cidade ?? '',
-        uf: p.cliente.uf ?? '',
-      }
-    : undefined
-
-  const endereco = p.enderecos?.[0]?.endereco ?? p.endereco_entrega ?? clienteEndereco
-  const destinatario = fromLI ? liData?.recipientName : endereco?.nome_destinatario
-  const mesmaPessoa = !destinatario || destinatario === p.cliente?.nome
-  const telefoneComprador = p.cliente?.fone ? fmt(p.cliente.fone) : ''
-  const celularComprador = p.cliente?.celular ? fmt(p.cliente.celular) : ''
-  const obsUsuario = fromLI ? liData?.observations : parseObsUsuario(p.obs)
-  const cardMessage = fromLI ? liData?.cardMessage : p.obs_interna
-  const motoboy = parseMotoboy(p.obs)
-  const recebidoPor = parseRecebidoPor(p.obs)
-  const entregueEm = parseEntregue(p.obs)
-  const saiuEm = parseSaiu(p.obs)
+  const badge = STATUS_BADGE[order.status]
+  const compradorTel = order.buyerPhone.replace(/\D/g, '')
+  const mesmaPessoa = order.recipientName === order.buyerName
+  const destinatarioTel = order.recipientPhone.replace(/\D/g, '')
+  const valorTotal = order.totalAmount.toFixed(2).replace('.', ',')
+  const freteDisplay = order.freight.toFixed(2).replace('.', ',')
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
@@ -137,24 +114,23 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
         className="relative bg-white rounded-t-3xl md:rounded-3xl w-full md:max-w-lg flex flex-col max-h-[94vh] md:max-h-[85vh] animate-modal-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Fixed header */}
+        {/* Header fixo */}
         <div className="flex-none">
           <div className="flex justify-center pt-3 pb-1 md:hidden">
             <div className="w-10 h-1 bg-gray-200 rounded-full" />
           </div>
           <div className="px-5 pb-3 pt-3 flex items-center justify-between border-b border-gray-100">
             <div>
-              <span className="text-3xl font-bold font-mono text-gray-900">#{p.numero}</span>
-              {p.numero_ecommerce && (
-                <p className="text-xs text-gray-400 mt-0.5">Ref: {p.numero_ecommerce}</p>
-              )}
+              <span className="text-3xl font-bold font-mono text-gray-900">
+                #{order.olistNumero ?? '—'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={sync}
                 disabled={syncing}
                 className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-40"
-                aria-label="Sincronizar pedido"
+                aria-label="Recarregar pedido"
               >
                 <IoRefreshOutline size={20} className={syncing ? 'animate-spin' : ''} />
               </button>
@@ -168,7 +144,7 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
                 </button>
               )}
               <a
-                href={`/print/${p.id}`}
+                href={`/print/${order.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
@@ -187,59 +163,36 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
           </div>
         </div>
 
-        {/* Scrollable content */}
+        {/* Conteúdo scrollável */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-          {/* ── Situação + datas + entrega ── */}
+
+          {/* Pedido */}
           <Section label="Pedido">
-            {/* Status + data do pedido */}
             <div className="flex items-center justify-between gap-3 mb-4">
-              {(() => {
-                const badge = STATUS_BADGE[p.situacao?.toLowerCase().replace(/\s+/g, '_') ?? '']
-                return (
-                  <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${badge?.cls ?? 'bg-gray-100 text-gray-600'}`}>
-                    {badge?.label ?? p.situacao}
-                  </span>
-                )
-              })()}
-              {p.data_pedido && (
-                <span className="text-xs text-gray-400 shrink-0">Criado em: {p.data_pedido}</span>
+              <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${badge?.cls ?? 'bg-gray-100 text-gray-600'}`}>
+                {badge?.label ?? order.status}
+              </span>
+              <span className="text-xs text-gray-400 shrink-0">
+                {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+              </span>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl px-3 py-3 mb-4">
+              <p className="text-xs text-gray-400 mb-0.5">Entrega prevista</p>
+              <p className="text-xl font-bold text-gray-900">{order.deliveryDate}</p>
+              {order.deliveryPeriod && (
+                <p className="text-xs text-gray-500 mt-0.5">{order.deliveryPeriod}</p>
               )}
             </div>
 
-            {/* Entrega prevista — destaque */}
-            {(p.data_prevista || liData?.scheduledDelivery || p.forma_frete) && (
-              <div className="bg-gray-50 rounded-xl px-3 py-3 mb-4">
-                <p className="text-xs text-gray-400 mb-0.5">Entrega prevista</p>
-                {(p.data_prevista || liData?.scheduledDelivery) && (
-                  <p className="text-xl font-bold text-gray-900">
-                    {liData?.scheduledDelivery ?? p.data_prevista}
-                  </p>
-                )}
-                {p.forma_frete && (
-                  <p className="text-xs text-gray-500 mt-0.5">{p.forma_frete}</p>
-                )}
-              </div>
-            )}
-
-            {/* Dados de envio/entrega */}
-            {(motoboy || saiuEm || entregueEm || recebidoPor) && (
+            {(order.courierName || order.dispatchedAt || order.deliveredAt || order.receivedBy) && (
               <>
                 <Divider />
                 <div className="bg-gray-50 rounded-xl px-3 py-1 mt-4">
-                  <Row label="Motoboy" value={motoboy} />
-                  {saiuEm && (
-                    <div className="flex justify-between gap-4 py-1.5 border-b border-gray-50 last:border-0">
-                      <span className="text-xs text-gray-400 shrink-0">Saiu para entrega em</span>
-                      <span className="text-sm text-gray-900 text-right">{saiuEm}</span>
-                    </div>
-                  )}
-                  {entregueEm && (
-                    <div className="flex justify-between gap-4 py-1.5 border-b border-gray-50 last:border-0">
-                      <span className="text-xs text-gray-400 shrink-0">Entregue em</span>
-                      <span className="text-sm font-semibold text-gray-900 text-right">{entregueEm}</span>
-                    </div>
-                  )}
-                  <Row label="Recebido por" value={recebidoPor} />
+                  <Row label="Motoboy" value={order.courierName} />
+                  <Row label="Saiu para entrega em" value={order.dispatchedAt} />
+                  <Row label="Entregue em" value={order.deliveredAt} />
+                  <Row label="Recebido por" value={order.receivedBy} />
                 </div>
               </>
             )}
@@ -247,77 +200,62 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
 
           <Divider />
 
-          {/* ── Comprador ── */}
+          {/* Comprador */}
           {!hideBuyer && (
             <>
               <Section label="Comprador">
-                <p className="font-semibold text-gray-900 mb-1">{p.cliente?.nome}</p>
-
-                {(telefoneComprador || celularComprador) && (
-                  <div className="space-y-2">
-                    {telefoneComprador && (
-                      <div className="flex gap-2">
-                        <a
-                          href={`https://wa.me/55${telefoneComprador}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 text-center text-sm font-semibold bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl transition-colors"
-                        >
-                          WhatsApp
-                        </a>
-                        <CopyPhoneButton number={telefoneComprador} display={p.cliente?.fone ?? telefoneComprador} />
-                      </div>
-                    )}
-                    {celularComprador && celularComprador !== telefoneComprador && (
-                      <CopyPhoneButton number={celularComprador} display={`Celular: ${p.cliente?.celular}`} />
-                    )}
+                <p className="font-semibold text-gray-900 mb-1">{order.buyerName}</p>
+                {compradorTel && (
+                  <div className="flex gap-2">
+                    <a
+                      href={`https://wa.me/55${compradorTel}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 text-center text-sm font-semibold bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl transition-colors"
+                    >
+                      WhatsApp
+                    </a>
+                    <CopyPhoneButton number={compradorTel} display={order.buyerPhone} />
                   </div>
                 )}
-
-                {p.cliente?.email && (
-                  <p className="text-xs text-gray-400 mt-2">{p.cliente.email}</p>
-                )}
               </Section>
-
               <Divider />
             </>
           )}
 
-          {/* ── Destinatário ── */}
+          {/* Destinatário */}
           <Section label="Destinatário">
-            <p className="font-semibold text-gray-900 mb-0.5">
-              {destinatario ?? p.cliente?.nome}
-            </p>
+            <p className="font-semibold text-gray-900 mb-0.5">{order.recipientName}</p>
             {mesmaPessoa && (
               <p className="text-xs text-gray-400 mb-1">Mesmo que o comprador</p>
             )}
-            {endereco?.fone && (
-              <CopyPhoneButton number={fmt(endereco.fone)} display={endereco.fone} />
+            {destinatarioTel && !mesmaPessoa && (
+              <CopyPhoneButton number={destinatarioTel} display={order.recipientPhone} />
             )}
           </Section>
 
           <Divider />
 
-          {/* ── Endereço de entrega ── */}
+          {/* Endereço */}
           <Section label="Endereço de entrega">
             <div className="bg-gray-50 rounded-xl px-3 py-2 space-y-0.5">
               <p className="text-sm font-medium text-gray-900">
-                {endereco?.endereco}, {endereco?.numero}
-                {endereco?.complemento ? ` — ${endereco.complemento}` : ''}
+                {order.street}, {order.streetNumber}
+                {order.complement ? ` — ${order.complement}` : ''}
               </p>
-              <p className="text-sm text-gray-600">{endereco?.bairro}</p>
-              <p className="text-xs text-gray-400">CEP {endereco?.cep}</p>
-              <p className="text-xs text-gray-400">{endereco?.cidade} / {endereco?.uf}</p>
+              <p className="text-sm text-gray-600">{order.neighborhood}</p>
+              <p className="text-xs text-gray-400">CEP {order.zipCode}</p>
+              <p className="text-xs text-gray-400">Mogi das Cruzes / SP</p>
             </div>
           </Section>
 
-          {/* ── Observações ── */}
-          {obsUsuario && (
+          {/* Observações */}
+          {order.notes && (
             <>
               <Divider />
               <Section label="Observações">
                 <p className="text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2.5 leading-relaxed whitespace-pre-line">
-                  {obsUsuario}
+                  {order.notes}
                 </p>
               </Section>
             </>
@@ -325,21 +263,20 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
 
           <Divider />
 
-          {/* ── Produtos ── */}
-          {p.itens && p.itens.length > 0 && (
+          {/* Produtos */}
+          {order.items.length > 0 && (
             <Section label="Produtos">
               <div className="space-y-2">
-                {p.itens.map((i, idx) => (
-                  <div key={idx} className="bg-gray-50 rounded-xl px-3 py-2.5">
-                    <p className="text-sm font-semibold text-gray-900">{i.item.descricao}</p>
+                {order.items.map((i) => (
+                  <div key={i.id} className="bg-gray-50 rounded-xl px-3 py-2.5">
+                    <p className="text-sm font-semibold text-gray-900">{i.name}</p>
                     <div className="flex justify-between mt-1">
                       <span className="text-xs text-gray-400">
-                        {i.item.codigo ? `SKU ${i.item.codigo} · ` : ''}
-                        {i.item.quantidade} {i.item.unidade ?? 'un'}
+                        {i.sku ? `SKU ${i.sku} · ` : ''}{i.quantity} un
                       </span>
                       {!hidePrices && (
                         <span className="text-sm font-medium text-gray-700">
-                          R$ {i.item.valor_total ?? i.item.valor_unitario}
+                          R$ {(i.price * i.quantity).toFixed(2).replace('.', ',')}
                         </span>
                       )}
                     </div>
@@ -349,38 +286,36 @@ export default function OrderDrawer({ pedido: initialPedido, onClose, action, hi
             </Section>
           )}
 
-          {/* ── Mensagem do cartão ── */}
-          {(!hideCardMessage && cardMessage) && (
+          {/* Mensagem do cartão */}
+          {!hideCardMessage && order.cardMessage && (
             <>
               <Divider />
               <Section label="Mensagem do cartão">
                 <p className="text-sm text-pink-900 italic bg-pink-50 rounded-xl px-3 py-2.5 leading-relaxed">
-                  {cardMessage}
+                  {order.cardMessage}
                 </p>
               </Section>
             </>
           )}
 
-          {/* ── Financeiro ── */}
+          {/* Financeiro */}
           {!hidePrices && (
             <>
               <Divider />
               <Section label="Financeiro">
                 <div className="bg-gray-50 rounded-xl px-3 py-1">
-                  {p.valor_frete && <Row label="Frete" value={`R$ ${p.valor_frete}`} />}
-                  {p.valor_total && (
-                    <div className="flex justify-between gap-4 pt-2 mt-1 border-t border-gray-200">
-                      <span className="text-sm font-semibold text-gray-700">Total</span>
-                      <span className="text-base font-bold text-gray-900">R$ {p.valor_total}</span>
-                    </div>
-                  )}
+                  <Row label="Frete" value={`R$ ${freteDisplay}`} />
+                  <div className="flex justify-between gap-4 pt-2 mt-1 border-t border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">Total</span>
+                    <span className="text-base font-bold text-gray-900">R$ {valorTotal}</span>
+                  </div>
                 </div>
               </Section>
             </>
           )}
         </div>
 
-        {/* Fixed footer */}
+        {/* Footer fixo */}
         {action && (
           <div className="flex-none border-t border-gray-100 px-5 py-4">
             {action}

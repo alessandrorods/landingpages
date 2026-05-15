@@ -1,10 +1,10 @@
-﻿import { PRODUCTS } from '@/constants/products'
+import { after } from 'next/server'
+import { PRODUCTS } from '@/constants/products'
 import { FRETE_VALOR } from '@/constants/pedido'
-import { createOlistClient } from '@/clients/olist/client'
-import { createPedidoService, PedidoServiceError } from '@/domains/pedidos/pedido.service'
-import type { OlistOrderStatus } from '@/clients/olist/types'
 import { createMercadoPagoClient } from '@/clients/mercadopago/client'
 import { createPagamentoService, PagamentoServiceError } from '@/domains/pagamentos/pagamento.service'
+import { createOrderDomain } from '@/domains/orders/order.domain'
+import { OrderServiceError } from '@/domains/orders/order.service'
 import { signToken } from './token'
 import type { PedidoBody, CheckoutResult } from './types'
 
@@ -26,58 +26,72 @@ function getEnv(key: string): string {
 }
 
 export async function processarCheckout(body: PedidoBody): Promise<CheckoutResult> {
-  const product = PRODUCTS.find(p => p.sku === body.sku)
+  const product = PRODUCTS.find((p) => p.sku === body.sku)
   if (!product) throw new CheckoutError('Produto não encontrado', undefined, 404)
 
-  const olistClient = createOlistClient(getEnv('TINY_TOKEN'))
-  const pedidoService = createPedidoService(olistClient)
+  const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
   const mpClient = createMercadoPagoClient(getEnv('MP_ACCESS_TOKEN'))
   const pagamentoService = createPagamentoService(mpClient)
 
-  let pedido: Awaited<ReturnType<typeof pedidoService.criarPedido>>
+  let order: Awaited<ReturnType<typeof orderService.createOrder>>
   try {
-    pedido = await pedidoService.criarPedido(body)
+    order = await orderService.createOrder({
+      payment: 'mp_link',
+      freight: FRETE_VALOR,
+      buyerName: body.comprador.nome,
+      buyerPhone: body.comprador.telefone,
+      recipientName: body.destinatario.paraOutraPessoa
+        ? body.destinatario.nome
+        : body.comprador.nome,
+      recipientPhone: body.destinatario.paraOutraPessoa
+        ? body.destinatario.telefone
+        : body.comprador.telefone,
+      cardMessage: body.destinatario.mensagemCartao,
+      zipCode: body.endereco.cep,
+      street: body.endereco.logradouro,
+      streetNumber: body.endereco.numero,
+      complement: body.endereco.complemento,
+      neighborhood: body.endereco.bairro,
+      deliveryDate: body.endereco.dataEntrega,
+      deliveryPeriod: body.endereco.periodoEntrega,
+      items: [{ sku: product.sku, name: product.name, price: product.price, quantity: 1 }],
+      source: 'checkout',
+    })
   } catch (err) {
-    if (err instanceof PedidoServiceError) throw new CheckoutError(err.message, err.detalhes)
+    if (err instanceof OrderServiceError) throw new CheckoutError(err.message)
     throw err
   }
 
-  console.log('Pedido criado no Olist', { id: pedido.id, numero: pedido.numero })
+  after(() => syncService.processPendingFor(order.id).catch((err) =>
+    console.error('[checkout] sync after-create falhou', { orderId: order.id, err }),
+  ))
+
+  console.log('Pedido criado no DB', { id: order.id, olistNumero: order.olistNumero })
 
   const baseUrl = getEnv('NEXT_PUBLIC_SITE_URL').replace(/\/$/, '')
   const valor = product.price + FRETE_VALOR
-  const token = await signToken({ pedidoId: pedido.id, pedido: pedido.numero, sku: body.sku, nome: body.comprador.nome, valor })
+  const token = await signToken({
+    orderId: order.id,
+    pedido: order.olistNumero ?? String(order.id),
+    sku: body.sku,
+    nome: body.comprador.nome,
+    valor,
+  })
   const confirmacaoUrl = `${baseUrl}/payment/finish?payment_token=${token}`
 
   let preferencia: Awaited<ReturnType<typeof pagamentoService.criarPreferencia>>
   try {
     preferencia = await pagamentoService.criarPreferencia({
-      external_reference: String(pedido.id),
+      external_reference: String(order.id),
       items: [
-        {
-          id: product.sku,
-          title: product.name,
-          quantity: 1,
-          unit_price: product.price,
-          currency_id: 'BRL',
-        },
-        {
-          id: 'frete',
-          title: 'Taxa de entrega',
-          quantity: 1,
-          unit_price: FRETE_VALOR,
-          currency_id: 'BRL',
-        },
+        { id: product.sku, title: product.name, quantity: 1, unit_price: product.price, currency_id: 'BRL' },
+        { id: 'frete', title: 'Taxa de entrega', quantity: 1, unit_price: FRETE_VALOR, currency_id: 'BRL' },
       ],
       payer: {
         name: body.comprador.nome,
         phone: { number: body.comprador.telefone.replace(/\D/g, '') },
       },
-      back_urls: {
-        success: confirmacaoUrl,
-        failure: confirmacaoUrl,
-        pending: confirmacaoUrl,
-      },
+      back_urls: { success: confirmacaoUrl, failure: confirmacaoUrl, pending: confirmacaoUrl },
       auto_return: 'approved',
       notification_url: `${baseUrl}/api/payment/webhook`,
     })
@@ -86,80 +100,49 @@ export async function processarCheckout(body: PedidoBody): Promise<CheckoutResul
     throw err
   }
 
-  console.log('Preferência MP criada', { id: preferencia.id, pedidoId: pedido.id })
+  await orderService.setMpPreferenceId(order.id, preferencia.id)
 
-  return { pedidoId: pedido.id, pedidoNumero: pedido.numero, redirectUrl: preferencia.initPoint }
-}
+  console.log('Preferência MP criada', { id: preferencia.id, orderId: order.id })
 
-const MP_SITUACAO: Partial<Record<string, OlistOrderStatus>> = {
-  approved:  'aprovado',
-  cancelled: 'cancelado',
-  rejected:  'cancelado',
-}
-
-// Ordered progression: a situacao só pode avançar, nunca regredir.
-// 'cancelado' e 'nao_entregue' são terminais fora da progressão linear.
-const ORDEM_SITUACAO: OlistOrderStatus[] = [
-  'aberto',
-  'aprovado',
-  'preparando_envio',
-  'faturado',
-  'pronto_envio',
-  'enviado',
-  'entregue',
-]
-
-function transicaoPermitida(atual: string | undefined, destino: OlistOrderStatus): boolean {
-  if (destino === 'cancelado') {
-    // Só cancela se o pedido ainda não avançou além de 'aprovado'
-    const idxAtual = ORDEM_SITUACAO.indexOf((atual ?? '') as OlistOrderStatus)
-    const idxAprovado = ORDEM_SITUACAO.indexOf('aprovado')
-    return idxAtual <= idxAprovado
+  return {
+    pedidoId: order.id,
+    pedidoNumero: order.olistNumero ?? String(order.id),
+    redirectUrl: preferencia.initPoint,
   }
-  const idxAtual = ORDEM_SITUACAO.indexOf((atual ?? '') as OlistOrderStatus)
-  const idxDestino = ORDEM_SITUACAO.indexOf(destino)
-  // Permite apenas avançar; estados desconhecidos (idxAtual === -1) também bloqueiam
-  return idxAtual !== -1 && idxDestino > idxAtual
 }
 
-export async function processarPagamento(pedidoId: number, mpPagamentoId: string): Promise<void> {
-  const olistClient = createOlistClient(getEnv('TINY_TOKEN'))
-  const pedidoService = createPedidoService(olistClient)
+export async function processarPagamento(orderId: number, mpPagamentoId: string): Promise<void> {
+  const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
   const mpClient = createMercadoPagoClient(getEnv('MP_ACCESS_TOKEN'))
   const pagamentoService = createPagamentoService(mpClient)
 
   const pagamento = await pagamentoService.buscarPagamento(mpPagamentoId)
-  const situacaoDestino = MP_SITUACAO[pagamento.status]
 
-  if (!situacaoDestino) {
-    console.log('Status sem ação no Olist', { mpPagamentoId, status: pagamento.status })
+  if (pagamento.status === 'approved') {
+    await orderService.approveFromPayment(orderId)
+    after(() => syncService.processPendingFor(orderId).catch((err) =>
+      console.error('[checkout] sync after-approve falhou', { orderId, err }),
+    ))
+    console.log('Pedido aprovado via webhook', { orderId, mpPagamentoId })
     return
   }
 
-  let situacaoAtual: string | undefined
-  try {
-    situacaoAtual = await pedidoService.obterSituacao(pedidoId)
-  } catch (err) {
-    if (err instanceof PedidoServiceError) throw new CheckoutError(err.message, err.detalhes)
-    throw err
-  }
-
-  if (!transicaoPermitida(situacaoAtual, situacaoDestino)) {
-    console.warn('Transição de situação bloqueada — pedido já avançou', {
-      pedidoId,
-      mpPagamentoId,
-      situacaoAtual,
-      situacaoDestino,
-    })
+  if (pagamento.status === 'cancelled' || pagamento.status === 'rejected') {
+    try {
+      await orderService.updateStatus(orderId, 'cancelled')
+      after(() => syncService.processPendingFor(orderId).catch((err) =>
+        console.error('[checkout] sync after-cancel falhou', { orderId, err }),
+      ))
+      console.log('Pedido cancelado via webhook', { orderId, mpPagamentoId, status: pagamento.status })
+    } catch (err) {
+      if (err instanceof OrderServiceError) {
+        console.warn('Cancelamento bloqueado', { orderId, err: err.message })
+        return
+      }
+      throw err
+    }
     return
   }
 
-  try {
-    await pedidoService.atualizarSituacao(pedidoId, situacaoDestino)
-  } catch (err) {
-    if (err instanceof PedidoServiceError) throw new CheckoutError(err.message, err.detalhes)
-    throw err
-  }
-
-  console.log('Pedido atualizado no Olist', { pedidoId, mpPagamentoId, situacaoAtual, situacaoDestino })
+  console.log('Status MP sem ação', { orderId, mpPagamentoId, status: pagamento.status })
 }
