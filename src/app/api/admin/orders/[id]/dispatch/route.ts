@@ -1,6 +1,6 @@
 import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getRequestRole } from '@/domains/admin/auth'
+import { getRequestRole, getRequestDisplayName } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
 import { createOrderDomain } from '@/domains/orders/order.domain'
 import { OrderServiceError } from '@/domains/orders/order.service'
@@ -40,7 +40,7 @@ export async function POST(
 
   try {
     const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
-    await orderService.dispatch(id, motoboy.trim(), { type: 'user', name: role })
+    await orderService.dispatch(id, motoboy.trim(), { type: 'user', name: getRequestDisplayName(request) ?? role, role })
     after(() => syncService.processPendingFor(id).catch((err) =>
       console.error('[dispatch] sync after-dispatch falhou', { orderId: id, err }),
     ))

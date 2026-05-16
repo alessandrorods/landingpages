@@ -15,21 +15,21 @@ export async function PATCH(
 
   const { id } = await params
 
-  let body: { username?: string; role?: string }
+  let body: { username?: string; displayName?: string; role?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Requisição inválida' }, { status: 400 })
   }
 
-  const { username, role } = body
-  if (!username?.trim() || !role || !ROLES.includes(role as Role)) {
+  const { username, displayName, role } = body
+  if (!username?.trim() || !displayName?.trim() || !role || !ROLES.includes(role as Role)) {
     return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   }
 
   try {
     const service = createUserService(createUserRepository())
-    await service.updateUser(id, { username: username.trim(), role: role as Role })
+    await service.updateUser(id, { username: username.trim(), displayName: displayName.trim(), role: role as Role })
     return NextResponse.json({ ok: true })
   } catch (err) {
     if (err instanceof UserServiceError) {

@@ -31,9 +31,9 @@ export default function UsersPage() {
     setEditTarget(null)
   }
 
-  async function handleSave(data: { username: string; password: string; role: Role }) {
+  async function handleSave(data: { username: string; displayName: string; password: string; role: Role }) {
     if (editTarget) {
-      await updateUser(editTarget.id, { username: data.username, role: data.role })
+      await updateUser(editTarget.id, { username: data.username, displayName: data.displayName, role: data.role })
     } else {
       await createUser(data)
     }

@@ -1,7 +1,7 @@
 import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createMercadoPagoClient } from '@/clients/mercadopago/client'
-import { getRequestRole } from '@/domains/admin/auth'
+import { getRequestRole, getRequestDisplayName } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
 import { createPagamentoService, PagamentoServiceError } from '@/domains/pagamentos/pagamento.service'
 import { signToken } from '@/domains/checkout/token'
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   if (!role || !can(role, 'createOrder')) {
     return Response.json({ error: 'Não autorizado' }, { status: 403 })
   }
-  const actor = { type: 'user' as const, name: role }
+  const actor = { type: 'user' as const, name: getRequestDisplayName(request) ?? role, role }
 
   let raw: unknown
   try {

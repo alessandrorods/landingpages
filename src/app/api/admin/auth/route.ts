@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Usuário ou senha incorretos' }, { status: 401 })
   }
 
-  const session = await createSession(result.role)
+  const session = await createSession(result.displayName, result.username, result.role)
   const res = NextResponse.json({ ok: true, role: result.role, token: session })
   res.cookies.set(COOKIE_NAME, session, {
     httpOnly: true,

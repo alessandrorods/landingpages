@@ -17,21 +17,21 @@ export function createUserService(repository: UserRepository) {
 
     verifyPassword: (password: string, hash: string) => hmacVerify(password, hash),
 
-    async verifyCredentials(username: string, password: string): Promise<{ role: Role } | null> {
+    async verifyCredentials(username: string, password: string): Promise<{ role: Role; username: string; displayName: string } | null> {
       const user = await repository.findByUsername(username)
       if (!user) return null
       const valid = await hmacVerify(password, user.password)
-      return valid ? { role: user.role } : null
+      return valid ? { role: user.role, username: user.username, displayName: user.displayName } : null
     },
 
-    async createUser(data: { username: string; password: string; role: Role }): Promise<void> {
+    async createUser(data: { username: string; displayName: string; password: string; role: Role }): Promise<void> {
       const existing = await repository.findByUsername(data.username)
       if (existing) throw new UserServiceError('Username already taken')
       const password = await hmacSign(data.password)
       await repository.create({ ...data, password })
     },
 
-    async updateUser(id: string, data: { username: string; role: Role }): Promise<void> {
+    async updateUser(id: string, data: { username: string; displayName: string; role: Role }): Promise<void> {
       const existing = await repository.findByUsername(data.username)
       if (existing && existing.id !== id) throw new UserServiceError('Username already taken')
       await repository.update(id, data)

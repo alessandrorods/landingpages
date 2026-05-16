@@ -1,6 +1,6 @@
 import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getRequestRole } from '@/domains/admin/auth'
+import { getRequestRole, getRequestDisplayName } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
 import { createOrderDomain } from '@/domains/orders/order.domain'
 import { OrderServiceError } from '@/domains/orders/order.service'
@@ -46,7 +46,7 @@ export async function PATCH(
 
   try {
     const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
-    await orderService.updateStatus(id, status, { type: 'user', name: role })
+    await orderService.updateStatus(id, status, { type: 'user', name: getRequestDisplayName(request) ?? role, role })
     after(() => syncService.processPendingFor(id).catch((err) =>
       console.error('[status] sync after-update falhou', { orderId: id, err }),
     ))

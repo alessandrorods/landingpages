@@ -1,6 +1,6 @@
 import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { getRequestRole } from '@/domains/admin/auth'
+import { getRequestRole, getRequestDisplayName } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
 import { createOrderDomain } from '@/domains/orders/order.domain'
 import { OrderServiceError } from '@/domains/orders/order.service'
@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
     }
 
     const role = getRequestRole(request)
-    const actor = role ? { type: 'user' as const, name: role } : { type: 'system' as const, name: 'Sistema' }
+    const actor = role
+      ? { type: 'user' as const, name: getRequestDisplayName(request) ?? role, role }
+      : { type: 'system' as const, name: 'Sistema' }
     await orderService.dispatch(order.id, motoboy.trim(), actor)
     after(() => syncService.processPendingFor(order.id).catch((err) =>
       console.error(tag, 'sync after-collect falhou', { orderId: order.id, err }),

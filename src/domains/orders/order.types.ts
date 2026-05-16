@@ -1,5 +1,5 @@
 export type Actor =
-  | { type: 'user'; name: string }
+  | { type: 'user'; name: string; role: string }
   | { type: 'system'; name: string }
 
 export type OrderHistoryAction =
@@ -18,6 +18,7 @@ export interface OrderHistoryEntryDTO {
   action: OrderHistoryAction
   actorType: 'user' | 'system'
   actorName: string
+  actorRole: string | null
   metadata: Record<string, string> | null
   createdAt: string
 }

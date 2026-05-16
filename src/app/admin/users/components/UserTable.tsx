@@ -49,8 +49,8 @@ export default function UserTable({ users, loading, error, onEdit, onPassword, o
         <div key={user.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-semibold text-gray-900 truncate">{user.username}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Desde {formatDate(user.createdAt)}</p>
+              <p className="font-semibold text-gray-900 truncate">{user.displayName}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{user.username} · Desde {formatDate(user.createdAt)}</p>
             </div>
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${ROLE_BADGE[user.role] ?? 'bg-gray-100 text-gray-600'}`}>
               {ROLE_LABELS[user.role] ?? user.role}

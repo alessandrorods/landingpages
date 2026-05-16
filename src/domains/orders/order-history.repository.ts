@@ -15,6 +15,7 @@ export function createOrderHistoryRepository() {
           action,
           actorType: actor.type,
           actorName: actor.name,
+          actorRole: actor.type === 'user' ? actor.role : undefined,
           metadata: metadata ?? undefined,
         },
       }),
@@ -22,7 +23,7 @@ export function createOrderHistoryRepository() {
     findByOrderId: (orderId: number) =>
       prisma.orderHistoryEntry.findMany({
         where: { orderId },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
       }),
   }
 }

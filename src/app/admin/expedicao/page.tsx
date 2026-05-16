@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useOrdersSummary } from '@/app/admin/components/useOrdersSummary'
-import OrderDrawer from '@/app/admin/components/OrderDrawer'
+import { useState } from 'react'
+import { useOrders } from '@/hooks/useOrders'
+import OrderDrawer from '@/components/OrderDrawer'
 import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
@@ -123,53 +123,10 @@ function BuscaPedido() {
       )}
 
       {drawerAberto && order && (
-        <OrderDrawer order={order} onClose={() => setDrawerAberto(false)} />
+        <OrderDrawer id={order.id} onClose={() => setDrawerAberto(false)} />
       )}
     </div>
   )
-}
-
-// ── OrderDrawerLoader ─────────────────────────────────────────────────────────
-
-function OrderDrawerLoader({ id, onClose }: { id: string; onClose: () => void }) {
-  const [order, setOrder] = useState<OrderDTO | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [err, setErr] = useState('')
-
-  useEffect(() => {
-    fetch(`/api/admin/orders/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.order) setOrder(data.order)
-        else setErr(data.error ?? 'Pedido não encontrado')
-      })
-      .catch(() => setErr('Erro de conexão'))
-      .finally(() => setLoading(false))
-  }, [id])
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-xl">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-gray-500">Carregando pedido…</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (err || !order) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-xl max-w-xs text-center">
-          <p className="text-sm text-red-600">{err || 'Pedido não encontrado'}</p>
-          <button onClick={onClose} className="text-sm text-blue-600 font-semibold underline">Fechar</button>
-        </div>
-      </div>
-    )
-  }
-
-  return <OrderDrawer order={order} onClose={onClose} />
 }
 
 // ── Card de resumo ────────────────────────────────────────────────────────────
@@ -293,11 +250,11 @@ function AccordionSection({ titulo, cor, orders, loading, error, onOpenPedido, o
 export default function ExpedicaoPage() {
   const today = todayFormatted()
 
-  const prontoEnvio = useOrdersSummary('pronto_envio')
-  const enviado = useOrdersSummary('enviado')
-  const entregue = useOrdersSummary('entregue', today)
+  const prontoEnvio = useOrders('pronto_envio')
+  const enviado = useOrders('enviado')
+  const entregue = useOrders('entregue', today)
 
-  const [drawerOrderId, setDrawerOrderId] = useState<string | null>(null)
+  const [drawerOrderId, setDrawerOrderId] = useState<number | null>(null)
   const [openSection, setOpenSection] = useState<string>('pronto_envio')
 
   const colunas = [
@@ -366,7 +323,7 @@ export default function ExpedicaoPage() {
       </div>
 
       {drawerOrderId !== null && (
-        <OrderDrawerLoader id={drawerOrderId} onClose={() => setDrawerOrderId(null)} />
+        <OrderDrawer id={drawerOrderId} onClose={() => setDrawerOrderId(null)} />
       )}
     </div>
   )

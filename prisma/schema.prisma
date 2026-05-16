@@ -34,12 +34,13 @@ enum PaymentMethod {
 }
 
 model User {
-  id        String    @id @default(uuid()) @db.Uuid
-  username  String    @unique @db.VarChar(255)
-  password  String    @db.VarChar(64)
-  role      Role
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+  id          String    @id @default(uuid()) @db.Uuid
+  username    String    @unique @db.VarChar(255)
+  displayName String    @map("display_name") @db.VarChar(255)
+  password    String    @db.VarChar(64)
+  role        Role
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
 
   @@map("users")
 }
@@ -109,6 +110,7 @@ model OrderHistoryEntry {
   action    OrderHistoryAction
   actorType String             @map("actor_type") @db.VarChar(20)
   actorName String             @map("actor_name") @db.VarChar(255)
+  actorRole String?            @map("actor_role") @db.VarChar(50)
   metadata  Json?
   createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz
 

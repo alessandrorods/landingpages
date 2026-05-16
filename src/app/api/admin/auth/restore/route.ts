@@ -14,12 +14,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Token inválido' }, { status: 400 })
   }
 
-  const role = await verifySession(token)
-  if (!role) {
+  const session = await verifySession(token)
+  if (!session) {
     return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
   }
 
-  const res = NextResponse.json({ ok: true, role })
+  const res = NextResponse.json({ ok: true, role: session.role })
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useOrders } from '@/app/admin/components/useOrders'
+import { useOrders } from '@/hooks/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
-import OrderDrawer from '@/app/admin/components/OrderDrawer'
+import OrderDrawer from '@/components/OrderDrawer'
 import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
@@ -93,7 +93,7 @@ function RecuperarAction({ order }: { order: OrderDTO }) {
 
 export default function VendasPage() {
   const [tab, setTab] = useState<Tab>('pagos')
-  const [aberto, setAberto] = useState<OrderDTO | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
   const pagos = useOrders('approved')
   const recuperar = useOrders('pending')
 
@@ -169,16 +169,14 @@ export default function VendasPage() {
 
       {!active.loading &&
         active.orders.map((order) => (
-          <PedidoCard key={order.id} order={order} variant={tab} onOpen={() => setAberto(order)} />
+          <PedidoCard key={order.id} order={order} variant={tab} onOpen={() => setSelectedId(order.id)} />
         ))}
 
-      {aberto && (
+      {selectedId !== null && (
         <OrderDrawer
-          order={aberto}
-          onClose={() => setAberto(null)}
-          action={tab === 'recuperar' ? <RecuperarAction order={aberto} /> : undefined}
-          showConfirmationCopy={tab === 'pagos'}
-          onRefresh={(updated) => setAberto(updated)}
+          id={selectedId}
+          onClose={() => setSelectedId(null)}
+          footer={tab === 'recuperar' ? (order) => <RecuperarAction order={order} /> : undefined}
         />
       )}
     </div>

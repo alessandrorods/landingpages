@@ -1,7 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { ROLE_LABELS } from '@/domains/admin/auth'
-import { useUser } from './UserProvider'
+import { useUser } from '@/contexts/UserContext'
 import Link from 'next/link'
 
 export default function AdminHeader() {

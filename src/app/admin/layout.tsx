@@ -1,6 +1,6 @@
 ﻿import { headers } from 'next/headers'
 import AdminHeader from './AdminHeader'
-import { UserProvider } from './UserProvider'
+import { UserProvider } from '@/contexts/UserContext'
 import type { Role } from '@/domains/admin/auth'
 
 export const metadata = { title: 'Operacional | Mundo Planta', robots: { index: false } }

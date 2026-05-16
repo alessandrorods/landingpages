@@ -5,6 +5,7 @@ import type { Role } from '@/domains/admin/auth'
 export interface UserDTO {
   id: string
   username: string
+  displayName: string
   role: Role
   createdAt: string
   deletedAt: string | null
@@ -32,7 +33,7 @@ export function useUsers() {
 
   useEffect(() => { load() }, [])
 
-  async function createUser(data: { username: string; password: string; role: Role }) {
+  async function createUser(data: { username: string; displayName: string; password: string; role: Role }) {
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -43,7 +44,7 @@ export function useUsers() {
     await load()
   }
 
-  async function updateUser(id: string, data: { username: string; role: Role }) {
+  async function updateUser(id: string, data: { username: string; displayName: string; role: Role }) {
     const res = await fetch(`/api/admin/users/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

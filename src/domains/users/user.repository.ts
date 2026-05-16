@@ -1,7 +1,7 @@
 import prisma from '@/core/db/client'
 import type { Role } from '@/domains/admin/auth'
 
-const userSelect = { id: true, username: true, role: true, createdAt: true, deletedAt: true } as const
+const userSelect = { id: true, username: true, displayName: true, role: true, createdAt: true, deletedAt: true } as const
 
 export function createUserRepository() {
   return {
@@ -20,10 +20,10 @@ export function createUserRepository() {
 
     hasAny: () => prisma.user.count().then((c: number) => c > 0),
 
-    create: (data: { username: string; password: string; role: Role }) =>
+    create: (data: { username: string; displayName: string; password: string; role: Role }) =>
       prisma.user.create({ data }),
 
-    update: (id: string, data: { username?: string; role?: Role }) =>
+    update: (id: string, data: { username?: string; displayName?: string; role?: Role }) =>
       prisma.user.update({ where: { id }, data }),
 
     updatePassword: (id: string, password: string) =>

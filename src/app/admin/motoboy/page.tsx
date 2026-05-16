@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useOrders } from '@/app/admin/components/useOrders'
+import { useOrders } from '@/hooks/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
-import OrderDrawer from '@/app/admin/components/OrderDrawer'
+import OrderDrawer from '@/components/OrderDrawer'
 import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
@@ -260,8 +260,8 @@ function PedidoCard({ order, onOpen }: { order: OrderDTO; onOpen: () => void }) 
 
 export default function MotoboyPage() {
   const [motoboy, setMotoboy] = useState<string | undefined>(undefined)
-  const [aberto, setAberto] = useState<OrderDTO | null>(null)
-  const [removidos, setRemovidos] = useState<Set<string>>(new Set())
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [removidos, setRemovidos] = useState<Set<number>>(new Set())
   const [entregues, setEntregues] = useState<EntregueSnapshot[]>([])
   const [entreguesAberto, setEntreguesAberto] = useState(false)
   const { orders, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('dispatched')
@@ -287,7 +287,7 @@ export default function MotoboyPage() {
   function remover(order: OrderDTO) {
     const nova = salvarEntregue(motoboy!, order)
     setEntregues(nova)
-    setAberto(null)
+    setSelectedId(null)
     setRemovidos((prev) => new Set([...prev, order.id]))
   }
 
@@ -328,7 +328,7 @@ export default function MotoboyPage() {
       )}
 
       {!loading && visiveis.map((order) => (
-        <PedidoCard key={order.id} order={order} onOpen={() => setAberto(order)} />
+        <PedidoCard key={order.id} order={order} onOpen={() => setSelectedId(order.id)} />
       ))}
 
       {entregues.length > 0 && (
@@ -353,20 +353,13 @@ export default function MotoboyPage() {
         </div>
       )}
 
-      {aberto && (
+      {selectedId !== null && (
         <OrderDrawer
-          order={aberto}
-          onClose={() => setAberto(null)}
-          hideBuyer
-          hidePrices
-          hideCardMessage
-          action={
-            <EntregaAction
-              order={aberto}
-              motoboy={motoboy}
-              onEntregue={remover}
-            />
-          }
+          id={selectedId}
+          onClose={() => setSelectedId(null)}
+          footer={(order) => (
+            <EntregaAction order={order} motoboy={motoboy} onEntregue={remover} />
+          )}
         />
       )}
     </div>

@@ -6,12 +6,13 @@ import type { UserDTO } from '../useUsers'
 
 interface UserFormModalProps {
   user: UserDTO | null
-  onSave: (data: { username: string; password: string; role: Role }) => Promise<void>
+  onSave: (data: { username: string; displayName: string; password: string; role: Role }) => Promise<void>
   onClose: () => void
 }
 
 export default function UserFormModal({ user, onSave, onClose }: UserFormModalProps) {
   const isEditing = user !== null
+  const [displayName, setDisplayName] = useState(user?.displayName ?? '')
   const [username, setUsername] = useState(user?.username ?? '')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<Role>(user?.role ?? 'vendas')
@@ -19,6 +20,7 @@ export default function UserFormModal({ user, onSave, onClose }: UserFormModalPr
   const [error, setError] = useState('')
 
   useEffect(() => {
+    setDisplayName(user?.displayName ?? '')
     setUsername(user?.username ?? '')
     setRole(user?.role ?? 'vendas')
     setPassword('')
@@ -27,15 +29,17 @@ export default function UserFormModal({ user, onSave, onClose }: UserFormModalPr
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const trimmed = username.trim()
-    if (!trimmed) { setError('Username é obrigatório'); return }
+    const trimmedName = displayName.trim()
+    const trimmedUser = username.trim()
+    if (!trimmedName) { setError('Nome é obrigatório'); return }
+    if (!trimmedUser) { setError('Username é obrigatório'); return }
     if (!isEditing && !password) { setError('Senha é obrigatória'); return }
     if (!isEditing && password.length < 4) { setError('Senha deve ter ao menos 4 caracteres'); return }
 
     setLoading(true)
     setError('')
     try {
-      await onSave({ username: trimmed, password, role })
+      await onSave({ displayName: trimmedName, username: trimmedUser, password, role })
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado')
@@ -56,14 +60,26 @@ export default function UserFormModal({ user, onSave, onClose }: UserFormModalPr
 
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
           <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Nome</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="João Silva"
+              className={inputCls}
+              autoFocus
+              autoComplete="off"
+            />
+          </div>
+
+          <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="nome.sobrenome"
+              placeholder="joao.silva"
               className={inputCls}
-              autoFocus
               autoComplete="off"
             />
           </div>

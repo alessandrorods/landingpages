@@ -16,12 +16,14 @@ export async function authMiddleware(request: NextRequest, headers: Headers): Pr
     return NextResponse.redirect(new URL('/admin/login', request.url))
   }
 
-  const role = await verifySession(cookieValue)
-  if (!role) {
+  const session = await verifySession(cookieValue)
+  if (!session) {
     const res = NextResponse.redirect(new URL('/admin/login', request.url))
     res.cookies.delete(COOKIE_NAME)
     return res
   }
+
+  const { role, username, displayName } = session
 
   for (const [area, roles] of Object.entries(AREA_ACCESS)) {
     if (pathname.startsWith(`/admin/${area}`) && !(roles as readonly string[]).includes(role)) {
@@ -30,6 +32,8 @@ export async function authMiddleware(request: NextRequest, headers: Headers): Pr
   }
 
   headers.set('x-admin-role', role)
+  headers.set('x-admin-username', username)
+  headers.set('x-admin-displayname', displayName)
   const res = NextResponse.next({ request: { headers } })
   // Sliding window: renew the cookie on every authenticated request
   res.cookies.set(COOKIE_NAME, cookieValue, {

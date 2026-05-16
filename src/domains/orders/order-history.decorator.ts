@@ -1,6 +1,20 @@
 import type { OrderService } from './order.service'
 import type { OrderHistoryRepository } from './order-history.repository'
-import type { Actor, CreateOrderInput, OrderHistoryAction, OrderStatus } from './order.types'
+import type { Actor, CreateOrderInput, OrderHistoryAction, OrderHistoryEntryDTO, OrderStatus } from './order.types'
+
+type RawEntry = Awaited<ReturnType<OrderHistoryRepository['findByOrderId']>>[number]
+
+function toHistoryEntryDTO(e: RawEntry): OrderHistoryEntryDTO {
+  return {
+    id:        e.id,
+    action:    e.action as OrderHistoryAction,
+    actorType: e.actorType as 'user' | 'system',
+    actorName: e.actorName,
+    actorRole: e.actorRole ?? null,
+    metadata:  e.metadata as Record<string, string> | null,
+    createdAt: e.createdAt.toISOString(),
+  }
+}
 
 export function withOrderHistory(service: OrderService, historyRepository: OrderHistoryRepository) {
   return {
@@ -30,9 +44,17 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
       if (transitioned) await historyRepository.record(orderId, 'approved', actor)
     },
 
+    async getById(id: number) {
+      const [order, entries] = await Promise.all([
+        service.getById(id),
+        historyRepository.findByOrderId(id),
+      ])
+      if (!order) return null
+      return { ...order, history: entries.map(toHistoryEntryDTO) }
+    },
+
     // Pass-throughs — sem efeito colateral de histórico
     listByStatus: service.listByStatus.bind(service),
-    getById:      service.getById.bind(service),
     findByNumero: service.findByNumero.bind(service),
     setMpPreferenceId: service.setMpPreferenceId.bind(service),
   }

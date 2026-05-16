@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useOrders } from '@/app/admin/components/useOrders'
+import { useOrders } from '@/hooks/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
-import OrderDrawer from '@/app/admin/components/OrderDrawer'
+import OrderDrawer from '@/components/OrderDrawer'
 import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
@@ -48,7 +48,7 @@ function MontadoAction({
   onMontado,
 }: {
   order: OrderDTO
-  onMontado: (id: string) => void
+  onMontado: (id: number) => void
 }) {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
@@ -99,13 +99,13 @@ function MontadoAction({
 
 export default function FloristaPage() {
   const { orders, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('approved')
-  const [aberto, setAberto] = useState<OrderDTO | null>(null)
-  const [removidos, setRemovidos] = useState<Set<string>>(new Set())
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [removidos, setRemovidos] = useState<Set<number>>(new Set())
 
   const visiveis = orders.filter((o) => !removidos.has(o.id))
 
-  function remover(id: string) {
-    setAberto(null)
+  function remover(id: number) {
+    setSelectedId(null)
     setRemovidos((prev) => new Set([...prev, id]))
   }
 
@@ -132,14 +132,14 @@ export default function FloristaPage() {
       )}
 
       {!loading && visiveis.map((order) => (
-        <PedidoCard key={order.id} order={order} onOpen={() => setAberto(order)} />
+        <PedidoCard key={order.id} order={order} onOpen={() => setSelectedId(order.id)} />
       ))}
 
-      {aberto && (
+      {selectedId !== null && (
         <OrderDrawer
-          order={aberto}
-          onClose={() => setAberto(null)}
-          action={<MontadoAction order={aberto} onMontado={remover} />}
+          id={selectedId}
+          onClose={() => setSelectedId(null)}
+          footer={(order) => <MontadoAction order={order} onMontado={remover} />}
         />
       )}
     </div>

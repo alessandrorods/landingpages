@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useOrdersSummary } from '@/app/admin/components/useOrdersSummary'
-import OrderDrawer from '@/app/admin/components/OrderDrawer'
+import { useOrders } from '@/hooks/useOrders'
+import OrderDrawer from '@/components/OrderDrawer'
 import type { OrderDTO } from '@/domains/orders/order.types'
 import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
@@ -180,56 +180,6 @@ function PainelTopBar({
         </svg>
       </button>
     </div>
-  )
-}
-
-// ── OrderDrawerLoader ─────────────────────────────────────────────────────────
-
-function OrderDrawerLoader({ id, onClose }: { id: string; onClose: () => void }) {
-  const [order, setOrder] = useState<OrderDTO | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [err, setErr] = useState('')
-
-  useEffect(() => {
-    fetch(`/api/admin/orders/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.order) setOrder(data.order)
-        else setErr(data.error ?? 'Pedido não encontrado')
-      })
-      .catch(() => setErr('Erro de conexão'))
-      .finally(() => setLoading(false))
-  }, [id])
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-xl">
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-gray-500">Carregando pedido…</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (err || !order) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-3 shadow-xl max-w-xs text-center">
-          <p className="text-sm text-red-600">{err || 'Pedido não encontrado'}</p>
-          <button onClick={onClose} className="text-sm text-purple-600 font-semibold underline">Fechar</button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <OrderDrawer
-      order={order}
-      onClose={onClose}
-      onRefresh={(updated) => setOrder(updated)}
-      action={<AdminPainelActions order={order} onClose={onClose} />}
-    />
   )
 }
 
@@ -482,14 +432,14 @@ function AccordionSection({ titulo, cor, orders, loading, error, onOpenPedido, s
 export default function PainelPage() {
   const today = todayFormatted()
 
-  const abertoHook = useOrdersSummary('pending')
-  const pagoHook = useOrdersSummary('approved')
-  const montandoHook = useOrdersSummary('preparing')
-  const prontoHook = useOrdersSummary('ready')
-  const enviadoHook = useOrdersSummary('dispatched')
-  const entregueHook = useOrdersSummary('delivered', today)
+  const abertoHook = useOrders('pending')
+  const pagoHook = useOrders('approved')
+  const montandoHook = useOrders('preparing')
+  const prontoHook = useOrders('ready')
+  const enviadoHook = useOrders('dispatched')
+  const entregueHook = useOrders('delivered', today)
 
-  const [drawerOrderId, setDrawerOrderId] = useState<string | null>(null)
+  const [drawerOrderId, setDrawerOrderId] = useState<number | null>(null)
   const [openSection, setOpenSection] = useState<string>('aberto')
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -565,7 +515,11 @@ export default function PainelPage() {
       </div>
 
       {drawerOrderId !== null && (
-        <OrderDrawerLoader id={drawerOrderId} onClose={() => setDrawerOrderId(null)} />
+        <OrderDrawer
+          id={drawerOrderId}
+          onClose={() => setDrawerOrderId(null)}
+          footer={(order) => <AdminPainelActions order={order} onClose={() => setDrawerOrderId(null)} />}
+        />
       )}
     </div>
   )

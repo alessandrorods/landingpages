@@ -5,7 +5,7 @@ import type { OrderDTO } from '@/domains/orders/order.types'
 
 const POLL_INTERVAL = 60_000
 
-export function useOrdersSummary(status: string, _dataAtualizacao?: string) {
+export function useOrders(status: string) {
   const [orders, setOrders] = useState<OrderDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -59,5 +59,5 @@ export function useOrdersSummary(status: string, _dataAtualizacao?: string) {
     }
   }, [])
 
-  return { orders, resumos: orders, loading, error, lastUpdate, nextRefreshAt, refresh: fetch_ }
+  return { orders, loading, error, lastUpdate, nextRefreshAt, refresh: fetch_ }
 }

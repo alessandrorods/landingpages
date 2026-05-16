@@ -25,21 +25,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
 
-  let body: { username?: string; password?: string; role?: string }
+  let body: { username?: string; displayName?: string; password?: string; role?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Requisição inválida' }, { status: 400 })
   }
 
-  const { username, password, role } = body
-  if (!username?.trim() || !password || !role || !ROLES.includes(role as Role)) {
+  const { username, displayName, password, role } = body
+  if (!username?.trim() || !displayName?.trim() || !password || !role || !ROLES.includes(role as Role)) {
     return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   }
 
   try {
     const service = createUserService(createUserRepository())
-    await service.createUser({ username: username.trim(), password, role: role as Role })
+    await service.createUser({ username: username.trim(), displayName: displayName.trim(), password, role: role as Role })
     return NextResponse.json({ ok: true }, { status: 201 })
   } catch (err) {
     if (err instanceof UserServiceError) {
