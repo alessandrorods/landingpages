@@ -1,282 +1,40 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useOrders } from '@/hooks/useOrders'
+import { useUser } from '@/contexts/UserContext'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/components/OrderDrawer'
 import { OrderCard } from '@/components/OrderCard'
+import { CollectOrder } from './_components/CollectOrder'
+import { DeliveryAction } from './_components/DeliveryAction'
+import { DeliveredToday } from './_components/DeliveredToday'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
-const STORAGE_KEY = 'motoboy_nome'
-
-type EntregueSnapshot = {
-  id: string
-  numero: string | null
-  dataEntrega?: string
-  destinatario?: string
-  produto?: string
-}
-
-function entreguesKey(motoboy: string) {
-  const d = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
-  return `motoboy_entregues_${motoboy}_${d}`
-}
-
-function lerEntregues(motoboy: string): EntregueSnapshot[] {
-  try {
-    return JSON.parse(localStorage.getItem(entreguesKey(motoboy)) ?? '[]')
-  } catch {
-    return []
-  }
-}
-
-function salvarEntregue(motoboy: string, order: OrderDTO): EntregueSnapshot[] {
-  const lista = lerEntregues(motoboy)
-  if (lista.some((e) => e.id === order.id)) return lista
-  const snapshot: EntregueSnapshot = {
-    id: order.id,
-    numero: order.olistNumero,
-    dataEntrega: order.deliveryDate,
-    destinatario: order.recipientName,
-    produto: order.items[0]?.name,
-  }
-  const nova = [...lista, snapshot]
-  localStorage.setItem(entreguesKey(motoboy), JSON.stringify(nova))
-  return nova
-}
-
-// ── Nome setup ────────────────────────────────────────────────────────────────
-
-function NomeSetup({ onSalvar }: { onSalvar: (nome: string) => void }) {
-  const [input, setInput] = useState('')
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault()
-    const nome = input.trim()
-    if (!nome) return
-    localStorage.setItem(STORAGE_KEY, nome)
-    onSalvar(nome)
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-      <p className="text-4xl mb-4">🏍️</p>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Qual é o seu nome?</h2>
-      <p className="text-sm text-gray-500 mb-6">Vamos registrar quem fez cada entrega.</p>
-      <form onSubmit={submit} className="w-full max-w-xs space-y-3">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Seu nome completo"
-          autoFocus
-          className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3.5 rounded-xl text-base transition-colors"
-        >
-          Continuar
-        </button>
-      </form>
-    </div>
-  )
-}
-
-// ── Coletar pedido ────────────────────────────────────────────────────────────
-
-function ColetarPedido({ motoboy }: { motoboy: string }) {
-  const [numero, setNumero] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState<string | null>(null)
-  const [err, setErr] = useState('')
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    const n = numero.trim()
-    if (!n) return
-    setLoading(true)
-    setErr('')
-    setDone(null)
-    try {
-      const res = await fetch('/api/admin/orders/collect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numero: n, motoboy }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setErr(data.error ?? 'Erro ao coletar pedido')
-        return
-      }
-      setDone(n)
-      setNumero('')
-    } catch {
-      setErr('Erro de conexão')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Coletar pedido</p>
-      <form onSubmit={submit} className="flex gap-2">
-        <input
-          type="number"
-          inputMode="numeric"
-          value={numero}
-          onChange={(e) => { setNumero(e.target.value); setErr(''); setDone(null) }}
-          placeholder="Nº do pedido"
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-          required
-        />
-        <button
-          type="submit"
-          disabled={loading || !numero.trim()}
-          className="bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors whitespace-nowrap"
-        >
-          {loading ? '...' : 'Coletar'}
-        </button>
-      </form>
-      {done && (
-        <p className="text-sm text-green-700 font-medium mt-2">
-          ✓ Pedido #{done} marcado como saiu para entrega
-        </p>
-      )}
-      {err && <p className="text-sm text-red-600 mt-2">{err}</p>}
-    </div>
-  )
-}
-
-// ── Ação de entrega no drawer ─────────────────────────────────────────────────
-
-function EntregaAction({
-  order,
-  motoboy,
-  onEntregue,
-}: {
-  order: OrderDTO
-  motoboy: string
-  onEntregue: (order: OrderDTO) => void
-}) {
-  const [recebidoPor, setRecebidoPor] = useState(order.recipientName)
-  const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
-  const [err, setErr] = useState('')
-
-  async function confirmar() {
-    if (!recebidoPor.trim()) return
-    setLoading(true)
-    setErr('')
-    try {
-      const res = await fetch(`/api/admin/orders/${order.id}/deliver`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recebidoPor: recebidoPor.trim(), motoboy }),
-      })
-      if (!res.ok) {
-        const d = await res.json()
-        setErr(d.error ?? 'Erro ao confirmar entrega')
-        return
-      }
-      setDone(true)
-      setTimeout(() => onEntregue(order), 800)
-    } catch {
-      setErr('Erro de conexão')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (done) {
-    return <p className="text-center text-orange-700 font-semibold py-3">✓ Entrega confirmada!</p>
-  }
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-          Recebido por
-        </label>
-        <input
-          type="text"
-          value={recebidoPor}
-          onChange={(e) => setRecebidoPor(e.target.value)}
-          placeholder="Nome de quem recebeu"
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
-        />
-      </div>
-
-      {err && <p className="text-xs text-red-600">{err}</p>}
-
-      <button
-        onClick={confirmar}
-        disabled={loading || !recebidoPor.trim()}
-        className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-4 rounded-xl text-base transition-colors"
-      >
-        {loading ? 'Registrando...' : '✓ Confirmar Entrega'}
-      </button>
-    </div>
-  )
-}
-
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default function MotoboyPage() {
-  const [motoboy, setMotoboy] = useState<string | undefined>(undefined)
+  const user = useUser()
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [removidos, setRemovidos] = useState<Set<number>>(new Set())
-  const [entregues, setEntregues] = useState<EntregueSnapshot[]>([])
-  const [entreguesAberto, setEntreguesAberto] = useState(false)
-  const { orders, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('dispatched')
+  const { orders, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('dispatched', { courierId: 'me' })
 
-  useEffect(() => {
-    const nome = localStorage.getItem(STORAGE_KEY) ?? ''
-    setMotoboy(nome)
-    if (nome) setEntregues(lerEntregues(nome))
-  }, [])
-
-  if (motoboy === undefined) {
-    return <div className="py-16 text-center text-gray-300 text-sm">...</div>
-  }
-
-  if (!motoboy) {
-    return <NomeSetup onSalvar={setMotoboy} />
-  }
-
-  const visiveis = orders.filter(
-    (o) => !removidos.has(o.id) && o.courierName === motoboy,
-  )
-
-  function remover(order: OrderDTO) {
-    const nova = salvarEntregue(motoboy!, order)
-    setEntregues(nova)
+  function handleDelivered(_order: OrderDTO) {
     setSelectedId(null)
-    setRemovidos((prev) => new Set([...prev, order.id]))
+    refresh()
   }
 
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">Entregas</h1>
-        <button
-          onClick={() => { localStorage.removeItem(STORAGE_KEY); setMotoboy('') }}
-          className="text-xs text-gray-400 underline"
-        >
-          Trocar nome
-        </button>
       </div>
 
       <p className="text-sm text-gray-500 mb-4">
-        Motoboy: <span className="font-semibold text-gray-800">{motoboy}</span>
+        Motoboy: <span className="font-semibold text-gray-800">{user?.displayName}</span>
       </p>
 
-      <ColetarPedido motoboy={motoboy} />
+      <CollectOrder onCollected={refresh} />
 
-      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} nextRefreshAt={nextRefreshAt} onRefresh={refresh} loading={loading} />
+      <StatusBar count={orders.length} lastUpdate={lastUpdate} nextRefreshAt={nextRefreshAt} onRefresh={refresh} loading={loading} />
 
       {loading && (
         <div className="space-y-3">
@@ -290,51 +48,31 @@ export default function MotoboyPage() {
         <p className="text-sm text-red-600 bg-red-50 rounded-xl p-4">{error}</p>
       )}
 
-      {!loading && !error && visiveis.length === 0 && (
+      {!loading && !error && orders.length === 0 && (
         <EmptyState icon="🎉" message="Nenhuma entrega em rota" />
       )}
 
-      {!loading && visiveis.map((order) => (
+      {!loading && orders.map((order) => (
         <OrderCard
           key={order.id}
           order={order}
           onOpen={() => setSelectedId(order.id)}
           accent="orange"
-          primary={order.recipientName}
+          primary={`${order.street}, ${order.streetNumber} — ${order.neighborhood}`}
           secondary={order.items[0]?.name ?? '—'}
-          tag={order.neighborhood || undefined}
+          tag={order.recipientName}
           cta="Confirmar entrega ›"
         />
       ))}
 
-      {entregues.length > 0 && (
-        <div className="mt-6">
-          <button
-            onClick={() => setEntreguesAberto((v) => !v)}
-            className="w-full flex items-center justify-between py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide"
-          >
-            <span>Entregue hoje ({entregues.length})</span>
-            <span>{entreguesAberto ? '▲' : '▼'}</span>
-          </button>
-          {entreguesAberto && entregues.map((e) => (
-            <div key={e.id} className="bg-gray-50 rounded-2xl p-4 mb-2 opacity-60">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg font-bold font-mono text-gray-500">#{e.numero ?? '—'}</span>
-                {e.dataEntrega && <span className="text-xs text-gray-400">{e.dataEntrega}</span>}
-              </div>
-              {e.destinatario && <p className="text-sm text-gray-600">{e.destinatario}</p>}
-              {e.produto && <p className="text-xs text-gray-400 mt-0.5">{e.produto}</p>}
-            </div>
-          ))}
-        </div>
-      )}
+      <DeliveredToday />
 
       {selectedId !== null && (
         <OrderDrawer
           id={selectedId}
           onClose={() => setSelectedId(null)}
           footer={(order) => (
-            <EntregaAction order={order} motoboy={motoboy} onEntregue={remover} />
+            <DeliveryAction order={order} onDelivered={() => handleDelivered(order)} />
           )}
         />
       )}

@@ -29,7 +29,7 @@ function fmtDate(d: Date): string {
   return `${dd}/${mm}/${d.getUTCFullYear()}`
 }
 
-function fmtDatetime(d: Date): string {
+export function fmtDatetime(d: Date): string {
   const parts = new Intl.DateTimeFormat('pt-BR', {
     timeZone: 'America/Sao_Paulo',
     day: '2-digit', month: '2-digit',
@@ -73,10 +73,10 @@ export function toOrderDTO(order: PrismaOrderWithItems, history: OrderHistoryEnt
     neighborhood: order.neighborhood,
     deliveryDate: fmtDate(order.deliveryDate),
     deliveryPeriod: order.deliveryPeriod,
-    courierName: order.courierName,
-    dispatchedAt: order.dispatchedAt ? fmtDatetime(order.dispatchedAt) : null,
-    deliveredAt: order.deliveredAt ? fmtDatetime(order.deliveredAt) : null,
-    receivedBy: order.receivedBy,
+    courierName: order.courier?.displayName ?? null,
+    dispatchedAt: null,
+    deliveredAt: null,
+    receivedBy: null,
     mpPreferenceId: order.mpPreferenceId,
     source: order.source,
     totalAmount,
@@ -97,8 +97,13 @@ export function createOrderService(
       return toOrderDTO(raw)
     },
 
-    async listByStatus(status: OrderStatus): Promise<OrderDTO[]> {
-      const rows = await repository.findByStatus(status)
+    async listByStatus(status: OrderStatus, courierId?: string): Promise<OrderDTO[]> {
+      const rows = await repository.findByStatus(status, courierId)
+      return rows.map((r) => toOrderDTO(r))
+    },
+
+    async listDeliveredTodayByCourier(courierId: string): Promise<OrderDTO[]> {
+      const rows = await repository.findDeliveredTodayByCourier(courierId)
       return rows.map((r) => toOrderDTO(r))
     },
 
@@ -117,18 +122,18 @@ export function createOrderService(
       await syncEventRepository.create(id, 'status_updated', { status })
     },
 
-    async dispatch(id: number, courierName: string): Promise<void> {
+    async dispatch(id: number, courierId: string): Promise<void> {
       const row = await repository.findById(id)
       if (!row) throw new OrderServiceError('Pedido não encontrado')
-      await repository.updateDispatch(id, { courierName, dispatchedAt: new Date() })
+      await repository.updateDispatch(id, { courierId })
       await repository.updateStatus(id, 'dispatched')
       await syncEventRepository.create(id, 'status_updated', { status: 'dispatched' })
     },
 
-    async deliver(id: number, receivedBy: string, courierName: string): Promise<void> {
+    async deliver(id: number, receivedBy: string, courierId: string): Promise<void> {
       const row = await repository.findById(id)
       if (!row) throw new OrderServiceError('Pedido não encontrado')
-      await repository.updateDelivery(id, { deliveredAt: new Date(), receivedBy, courierName })
+      await repository.updateDelivery(id, { courierId })
       await repository.updateStatus(id, 'delivered')
       await syncEventRepository.create(id, 'status_updated', { status: 'delivered' })
     },

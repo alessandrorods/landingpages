@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { IoPrintOutline, IoRefreshOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5'
+import Image from 'next/image'
+import { IoPrintOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5'
 import { PrintOverlay } from '@/components/PrintOverlay'
 import { useOrderDetail } from '@/hooks/useOrderDetail'
 import { useUser } from '@/contexts/UserContext'
+import { canSeeDrawerFeature } from '@/constants/orderDrawerFeatures'
 import { HistoryPanel } from './HistoryPanel'
 import { OrderSections } from './OrderSections'
 import type { OrderDTO } from '@/domains/orders/order.types'
@@ -13,18 +15,6 @@ interface Props {
   id: number
   onClose: () => void
   footer?: (order: OrderDTO, refresh: () => Promise<void>) => React.ReactNode
-}
-
-function useOrderVisibility(order: OrderDTO | null) {
-  const user = useUser()
-  if (!order || !user) return null
-  const { role } = user
-  return {
-    showBuyer:            role !== 'motoboy',
-    showPrices:           role !== 'motoboy',
-    showCardMessage:      role !== 'motoboy',
-    showConfirmationCopy: (role === 'vendas' || role === 'admin') && order.status === 'approved',
-  }
 }
 
 function LoadingState({ onRetry }: { onRetry?: () => void }) {
@@ -42,16 +32,16 @@ function LoadingState({ onRetry }: { onRetry?: () => void }) {
 export default function OrderDrawer({ id, onClose, footer }: Props) {
   const { order, loading, error, refresh } = useOrderDetail(id)
   const [showHistory, setShowHistory] = useState(false)
-  const [syncing, setSyncing] = useState(false)
   const [copiedConfirmation, setCopiedConfirmation] = useState(false)
   const [printing, setPrinting] = useState(false)
-  const visibility = useOrderVisibility(order)
 
-  // Keep a stable ref to onClose so the effect doesn't re-run when the parent re-renders
+  const role = useUser()?.role ?? null
+  const canSee = (feature: Parameters<typeof canSeeDrawerFeature>[1]) =>
+    canSeeDrawerFeature(role, feature)
+
   const onCloseRef = useRef(onClose)
   useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
-  // Push a history entry when the drawer opens so the back button closes it
   useEffect(() => {
     history.pushState({ drawer: true }, '')
     const onPop = () => onCloseRef.current()
@@ -59,17 +49,10 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  // Close via UI — also pop the history entry we pushed
   const handleClose = useCallback(() => {
     history.back()
     onClose()
   }, [onClose])
-
-  const handleRefresh = useCallback(async () => {
-    setSyncing(true)
-    await refresh()
-    setSyncing(false)
-  }, [refresh])
 
   function copyConfirmation() {
     if (!order) return
@@ -79,8 +62,6 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
       setTimeout(() => setCopiedConfirmation(false), 2000)
     })
   }
-
-  const isSpinning = syncing || (loading && !!order)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
@@ -93,26 +74,30 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
         {/* Header */}
         <div className="flex-none">
           <div className="px-5 pb-3 pt-4 flex items-center justify-between border-b border-gray-100">
-            <span className="text-3xl font-bold font-mono text-gray-900">
-              #{order?.id ?? '—'}
-            </span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-3xl font-bold font-mono text-gray-900">
+                #{order?.id ?? '—'}
+              </span>
+              {canSee('olistBadge') && (
+                <div className="flex items-center gap-1.5">
+                  <Image src="/olist-icon.png" alt="Olist" width={14} height={14} className={`rounded-sm ${!order?.olistNumero ? 'grayscale' : ''}`} />
+                  <span className={`text-xs ${order?.olistNumero ? 'text-gray-500' : 'text-yellow-700'}`}>
+                    Olist · {order?.olistNumero ? <span className="font-mono">{order.olistNumero}</span> : 'Não sincronizado'}
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => setShowHistory((v) => !v)}
-                className={`p-2 rounded-lg transition-colors ${showHistory ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
-                aria-label="Histórico de ações"
-              >
-                <IoTimeOutline size={20} />
-              </button>
-              <button
-                onClick={handleRefresh}
-                disabled={syncing}
-                className="text-gray-400 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-40"
-                aria-label="Recarregar pedido"
-              >
-                <IoRefreshOutline size={20} className={isSpinning ? 'animate-spin' : ''} />
-              </button>
-              {visibility?.showConfirmationCopy && (
+              {canSee('historyPanel') && (
+                <button
+                  onClick={() => setShowHistory((v) => !v)}
+                  className={`p-2 rounded-lg transition-colors ${showHistory ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
+                  aria-label="Histórico de ações"
+                >
+                  <IoTimeOutline size={20} />
+                </button>
+              )}
+              {canSee('confirmationCopy') && order?.status === 'approved' && (
                 <button
                   onClick={copyConfirmation}
                   className="text-gray-400 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -123,7 +108,7 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
                     : <IoCopyOutline size={20} />}
                 </button>
               )}
-              {order && (
+              {canSee('printButton') && order && (
                 <button
                   onClick={() => setPrinting(true)}
                   className="text-gray-400 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -149,25 +134,23 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
         {/* Mobile: coluna única com toggle */}
         <div className="md:hidden flex-1 overflow-y-auto px-5 py-5">
           {loading && !order && <LoadingState />}
-          {error && !order && <LoadingState onRetry={handleRefresh} />}
+          {error && !order && <LoadingState onRetry={refresh} />}
           {order && (
-            showHistory
+            canSee('historyPanel') && showHistory
               ? <HistoryPanel entries={order.history} />
-              : visibility && <OrderSections order={order} {...visibility} />
+              : <OrderSections order={order} />
           )}
         </div>
 
         {/* Desktop: duas colunas */}
         <div className="hidden md:flex flex-1 overflow-hidden">
-          {/* Coluna esquerda — detalhes do pedido */}
           <div className="flex-1 overflow-y-auto px-5 py-5">
             {loading && !order && <LoadingState />}
-            {error && !order && <LoadingState onRetry={handleRefresh} />}
-            {order && visibility && <OrderSections order={order} {...visibility} />}
+            {error && !order && <LoadingState onRetry={refresh} />}
+            {order && <OrderSections order={order} />}
           </div>
 
-          {/* Coluna direita — histórico */}
-          {showHistory && (
+          {canSee('historyPanel') && showHistory && (
             <>
               <div className="w-px bg-gray-100 flex-none" />
               <div className="w-96 flex-none flex flex-col overflow-hidden bg-gray-50 rounded-br-3xl">
@@ -189,7 +172,7 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
         {/* Footer */}
         {order && footer && (
           <div className="flex-none border-t border-gray-100 px-5 py-4">
-            {footer(order, handleRefresh)}
+            {footer(order, refresh)}
           </div>
         )}
       </div>

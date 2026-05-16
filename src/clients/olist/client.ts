@@ -44,7 +44,7 @@ const PAYMENT_TO_OLIST: Record<PaymentMethod, string> = {
   mp_link: 'credito',
 }
 
-function buildOlistPayload(input: CreateOrderInput): OlistOrderPayload {
+function buildOlistPayload(orderId: number, input: CreateOrderInput): OlistOrderPayload {
   const formaFrete = PERIODOS_ENTREGA.find((p) => p.id === input.deliveryPeriod)?.idOlist
   const formaPag = PAYMENT_TO_OLIST[input.payment]
   const total = input.items.reduce((s, i) => s + i.price * i.quantity, input.freight)
@@ -54,6 +54,7 @@ function buildOlistPayload(input: CreateOrderInput): OlistOrderPayload {
     pedido: {
       situacao: 'aberto',
       data_prevista: input.deliveryDate,
+      numero_pedido_ecommerce: String(orderId),
       marcadores: [{ marcador: { descricao: 'pedido-manual' } }],
       valor_frete: input.freight,
       frete_por_conta: FRETE_POR_CONTA,
@@ -192,8 +193,8 @@ export function createOlistClient(token: string) {
       post<OlistProductsResponse>('produtos.pesquisa.php', { pesquisa }),
 
     // Domain-level methods — accept our types, handle Olist translation internally
-    async createOrderFromDomain(input: CreateOrderInput): Promise<{ id: number; numero: string } | null> {
-      const payload = buildOlistPayload(input)
+    async createOrderFromDomain(orderId: number, input: CreateOrderInput): Promise<{ id: number; numero: string } | null> {
+      const payload = buildOlistPayload(orderId, input)
       const result = await post<OlistMutationResponse>('pedido.incluir.php', { pedido: JSON.stringify(payload) })
       if (result.retorno?.status !== 'OK') {
         const erros = (result.retorno?.erros ?? []).map((e) => e.erro).join('; ')

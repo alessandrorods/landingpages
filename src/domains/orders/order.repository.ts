@@ -6,7 +6,12 @@ function parseDeliveryDate(ddmmyyyy: string): Date {
   return new Date(`${yyyy}-${mm}-${dd}T00:00:00.000Z`)
 }
 
-const includeItems = { items: true } as const
+function startOfTodaySP(): Date {
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
+  return new Date(`${todayStr}T03:00:00.000Z`)
+}
+
+const includeItems = { items: true, courier: true } as const
 
 export function createOrderRepository() {
   return {
@@ -44,9 +49,9 @@ export function createOrderRepository() {
     findById: (id: number) =>
       prisma.order.findUnique({ where: { id }, include: includeItems }),
 
-    findByStatus: (status: OrderStatus) =>
+    findByStatus: (status: OrderStatus, courierId?: string) =>
       prisma.order.findMany({
-        where: { status },
+        where: { status, ...(courierId ? { courierId } : {}) },
         include: includeItems,
         orderBy: { deliveryDate: 'asc' },
       }),
@@ -57,16 +62,32 @@ export function createOrderRepository() {
         include: includeItems,
       }),
 
+    findDeliveredTodayByCourier: (courierId: string) =>
+      prisma.order.findMany({
+        where: {
+          courierId,
+          status: 'delivered',
+          historyEntries: {
+            some: {
+              action: 'delivered',
+              createdAt: { gte: startOfTodaySP() },
+            },
+          },
+        },
+        include: includeItems,
+        orderBy: { updatedAt: 'desc' },
+      }),
+
     updateOlistRef: (id: number, olistId: number, olistNumero: string) =>
       prisma.order.update({ where: { id }, data: { olistId, olistNumero } }),
 
     updateStatus: (id: number, status: OrderStatus) =>
       prisma.order.update({ where: { id }, data: { status } }),
 
-    updateDispatch: (id: number, data: { courierName: string; dispatchedAt: Date }) =>
+    updateDispatch: (id: number, data: { courierId: string }) =>
       prisma.order.update({ where: { id }, data }),
 
-    updateDelivery: (id: number, data: { deliveredAt: Date; receivedBy: string; courierName: string }) =>
+    updateDelivery: (id: number, data: { courierId: string }) =>
       prisma.order.update({ where: { id }, data }),
 
     updateMpPreferenceId: (id: number, mpPreferenceId: string) =>

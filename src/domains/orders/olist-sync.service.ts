@@ -14,7 +14,7 @@ export function createOlistSyncService(
     try {
       if (event.type === 'order_created') {
         const input = event.payload as unknown as CreateOrderInput
-        const ref = await olistClient.createOrderFromDomain(input)
+        const ref = await olistClient.createOrderFromDomain(event.orderId, input)
         if (ref) await orderRepository.updateOlistRef(event.orderId, ref.id, ref.numero)
         await syncEventRepository.markDone(event.id)
         return

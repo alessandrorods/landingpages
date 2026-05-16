@@ -7,13 +7,22 @@ import { can } from '@/domains/admin/permissions'
 
 interface User {
   role: Role
+  displayName: string
   can: (permission: Permission) => boolean
 }
 
 const UserContext = createContext<User | null>(null)
 
-export function UserProvider({ role, children }: { role: Role; children: React.ReactNode }) {
-  const user: User = { role, can: (permission) => can(role, permission) }
+export function UserProvider({
+  role,
+  displayName,
+  children,
+}: {
+  role: Role
+  displayName: string
+  children: React.ReactNode
+}) {
+  const user: User = { role, displayName, can: (permission) => can(role, permission) }
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>
 }
 

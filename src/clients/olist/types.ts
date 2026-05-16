@@ -2,6 +2,7 @@ export interface OlistOrderPayload {
   pedido: {
     situacao: string
     data_prevista: string
+    numero_pedido_ecommerce?: string
     ecommerce?: string
     marcadores: Array<{ marcador: { descricao: string } }>
     valor_frete: number

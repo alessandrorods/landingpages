@@ -9,6 +9,7 @@ export const metadata = { title: 'Operacional | Mundo Planta', robots: { index: 
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const role = (await headers()).get('x-admin-role') as Role | null
+  const displayName = (await headers()).get('x-admin-displayname') ?? ''
 
   if (!role) {
     // Sem role header significa que o proxy não autenticou esta rota.
@@ -28,7 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <UserProvider role={role}>
+    <UserProvider role={role} displayName={displayName}>
       <div className="admin-root min-h-screen bg-gray-50">
         <AdminHeader />
         <main className="w-full px-4 pb-24 pt-4">{children}</main>

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRequestRole } from '@/domains/admin/auth'
+import { getRequestRole, getRequestUsername } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
 import { createOrderDomain } from '@/domains/orders/order.domain'
+import { createUserRepository } from '@/domains/users/user.repository'
 import type { OrderStatus } from '@/domains/orders/order.types'
 
 const VALID_STATUSES: OrderStatus[] = [
@@ -29,7 +30,18 @@ export async function GET(request: NextRequest) {
 
   try {
     const { orderService } = createOrderDomain(getEnv('TINY_TOKEN'))
-    const orders = await orderService.listByStatus(status)
+
+    let courierId: string | undefined
+    const courierParam = request.nextUrl.searchParams.get('courierId')
+    if (courierParam === 'me') {
+      const username = getRequestUsername(request)
+      if (username) {
+        const user = await createUserRepository().findByUsername(username)
+        courierId = user?.id
+      }
+    }
+
+    const orders = await orderService.listByStatus(status, courierId)
     return NextResponse.json({ orders })
   } catch (err) {
     console.error('[orders] GET erro', err)

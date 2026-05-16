@@ -1,4 +1,5 @@
 import type { OrderService } from './order.service'
+import { fmtDatetime } from './order.service'
 import type { OrderHistoryRepository } from './order-history.repository'
 import type { Actor, CreateOrderInput, OrderHistoryAction, OrderHistoryEntryDTO, OrderStatus } from './order.types'
 
@@ -29,13 +30,13 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
       await historyRepository.record(id, status as OrderHistoryAction, actor)
     },
 
-    async dispatch(id: number, courierName: string, actor: Actor) {
-      await service.dispatch(id, courierName)
+    async dispatch(id: number, courierId: string, courierName: string, actor: Actor) {
+      await service.dispatch(id, courierId)
       await historyRepository.record(id, 'dispatched', actor, { courierName })
     },
 
-    async deliver(id: number, receivedBy: string, courierName: string, actor: Actor) {
-      await service.deliver(id, receivedBy, courierName)
+    async deliver(id: number, receivedBy: string, courierId: string, courierName: string, actor: Actor) {
+      await service.deliver(id, receivedBy, courierId)
       await historyRepository.record(id, 'delivered', actor, { courierName, receivedBy })
     },
 
@@ -50,13 +51,23 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
         historyRepository.findByOrderId(id),
       ])
       if (!order) return null
-      return { ...order, history: entries.map(toHistoryEntryDTO) }
+      const history = entries.map(toHistoryEntryDTO)
+      const dispatched = history.findLast((h) => h.action === 'dispatched')
+      const delivered  = history.findLast((h) => h.action === 'delivered')
+      return {
+        ...order,
+        dispatchedAt: dispatched ? fmtDatetime(new Date(dispatched.createdAt)) : null,
+        deliveredAt:  delivered  ? fmtDatetime(new Date(delivered.createdAt))  : null,
+        receivedBy:   delivered?.metadata?.receivedBy ?? null,
+        history,
+      }
     },
 
     // Pass-throughs — sem efeito colateral de histórico
-    listByStatus: service.listByStatus.bind(service),
-    findByNumero: service.findByNumero.bind(service),
-    setMpPreferenceId: service.setMpPreferenceId.bind(service),
+    listByStatus:                service.listByStatus.bind(service),
+    listDeliveredTodayByCourier: service.listDeliveredTodayByCourier.bind(service),
+    findByNumero:                service.findByNumero.bind(service),
+    setMpPreferenceId:           service.setMpPreferenceId.bind(service),
   }
 }
 
