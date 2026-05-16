@@ -1,5 +1,3 @@
-'use client'
-
 const spFmt = new Intl.DateTimeFormat('pt-BR', {
   timeZone: 'America/Sao_Paulo',
   day: '2-digit',

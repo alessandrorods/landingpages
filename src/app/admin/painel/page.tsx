@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useOrders } from '@/hooks/useOrders'
 import OrderDrawer from '@/components/OrderDrawer'
+import { OrderCard } from '@/components/OrderCard'
+import { PrintOverlay } from '@/components/PrintOverlay'
 import type { OrderDTO } from '@/domains/orders/order.types'
-import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -117,7 +118,7 @@ function BuscaPedidoPanel({ onClose: onClosePanel }: { onClose: () => void }) {
       )}
 
       {drawerAberto && order && (
-        <OrderDrawer order={order} onClose={() => setDrawerAberto(false)} />
+        <OrderDrawer id={order.id} onClose={() => setDrawerAberto(false)} />
       )}
     </div>
   )
@@ -192,6 +193,7 @@ function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () =
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const [done, setDone] = useState('')
+  const [printing, setPrinting] = useState(false)
 
   const closeAfterDelay = useCallback(() => setTimeout(onClose, 1500), [onClose])
 
@@ -204,8 +206,12 @@ function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () =
         body: JSON.stringify({ situacao: novoStatus }),
       })
       if (!res.ok) { const d = await res.json(); setErr(d.error ?? 'Erro ao atualizar'); return }
-      setDone(`Marcado como: ${STATUS_LABEL[novoStatus] ?? novoStatus}`)
-      closeAfterDelay()
+      if (novoStatus === 'preparing') {
+        setPrinting(true)
+      } else {
+        setDone(`Marcado como: ${STATUS_LABEL[novoStatus] ?? novoStatus}`)
+        closeAfterDelay()
+      }
     } catch { setErr('Erro de conexão') } finally { setLoading(false) }
   }
 
@@ -250,6 +256,7 @@ function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () =
 
   return (
     <div className="space-y-2">
+      {printing && <PrintOverlay order={order} onClose={() => { setPrinting(false); onClose() }} />}
       {err && <p className="text-xs text-red-600 mb-1">{err}</p>}
 
       {status === 'pending' && (
@@ -302,47 +309,6 @@ function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () =
   )
 }
 
-// ── Card de resumo ────────────────────────────────────────────────────────────
-
-function PedidoResumoCard({
-  order,
-  onOpen,
-  showStatus,
-  dimmed,
-}: {
-  order: OrderDTO
-  onOpen: () => void
-  showStatus?: boolean
-  dimmed?: boolean
-}) {
-  return (
-    <button
-      onClick={onOpen}
-      className={`w-full text-left rounded-2xl border p-4 mb-3 active:scale-[0.99] transition-transform ${
-        dimmed
-          ? 'bg-gray-50 border-gray-100 opacity-50 shadow-none'
-          : 'bg-white border-gray-100 shadow-sm'
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <span className={`text-xl font-bold font-mono px-3 py-1 rounded-xl leading-none ${dimmed ? 'text-gray-500 bg-gray-100' : 'text-gray-900 bg-purple-50'}`}>
-          #{order.olistNumero ?? '—'}
-        </span>
-        <DeliveryLabel data={order.deliveryDate} />
-        {showStatus && (
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE_CLS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
-            {STATUS_LABEL[order.status] ?? order.status}
-          </span>
-        )}
-      </div>
-      <p className={`font-semibold truncate ${dimmed ? 'text-gray-500' : 'text-gray-900'}`}>{order.buyerName}</p>
-      <div className="flex justify-end mt-2">
-        <span className={`text-xs font-semibold ${dimmed ? 'text-gray-400' : 'text-purple-600'}`}>Ver detalhes ›</span>
-      </div>
-    </button>
-  )
-}
-
 // ── Coluna desktop ────────────────────────────────────────────────────────────
 
 interface ColunaProps {
@@ -351,7 +317,7 @@ interface ColunaProps {
   orders: OrderDTO[]
   loading: boolean
   error: string
-  onOpenPedido: (id: string) => void
+  onOpenPedido: (id: number) => void
   showStatus?: boolean
   dimCards?: boolean
 }
@@ -381,7 +347,17 @@ function Coluna({ titulo, cor, orders, loading, error, onOpenPedido, showStatus,
       )}
 
       {!loading && orders.map((order) => (
-        <PedidoResumoCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} showStatus={showStatus} dimmed={dimCards} />
+        <OrderCard
+          key={order.id}
+          order={order}
+          onOpen={() => onOpenPedido(order.id)}
+          accent="purple"
+          badge={showStatus
+            ? <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE_CLS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[order.status] ?? order.status}</span>
+            : undefined}
+          cta="Ver detalhes ›"
+          dimmed={dimCards}
+        />
       ))}
     </div>
   )
@@ -419,7 +395,17 @@ function AccordionSection({ titulo, cor, orders, loading, error, onOpenPedido, s
             <p className="text-sm text-gray-400 text-center py-4">Nenhum pedido</p>
           )}
           {!loading && orders.map((order) => (
-            <PedidoResumoCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} showStatus={showStatus} dimmed={dimCards} />
+            <OrderCard
+          key={order.id}
+          order={order}
+          onOpen={() => onOpenPedido(order.id)}
+          accent="purple"
+          badge={showStatus
+            ? <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE_CLS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[order.status] ?? order.status}</span>
+            : undefined}
+          cta="Ver detalhes ›"
+          dimmed={dimCards}
+        />
           ))}
         </div>
       )}
@@ -437,7 +423,7 @@ export default function PainelPage() {
   const montandoHook = useOrders('preparing')
   const prontoHook = useOrders('ready')
   const enviadoHook = useOrders('dispatched')
-  const entregueHook = useOrders('delivered', today)
+  const entregueHook = useOrders('delivered')
 
   const [drawerOrderId, setDrawerOrderId] = useState<number | null>(null)
   const [openSection, setOpenSection] = useState<string>('aberto')

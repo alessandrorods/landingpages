@@ -6,8 +6,8 @@ import { useOrders } from '@/hooks/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/components/OrderDrawer'
+import { OrderCard } from '@/components/OrderCard'
 import type { OrderDTO } from '@/domains/orders/order.types'
-import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 type Tab = 'pagos' | 'recuperar'
 
@@ -15,56 +15,6 @@ function whatsappMsg(order: OrderDTO): string {
   const produto = order.items[0]?.name ?? 'produto'
   return encodeURIComponent(
     `Olá ${order.buyerName.split(' ')[0]}! Identificamos um problema no pagamento do seu pedido de *${produto}* na Mundo Planta. Podemos te ajudar a concluir a compra?`,
-  )
-}
-
-function PedidoCard({
-  order,
-  variant,
-  onOpen,
-}: {
-  order: OrderDTO
-  variant: Tab
-  onOpen: () => void
-}) {
-  const produto = order.items[0]?.name ?? '—'
-  const tel = order.buyerPhone.replace(/\D/g, '')
-
-  return (
-    <button
-      onClick={onOpen}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold font-mono text-gray-900 bg-gray-100 px-3 py-1 rounded-xl leading-none">
-            #{order.olistNumero ?? '—'}
-          </span>
-          <DeliveryLabel data={order.deliveryDate} />
-        </div>
-        <span
-          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-            variant === 'pagos'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-amber-100 text-amber-800'
-          }`}
-        >
-          {variant === 'pagos' ? 'Pago' : 'Pendente'}
-        </span>
-      </div>
-
-      <p className="font-semibold text-gray-900 leading-tight">{order.buyerName}</p>
-      <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
-
-      <div className="flex items-center justify-between mt-2">
-        {variant === 'recuperar' && tel && (
-          <span className="text-xs text-green-700 font-semibold">Tem telefone ›</span>
-        )}
-        {variant === 'pagos' && (
-          <span className="text-xs text-gray-400">Ver detalhes ›</span>
-        )}
-      </div>
-    </button>
   )
 }
 
@@ -169,7 +119,19 @@ export default function VendasPage() {
 
       {!active.loading &&
         active.orders.map((order) => (
-          <PedidoCard key={order.id} order={order} variant={tab} onOpen={() => setSelectedId(order.id)} />
+          <OrderCard
+            key={order.id}
+            order={order}
+            onOpen={() => setSelectedId(order.id)}
+            primary={order.buyerName}
+            secondary={order.items[0]?.name ?? '—'}
+            badge={
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${tab === 'pagos' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                {tab === 'pagos' ? 'Pago' : 'Pendente'}
+              </span>
+            }
+            cta={tab === 'recuperar' && order.buyerPhone.replace(/\D/g, '') ? 'Tem telefone ›' : 'Ver detalhes ›'}
+          />
         ))}
 
       {selectedId !== null && (

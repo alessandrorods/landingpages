@@ -1,3 +1,7 @@
+'use client'
+
+import { SiGooglemaps, SiWaze } from 'react-icons/si'
+import { useUser } from '@/contexts/UserContext'
 import { Row } from '@/components/ui/Row'
 import { Section } from '@/components/ui/Section'
 import { Divider } from '@/components/ui/Divider'
@@ -13,6 +17,8 @@ interface Props {
 }
 
 export function OrderSections({ order, showBuyer, showPrices, showCardMessage }: Props) {
+  const user = useUser()
+  const showNavigation = user?.role === 'motoboy' || user?.role === 'admin'
   const badge         = STATUS_BADGE[order.status]
   const compradorTel  = order.buyerPhone.replace(/\D/g, '')
   const mesmaPessoa   = order.recipientName === order.buyerName
@@ -91,7 +97,37 @@ export function OrderSections({ order, showBuyer, showPrices, showCardMessage }:
       <Divider />
 
       {/* Endereço */}
-      <Section label="Endereço de entrega">
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Endereço de entrega</p>
+          {showNavigation && (() => {
+            const dest = encodeURIComponent(
+              `${order.street}, ${order.streetNumber}, ${order.neighborhood}, Mogi das Cruzes, SP, ${order.zipCode}`
+            )
+            return (
+              <div className="flex items-center gap-1">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${dest}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium text-slate-600"
+                >
+                  <SiGooglemaps size={13} className="text-[#4285F4] shrink-0" />
+                  Maps
+                </a>
+                <a
+                  href={`https://waze.com/ul?q=${dest}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-xs font-medium text-slate-600"
+                >
+                  <SiWaze size={13} className="text-[#05C8F7] shrink-0" />
+                  Waze
+                </a>
+              </div>
+            )
+          })()}
+        </div>
         <div className="bg-gray-50 rounded-xl px-3 py-2 space-y-0.5">
           <p className="text-sm font-medium text-gray-900">
             {order.street}, {order.streetNumber}
@@ -101,7 +137,7 @@ export function OrderSections({ order, showBuyer, showPrices, showCardMessage }:
           <p className="text-xs text-gray-400">CEP {order.zipCode}</p>
           <p className="text-xs text-gray-400">Mogi das Cruzes / SP</p>
         </div>
-      </Section>
+      </div>
 
       {/* Observações */}
       {order.notes && (

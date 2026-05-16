@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { IoPrintOutline, IoRefreshOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5'
+import { PrintOverlay } from '@/components/PrintOverlay'
 import { useOrderDetail } from '@/hooks/useOrderDetail'
 import { useUser } from '@/contexts/UserContext'
 import { HistoryPanel } from './HistoryPanel'
@@ -11,12 +12,13 @@ import type { OrderDTO } from '@/domains/orders/order.types'
 interface Props {
   id: number
   onClose: () => void
-  footer?: (order: OrderDTO) => React.ReactNode
+  footer?: (order: OrderDTO, refresh: () => Promise<void>) => React.ReactNode
 }
 
 function useOrderVisibility(order: OrderDTO | null) {
-  const { role } = useUser()
-  if (!order) return null
+  const user = useUser()
+  if (!order || !user) return null
+  const { role } = user
   return {
     showBuyer:            role !== 'motoboy',
     showPrices:           role !== 'motoboy',
@@ -42,6 +44,7 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
   const [showHistory, setShowHistory] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [copiedConfirmation, setCopiedConfirmation] = useState(false)
+  const [printing, setPrinting] = useState(false)
   const visibility = useOrderVisibility(order)
 
   // Keep a stable ref to onClose so the effect doesn't re-run when the parent re-renders
@@ -121,15 +124,16 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
                 </button>
               )}
               {order && (
-                <a
-                  href={`/print/${order.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => setPrinting(true)}
                   className="text-gray-400 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   aria-label="Imprimir pedido"
                 >
                   <IoPrintOutline size={20} />
-                </a>
+                </button>
+              )}
+              {printing && order && (
+                <PrintOverlay order={order} onClose={() => setPrinting(false)} />
               )}
               <button
                 onClick={handleClose}
@@ -185,7 +189,7 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
         {/* Footer */}
         {order && footer && (
           <div className="flex-none border-t border-gray-100 px-5 py-4">
-            {footer(order)}
+            {footer(order, handleRefresh)}
           </div>
         )}
       </div>

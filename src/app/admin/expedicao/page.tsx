@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useOrders } from '@/hooks/useOrders'
 import OrderDrawer from '@/components/OrderDrawer'
+import { OrderCard } from '@/components/OrderCard'
 import type { OrderDTO } from '@/domains/orders/order.types'
-import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 function todayFormatted(): string {
   const d = new Date()
@@ -129,28 +129,6 @@ function BuscaPedido() {
   )
 }
 
-// ── Card de resumo ────────────────────────────────────────────────────────────
-
-function PedidoResumoCard({ order, onOpen }: { order: OrderDTO; onOpen: () => void }) {
-  return (
-    <button
-      onClick={onOpen}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-xl font-bold font-mono text-gray-900 bg-blue-50 px-3 py-1 rounded-xl leading-none">
-          #{order.olistNumero ?? '—'}
-        </span>
-        <DeliveryLabel data={order.deliveryDate} />
-      </div>
-      <p className="font-semibold text-gray-900 truncate">{order.buyerName}</p>
-      <div className="flex justify-end mt-2">
-        <span className="text-xs text-blue-600 font-semibold">Ver detalhes ›</span>
-      </div>
-    </button>
-  )
-}
-
 // ── Coluna ────────────────────────────────────────────────────────────────────
 
 interface ColunaProps {
@@ -159,7 +137,7 @@ interface ColunaProps {
   orders: OrderDTO[]
   loading: boolean
   error: string
-  onOpenPedido: (id: string) => void
+  onOpenPedido: (id: number) => void
 }
 
 function Coluna({ titulo, cor, orders, loading, error, onOpenPedido }: ColunaProps) {
@@ -189,7 +167,7 @@ function Coluna({ titulo, cor, orders, loading, error, onOpenPedido }: ColunaPro
       )}
 
       {!loading && orders.map((order) => (
-        <PedidoResumoCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} />
+        <OrderCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} accent="blue" cta="Ver detalhes ›" />
       ))}
     </div>
   )
@@ -237,7 +215,7 @@ function AccordionSection({ titulo, cor, orders, loading, error, onOpenPedido, o
           )}
 
           {!loading && orders.map((order) => (
-            <PedidoResumoCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} />
+            <OrderCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} accent="blue" cta="Ver detalhes ›" />
           ))}
         </div>
       )}
@@ -252,7 +230,7 @@ export default function ExpedicaoPage() {
 
   const prontoEnvio = useOrders('pronto_envio')
   const enviado = useOrders('enviado')
-  const entregue = useOrders('entregue', today)
+  const entregue = useOrders('entregue')
 
   const [drawerOrderId, setDrawerOrderId] = useState<number | null>(null)
   const [openSection, setOpenSection] = useState<string>('pronto_envio')

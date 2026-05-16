@@ -17,8 +17,6 @@ export function UserProvider({ role, children }: { role: Role; children: React.R
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>
 }
 
-export function useUser(): User {
-  const ctx = useContext(UserContext)
-  if (!ctx) throw new Error('useUser must be used within <UserProvider>')
-  return ctx
+export function useUser(): User | null {
+  return useContext(UserContext)
 }

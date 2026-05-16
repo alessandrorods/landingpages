@@ -5,56 +5,48 @@ import { useOrders } from '@/hooks/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/components/OrderDrawer'
+import { OrderCard } from '@/components/OrderCard'
+import { PrintOverlay } from '@/components/PrintOverlay'
 import type { OrderDTO } from '@/domains/orders/order.types'
-import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
-
-function PedidoCard({ order, onOpen }: { order: OrderDTO; onOpen: () => void }) {
-  const produto = order.items[0]?.name ?? '—'
-  const mesmaPessoa = order.recipientName === order.buyerName
-
-  return (
-    <button
-      onClick={onOpen}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold font-mono text-gray-900 bg-pink-50 px-3 py-1 rounded-xl leading-none">
-            #{order.olistNumero ?? '—'}
-          </span>
-          <DeliveryLabel data={order.deliveryDate} />
-        </div>
-        {order.cardMessage && (
-          <span className="text-xs bg-pink-100 text-pink-700 font-semibold px-2 py-0.5 rounded-full">
-            Tem mensagem
-          </span>
-        )}
-      </div>
-
-      <p className="font-semibold text-gray-900">{produto}</p>
-      <p className="text-sm text-gray-500 mt-0.5">
-        {mesmaPessoa ? order.buyerName : `Para: ${order.recipientName}`}
-      </p>
-
-      <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-pink-600 font-semibold">Montar ›</span>
-      </div>
-    </button>
-  )
-}
 
 function MontadoAction({
   order,
   onMontado,
+  onRefresh,
 }: {
   order: OrderDTO
   onMontado: (id: number) => void
+  onRefresh: () => Promise<void>
 }) {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState('')
+  const [printing, setPrinting] = useState(false)
 
-  async function marcar() {
+  async function iniciarMontagem() {
+    setLoading(true)
+    setErr('')
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ situacao: 'preparing' }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        setErr(d.error ?? 'Erro ao atualizar')
+        return
+      }
+      setPrinting(true)
+      void onRefresh()
+    } catch {
+      setErr('Erro de conexão')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function marcarMontado() {
     setLoading(true)
     setErr('')
     try {
@@ -78,21 +70,33 @@ function MontadoAction({
   }
 
   if (done) {
-    return (
-      <p className="text-center text-green-700 font-semibold py-3">✓ Marcado como montado!</p>
-    )
+    return <p className="text-center text-green-700 font-semibold py-3">✓ Marcado como montado!</p>
   }
 
   return (
     <>
+      {printing && <PrintOverlay order={order} onClose={() => setPrinting(false)} />}
       {err && <p className="text-xs text-red-600 mb-2">{err}</p>}
-      <button
-        onClick={marcar}
-        disabled={loading}
-        className="w-full bg-pink-600 hover:bg-pink-700 disabled:opacity-60 text-white font-semibold py-4 rounded-xl text-base transition-colors"
-      >
-        {loading ? 'Atualizando...' : '✓ Montado — passar para Expedição'}
-      </button>
+
+      {order.status === 'approved' && (
+        <button
+          onClick={iniciarMontagem}
+          disabled={loading}
+          className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:opacity-60 text-white font-semibold py-4 rounded-xl text-base transition-colors"
+        >
+          {loading ? 'Atualizando...' : '🌸 Iniciar Montagem'}
+        </button>
+      )}
+
+      {order.status === 'preparing' && (
+        <button
+          onClick={marcarMontado}
+          disabled={loading}
+          className="w-full bg-pink-600 hover:bg-pink-700 disabled:opacity-60 text-white font-semibold py-4 rounded-xl text-base transition-colors"
+        >
+          {loading ? 'Atualizando...' : '✓ Montado — passar para Expedição'}
+        </button>
+      )}
     </>
   )
 }
@@ -132,14 +136,25 @@ export default function FloristaPage() {
       )}
 
       {!loading && visiveis.map((order) => (
-        <PedidoCard key={order.id} order={order} onOpen={() => setSelectedId(order.id)} />
+        <OrderCard
+          key={order.id}
+          order={order}
+          onOpen={() => setSelectedId(order.id)}
+          accent="pink"
+          primary={order.items[0]?.name ?? '—'}
+          secondary={order.recipientName === order.buyerName ? order.buyerName : `Para: ${order.recipientName}`}
+          badge={order.cardMessage
+            ? <span className="text-xs bg-pink-100 text-pink-700 font-semibold px-2 py-0.5 rounded-full">Tem mensagem</span>
+            : undefined}
+          cta="Montar ›"
+        />
       ))}
 
       {selectedId !== null && (
         <OrderDrawer
           id={selectedId}
           onClose={() => setSelectedId(null)}
-          footer={(order) => <MontadoAction order={order} onMontado={remover} />}
+          footer={(order, refresh) => <MontadoAction order={order} onMontado={remover} onRefresh={refresh} />}
         />
       )}
     </div>

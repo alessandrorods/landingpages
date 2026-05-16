@@ -63,3 +63,7 @@ body {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@media print {
+  body > *:not([data-print-overlay]) { display: none !important; }
+}

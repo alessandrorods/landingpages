@@ -5,8 +5,8 @@ import { useOrders } from '@/hooks/useOrders'
 import StatusBar from '@/app/admin/components/StatusBar'
 import EmptyState from '@/app/admin/components/EmptyState'
 import OrderDrawer from '@/components/OrderDrawer'
+import { OrderCard } from '@/components/OrderCard'
 import type { OrderDTO } from '@/domains/orders/order.types'
-import { DeliveryLabel } from '@/app/admin/components/DeliveryLabel'
 
 const STORAGE_KEY = 'motoboy_nome'
 
@@ -223,39 +223,6 @@ function EntregaAction({
   )
 }
 
-// ── Card da lista ─────────────────────────────────────────────────────────────
-
-function PedidoCard({ order, onOpen }: { order: OrderDTO; onOpen: () => void }) {
-  const produto = order.items[0]?.name ?? '—'
-
-  return (
-    <button
-      onClick={onOpen}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3 active:scale-[0.99] transition-transform"
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-2xl font-bold font-mono text-gray-900 bg-orange-50 px-3 py-1 rounded-xl leading-none">
-          #{order.olistNumero ?? '—'}
-        </span>
-        <DeliveryLabel data={order.deliveryDate} />
-      </div>
-
-      <p className="font-semibold text-gray-900">{order.recipientName}</p>
-      <p className="text-sm text-gray-500 mt-0.5">{produto}</p>
-
-      {order.neighborhood && (
-        <p className="text-xs text-gray-400 mt-2 bg-gray-50 rounded-lg px-2 py-1 inline-block">
-          {order.neighborhood}
-        </p>
-      )}
-
-      <div className="flex justify-end mt-2">
-        <span className="text-xs text-orange-600 font-semibold">Confirmar entrega ›</span>
-      </div>
-    </button>
-  )
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MotoboyPage() {
@@ -328,7 +295,16 @@ export default function MotoboyPage() {
       )}
 
       {!loading && visiveis.map((order) => (
-        <PedidoCard key={order.id} order={order} onOpen={() => setSelectedId(order.id)} />
+        <OrderCard
+          key={order.id}
+          order={order}
+          onOpen={() => setSelectedId(order.id)}
+          accent="orange"
+          primary={order.recipientName}
+          secondary={order.items[0]?.name ?? '—'}
+          tag={order.neighborhood || undefined}
+          cta="Confirmar entrega ›"
+        />
       ))}
 
       {entregues.length > 0 && (
