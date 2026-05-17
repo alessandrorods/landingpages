@@ -93,6 +93,12 @@ export function createOrderRepository() {
 
     updateMpPreferenceId: (id: number, mpPreferenceId: string) =>
       prisma.order.update({ where: { id }, data: { mpPreferenceId } }),
+
+    findPublicStatus: (id: number) =>
+      prisma.order.findUnique({
+        where: { id },
+        select: { status: true, pickup: true, createdAt: true },
+      }),
   }
 }
 

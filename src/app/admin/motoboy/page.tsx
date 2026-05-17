@@ -6,21 +6,13 @@ import { useUser } from '@/contexts/UserContext'
 import { OrderList } from '@/components/order/OrderList'
 import OrderDrawer from '@/components/order/OrderDrawer'
 import { CollectOrder } from './_components/CollectOrder'
-import { DeliveryAction } from './_components/DeliveryAction'
 import { DeliveredToday } from './_components/DeliveredToday'
-import type { OrderDTO } from '@/domains/orders/order.types'
 
 export default function MotoboyPage() {
   const user = useUser()
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [deliveredCount, setDeliveredCount] = useState(0)
   const { orders, loading, error, refresh } = useOrders('dispatched', { courierId: 'me' })
-
-  function handleDelivered(_order: OrderDTO) {
-    setSelectedId(null)
-    setDeliveredCount((c) => c + 1)
-    refresh()
-  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -51,10 +43,7 @@ export default function MotoboyPage() {
       {selectedId !== null && (
         <OrderDrawer
           id={selectedId}
-          onClose={() => setSelectedId(null)}
-          footer={(order) => (
-            <DeliveryAction order={order} onDelivered={() => handleDelivered(order)} />
-          )}
+          onClose={() => { setSelectedId(null); setDeliveredCount((c) => c + 1); refresh() }}
         />
       )}
     </div>

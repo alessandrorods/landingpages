@@ -12,6 +12,15 @@ export const ORDER_DRAWER_FEATURES = {
   cardMessage:      ['vendas', 'florista', 'admin'],
   freightAmount:    ['vendas', 'expedicao', 'admin'],
   orderTotal:       ['vendas', 'admin'],
+  // ── Actions ────────────────────────────────────────────────────────────────
+  actionApprove:          ['admin'],
+  actionStartPreparing:   ['florista', 'admin'],
+  actionMarkReady:        ['florista', 'admin'],
+  actionDispatch:         ['expedicao', 'admin'],
+  actionDeliver:          ['motoboy', 'admin'],
+  actionConfirmPickup:    ['admin'],
+  actionCancel:           ['admin'],
+  actionRecover:          ['vendas'],
 } as const satisfies Record<string, readonly Role[]>
 
 export type OrderDrawerFeature = keyof typeof ORDER_DRAWER_FEATURES

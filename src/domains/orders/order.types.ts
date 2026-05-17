@@ -67,6 +67,7 @@ export interface OrderItemDTO {
 
 export interface OrderDTO {
   id: number
+  trackingToken?: string  // injected by route handlers, not part of domain
   olistNumero: string | null
   pickup: boolean
   status: OrderStatus

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getRequestRole, getRequestDisplayName } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
 import { createOrderDomain } from '@/domains/orders/order.domain'
+import { createUserRepository } from '@/domains/users/user.repository'
 import { OrderServiceError } from '@/domains/orders/order.service'
 
 function getEnv(key: string): string {
@@ -23,16 +24,22 @@ export async function POST(
   const id = parseInt(rawId, 10)
   if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
 
-  let body: { motoboy?: string }
+  let body: { courierName?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Requisição inválida' }, { status: 400 })
   }
 
-  const { motoboy } = body
-  if (!motoboy?.trim()) {
+  const { courierName } = body
+  if (!courierName?.trim()) {
     return NextResponse.json({ error: 'Nome do motoboy obrigatório' }, { status: 400 })
+  }
+
+  const courier = await createUserRepository().findAll()
+    .then((users) => users.find((u) => u.displayName === courierName.trim()) ?? null)
+  if (!courier) {
+    return NextResponse.json({ error: 'Motoboy não encontrado' }, { status: 422 })
   }
 
   const role = getRequestRole(request)
@@ -40,7 +47,7 @@ export async function POST(
 
   try {
     const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
-    await orderService.dispatch(id, motoboy.trim(), { type: 'user', name: getRequestDisplayName(request) ?? role, role })
+    await orderService.dispatch(id, courier.id, courier.displayName, { type: 'user', name: getRequestDisplayName(request) ?? role, role })
     after(() => syncService.processPendingFor(id).catch((err) =>
       console.error('[dispatch] sync after-dispatch falhou', { orderId: id, err }),
     ))

@@ -199,11 +199,33 @@ function ListaItens({ itens, onUpdatePreco, onUpdateQtd, onRemover }: {
 
 // ── Sucesso ───────────────────────────────────────────────────────────────────
 
-function Sucesso({ id, numero, linkPagamento, telefone, onNovo }: {
-  id: number; numero: string; linkPagamento?: string; telefone: string; onNovo: () => void
+function Sucesso({ id, trackingToken, numero, linkPagamento, telefone, pickup, prepTime, dataEntrega, onNovo }: {
+  id: number; trackingToken: string; numero: string; linkPagamento?: string; telefone: string
+  pickup: boolean; prepTime: string; dataEntrega: string; onNovo: () => void
 }) {
   const [copiado, setCopiado] = useState(false)
   const [copiadoConfirmacao, setCopiadoConfirmacao] = useState(false)
+
+  const confirmationMsg = pickup
+    ? [
+        `Obrigado por sua compra! 🌸`,
+        ``,
+        `➡️ O número do seu pedido é *${numero}*`,
+        ``,
+        prepTime
+          ? `Seu pedido estará disponível para retirada na nossa loja a partir das *${prepTime}*.`
+          : `Seu pedido estará disponível para retirada na nossa loja no dia ${isoToTiny(dataEntrega)}.`,
+        ``,
+        `Na hora da retirada, informe o número do pedido *${numero}*. 😊`,
+      ].join('\n')
+    : [
+        `Obrigado por sua compra! 🌸`,
+        ``,
+        `➡️ O número do seu pedido é *${numero}*`,
+        ``,
+        `Acompanhe seu pedido pelo link abaixo:`,
+        `${process.env.NEXT_PUBLIC_SITE_URL}/tracking/${trackingToken}`,
+      ].join('\n')
 
   function copiar() {
     if (!linkPagamento) return
@@ -214,22 +236,24 @@ function Sucesso({ id, numero, linkPagamento, telefone, onNovo }: {
   }
 
   function copiarConfirmacao() {
-    const msg = `Obrigado por sua compra!\n\n➡️ O número do seu pedido é *${numero}*\n\nAcompanhe seu pedido pelo link abaixo:\nhttps://florapp.com.br/tracking/${id}`
-    navigator.clipboard.writeText(msg).then(() => {
+    navigator.clipboard.writeText(confirmationMsg).then(() => {
       setCopiadoConfirmacao(true)
       setTimeout(() => setCopiadoConfirmacao(false), 2500)
     })
   }
 
   const foneNumero = telefone.replace(/\D/g, '')
-  const msg = linkPagamento
+  const paymentWaMsg = linkPagamento
     ? encodeURIComponent(`Olá! Segue o link para pagamento do pedido #${numero}: ${linkPagamento}`)
     : ''
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 text-center space-y-4">
-      <p className="text-3xl">✓</p>
-      <p className="text-lg font-bold text-gray-900">Pedido #{numero} criado!</p>
+      <div className="space-y-1">
+        <p className="text-3xl">✓</p>
+        <p className="text-lg font-bold text-gray-900">Pedido #{numero} criado!</p>
+      </div>
+
       {linkPagamento && (
         <div className="space-y-2 text-left">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Link de pagamento</p>
@@ -243,7 +267,7 @@ function Sucesso({ id, numero, linkPagamento, telefone, onNovo }: {
             </button>
             {foneNumero && (
               <a
-                href={`https://wa.me/55${foneNumero}?text=${msg}`}
+                href={`https://wa.me/55${foneNumero}?text=${paymentWaMsg}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 text-center bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
@@ -254,12 +278,21 @@ function Sucesso({ id, numero, linkPagamento, telefone, onNovo }: {
           </div>
         </div>
       )}
-      <button
-        onClick={copiarConfirmacao}
-        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 rounded-xl text-sm transition-colors"
-      >
-        {copiadoConfirmacao ? '✓ Copiado!' : 'Copiar mensagem de confirmação'}
-      </button>
+
+      {/* Confirmation message */}
+      <div className="space-y-3 text-left">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Mensagem para o cliente</p>
+        <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+          {confirmationMsg}
+        </div>
+        <button
+          onClick={copiarConfirmacao}
+          className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-4 rounded-xl text-base transition-colors"
+        >
+          {copiadoConfirmacao ? '✓ Mensagem copiada!' : '📋 Copiar mensagem'}
+        </button>
+      </div>
+
       <button
         onClick={onNovo}
         className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3.5 rounded-xl text-sm transition-colors"
@@ -311,7 +344,7 @@ export default function NovoPedidoPage() {
   // submit
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
-  const [resultado, setResultado] = useState<{ id: number; numero: string; linkPagamento?: string } | null>(null)
+  const [resultado, setResultado] = useState<{ id: number; trackingToken: string; numero: string; linkPagamento?: string } | null>(null)
 
   const topRef = useRef<HTMLDivElement>(null)
 
@@ -428,7 +461,7 @@ export default function NovoPedidoPage() {
       })
       const data = await res.json()
       if (!res.ok) { setErro(data.error ?? 'Erro ao criar pedido'); return }
-      setResultado({ id: data.id, numero: data.numero, linkPagamento: data.linkPagamento })
+      setResultado({ id: data.id, trackingToken: data.trackingToken, numero: data.numero, linkPagamento: data.linkPagamento })
     } catch {
       setErro('Erro de conexão')
     } finally {
@@ -440,7 +473,16 @@ export default function NovoPedidoPage() {
     return (
       <div className="max-w-2xl mx-auto">
         <h1 className="text-xl font-bold text-gray-900 mb-4">Novo Pedido</h1>
-        <Sucesso id={resultado.id} numero={resultado.numero} linkPagamento={resultado.linkPagamento} telefone={comprTel} onNovo={resetar} />
+        <Sucesso
+          id={resultado.id}
+          numero={resultado.numero}
+          linkPagamento={resultado.linkPagamento}
+          telefone={comprTel}
+          pickup={pickup}
+          prepTime={prepTime}
+          dataEntrega={dataEntrega}
+          onNovo={resetar}
+        />
       </div>
     )
   }

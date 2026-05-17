@@ -7,39 +7,8 @@ import StatusBar from '@/components/ui/StatusBar'
 import EmptyState from '@/components/ui/EmptyState'
 import OrderDrawer from '@/components/order/OrderDrawer'
 import { OrderCard } from '@/components/order/OrderCard'
-import type { OrderDTO } from '@/domains/orders/order.types'
 
 type Tab = 'pagos' | 'recuperar'
-
-function whatsappMsg(order: OrderDTO): string {
-  const produto = order.items[0]?.name ?? 'produto'
-  return encodeURIComponent(
-    `Olá ${order.buyerName.split(' ')[0]}! Identificamos um problema no pagamento do seu pedido de *${produto}* na Mundo Planta. Podemos te ajudar a concluir a compra?`,
-  )
-}
-
-function RecuperarAction({ order }: { order: OrderDTO }) {
-  const tel = order.buyerPhone.replace(/\D/g, '')
-  if (!tel) return <p className="text-sm text-gray-400 text-center">Sem telefone cadastrado</p>
-  return (
-    <div className="flex gap-2">
-      <a
-        href={`https://wa.me/55${tel}?text=${whatsappMsg(order)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex-1 text-center text-base font-semibold bg-green-500 hover:bg-green-600 text-white py-3.5 rounded-xl transition-colors"
-      >
-        WhatsApp
-      </a>
-      <a
-        href={`tel:${tel}`}
-        className="flex-1 text-center text-base font-semibold bg-gray-100 hover:bg-gray-200 text-gray-800 py-3.5 rounded-xl transition-colors"
-      >
-        Ligar
-      </a>
-    </div>
-  )
-}
 
 export default function VendasPage() {
   const [tab, setTab] = useState<Tab>('pagos')
@@ -137,8 +106,7 @@ export default function VendasPage() {
       {selectedId !== null && (
         <OrderDrawer
           id={selectedId}
-          onClose={() => setSelectedId(null)}
-          footer={tab === 'recuperar' ? (order) => <RecuperarAction order={order} /> : undefined}
+          onClose={() => { setSelectedId(null); active.refresh() }}
         />
       )}
     </div>

@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error('[orders/create] falha ao aprovar pedido', { orderId: order.id, err })
     }
-    return Response.json({ id: order.id, numero: order.olistNumero ?? String(order.id) })
+    return Response.json({ id: order.id, numero: order.olistNumero ?? String(order.id), trackingToken: order.trackingToken })
   }
 
   try {
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
 
     await orderService.setMpPreferenceId(order.id, preferencia.id)
 
-    return Response.json({ id: order.id, numero: order.olistNumero ?? String(order.id), linkPagamento: preferencia.initPoint })
+    return Response.json({ id: order.id, numero: order.olistNumero ?? String(order.id), trackingToken: order.trackingToken, linkPagamento: preferencia.initPoint })
   } catch (err) {
     if (err instanceof PagamentoServiceError) {
       return Response.json({ error: err.message }, { status: 502 })

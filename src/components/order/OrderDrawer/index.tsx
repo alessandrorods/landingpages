@@ -9,12 +9,18 @@ import { useUser } from '@/contexts/UserContext'
 import { canSeeDrawerFeature } from '@/constants/orderDrawerFeatures'
 import { HistoryPanel } from './HistoryPanel'
 import { OrderSections } from './OrderSections'
-import type { OrderDTO } from '@/domains/orders/order.types'
+import { DrawerActionApprove } from './DrawerActionApprove'
+import { DrawerActionStartPreparing } from './DrawerActionStartPreparing'
+import { DrawerActionMarkReady } from './DrawerActionMarkReady'
+import { DrawerActionDispatch } from './DrawerActionDispatch'
+import { DrawerActionDeliver } from './DrawerActionDeliver'
+import { DrawerActionConfirmPickup } from './DrawerActionConfirmPickup'
+import { DrawerActionCancel } from './DrawerActionCancel'
+import { DrawerActionRecover } from './DrawerActionRecover'
 
 interface Props {
   id: number
   onClose: () => void
-  footer?: (order: OrderDTO, refresh: () => Promise<void>) => React.ReactNode
 }
 
 function LoadingState({ onRetry }: { onRetry?: () => void }) {
@@ -29,7 +35,7 @@ function LoadingState({ onRetry }: { onRetry?: () => void }) {
   )
 }
 
-export default function OrderDrawer({ id, onClose, footer }: Props) {
+export default function OrderDrawer({ id, onClose }: Props) {
   const { order, loading, error, refresh } = useOrderDetail(id)
   const [showHistory, setShowHistory] = useState(false)
   const [copiedConfirmation, setCopiedConfirmation] = useState(false)
@@ -56,12 +62,31 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
 
   function copyConfirmation() {
     if (!order) return
-    const msg = `Obrigado por sua compra!\n\n➡️ O número do seu pedido é *${order.id}*\n\nAcompanhe seu pedido pelo link abaixo:\nhttps://florapp.com.br/tracking/${order.id}`
+    const msg = order.pickup
+      ? [
+          `Obrigado por sua compra! 🌸`,
+          ``,
+          `➡️ O número do seu pedido é *${order.id}*`,
+          ``,
+          `Seu pedido estará disponível para retirada na nossa loja.`,
+          ``,
+          `Na hora da retirada, informe o número do pedido *${order.id}*. 😊`,
+        ].join('\n')
+      : [
+          `Obrigado por sua compra! 🌸`,
+          ``,
+          `➡️ O número do seu pedido é *${order.id}*`,
+          ``,
+          `Acompanhe seu pedido pelo link abaixo:`,
+          `${process.env.NEXT_PUBLIC_SITE_URL}/tracking/${order.trackingToken}`,
+        ].join('\n')
     navigator.clipboard.writeText(msg).then(() => {
       setCopiedConfirmation(true)
       setTimeout(() => setCopiedConfirmation(false), 2000)
     })
   }
+
+  const nonFinalStatus = order && !['delivered', 'cancelled', 'undelivered'].includes(order.status)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
@@ -97,7 +122,7 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
                   <IoTimeOutline size={20} />
                 </button>
               )}
-              {canSee('confirmationCopy') && order?.status === 'approved' && (
+              {canSee('confirmationCopy') && (
                 <button
                   onClick={copyConfirmation}
                   className="text-gray-400 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -169,12 +194,33 @@ export default function OrderDrawer({ id, onClose, footer }: Props) {
           )}
         </div>
 
-        {/* Footer */}
-        {order && footer && (
-          <div className="flex-none border-t border-gray-100 px-5 py-4">
-            {footer(order, refresh)}
-          </div>
-        )}
+        {/* Footer: actions — only rendered when at least one action applies */}
+        {order && (() => {
+          const showApprove        = canSee('actionApprove')        && order.status === 'pending'
+          const showStartPreparing = canSee('actionStartPreparing') && order.status === 'approved'
+          const showMarkReady      = canSee('actionMarkReady')      && order.status === 'preparing'
+          const showDispatch       = canSee('actionDispatch')       && order.status === 'ready'                && !order.pickup
+          const showConfirmPickup  = canSee('actionConfirmPickup')  && order.status === 'available_for_pickup'
+          const showDeliver        = canSee('actionDeliver')        && order.status === 'dispatched'
+          const showRecover        = canSee('actionRecover')        && order.status === 'pending'
+          const showCancel         = canSee('actionCancel')         && !!nonFinalStatus
+
+          if (!showApprove && !showStartPreparing && !showMarkReady && !showDispatch &&
+              !showConfirmPickup && !showDeliver && !showRecover && !showCancel) return null
+
+          return (
+            <div className="flex-none border-t border-gray-100 px-5 py-4 space-y-2">
+              {showApprove        && <DrawerActionApprove        order={order} refresh={refresh} />}
+              {showStartPreparing && <DrawerActionStartPreparing order={order} refresh={refresh} />}
+              {showMarkReady      && <DrawerActionMarkReady      order={order} close={handleClose} />}
+              {showDispatch       && <DrawerActionDispatch       order={order} close={handleClose} />}
+              {showConfirmPickup  && <DrawerActionConfirmPickup  order={order} close={handleClose} />}
+              {showDeliver        && <DrawerActionDeliver        order={order} close={handleClose} />}
+              {showRecover        && <DrawerActionRecover        order={order} />}
+              {showCancel         && <DrawerActionCancel         order={order} close={handleClose} />}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

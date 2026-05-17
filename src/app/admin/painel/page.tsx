@@ -1,12 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useOrders } from '@/hooks/useOrders'
 import OrderDrawer from '@/components/order/OrderDrawer'
 import { OrderList } from '@/components/order/OrderList'
-import { PrintOverlay } from '@/components/order/PrintOverlay'
 import { STATUS_BADGE } from '@/constants/orderDisplay'
-import type { OrderDTO } from '@/domains/orders/order.types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -164,141 +162,6 @@ function PainelTopBar({
   )
 }
 
-// ── Ações admin no drawer ─────────────────────────────────────────────────────
-
-function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () => void }) {
-  const status = order.status
-  const [motoboy, setMotoboy] = useState(order.courierName ?? '')
-  const [recebidoPor, setRecebidoPor] = useState(order.recipientName)
-  const [loading, setLoading] = useState(false)
-  const [err, setErr] = useState('')
-  const [done, setDone] = useState('')
-  const [printing, setPrinting] = useState(false)
-
-  const closeAfterDelay = useCallback(() => setTimeout(onClose, 1500), [onClose])
-
-  async function mudarStatus(novoStatus: string) {
-    setLoading(true); setErr(''); setDone('')
-    try {
-      const res = await fetch(`/api/admin/orders/${order.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ situacao: novoStatus }),
-      })
-      if (!res.ok) { const d = await res.json(); setErr(d.error ?? 'Erro ao atualizar'); return }
-      if (novoStatus === 'preparing') {
-        setPrinting(true)
-      } else {
-        setDone(`Marcado como: ${STATUS_BADGE[novoStatus as keyof typeof STATUS_BADGE]?.label ?? novoStatus}`)
-        closeAfterDelay()
-      }
-    } catch { setErr('Erro de conexão') } finally { setLoading(false) }
-  }
-
-  async function marcarEnviado() {
-    if (!motoboy.trim()) return
-    setLoading(true); setErr(''); setDone('')
-    try {
-      const res = await fetch(`/api/admin/orders/${order.id}/dispatch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ motoboy: motoboy.trim() }),
-      })
-      if (!res.ok) { const d = await res.json(); setErr(d.error ?? 'Erro ao despachar'); return }
-      setDone('Marcado como: Saiu para entrega')
-      closeAfterDelay()
-    } catch { setErr('Erro de conexão') } finally { setLoading(false) }
-  }
-
-  async function marcarEntregue() {
-    if (!recebidoPor.trim()) return
-    setLoading(true); setErr(''); setDone('')
-    try {
-      const res = await fetch(`/api/admin/orders/${order.id}/deliver`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recebidoPor: recebidoPor.trim(), motoboy: motoboy.trim() || 'Admin' }),
-      })
-      if (!res.ok) { const d = await res.json(); setErr(d.error ?? 'Erro ao confirmar entrega'); return }
-      setDone('Entrega confirmada!')
-      closeAfterDelay()
-    } catch { setErr('Erro de conexão') } finally { setLoading(false) }
-  }
-
-  if (done) {
-    return <p className="text-center text-green-700 font-semibold py-2 text-sm">✓ {done}</p>
-  }
-
-  const inputCls = 'w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent'
-  const btnPrimary = (color: string) => `w-full ${color} disabled:opacity-60 text-white font-semibold py-3 rounded-xl text-sm transition-colors`
-  const btnSecondary = 'w-full border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl text-sm transition-colors'
-  const btnDanger = 'w-full border border-red-200 text-red-600 hover:bg-red-50 font-medium py-2.5 rounded-xl text-sm transition-colors'
-
-  return (
-    <div className="space-y-2">
-      {printing && <PrintOverlay order={order} onClose={() => { setPrinting(false); onClose() }} />}
-      {err && <p className="text-xs text-red-600 mb-1">{err}</p>}
-
-      {status === 'pending' && (
-        <button onClick={() => mudarStatus('approved')} disabled={loading} className={btnPrimary('bg-green-600 hover:bg-green-700')}>
-          {loading ? 'Atualizando...' : '✓ Marcar como Pago'}
-        </button>
-      )}
-
-      {status === 'approved' && (
-        <button onClick={() => mudarStatus('preparing')} disabled={loading} className={btnPrimary('bg-yellow-500 hover:bg-yellow-600')}>
-          {loading ? 'Atualizando...' : '🌸 Iniciar Montagem'}
-        </button>
-      )}
-
-      {(status === 'approved' || status === 'preparing') && (
-        <button onClick={() => mudarStatus('ready')} disabled={loading} className={btnSecondary}>
-          {loading ? 'Atualizando...' : '📦 Marcar como Pronto para Envio'}
-        </button>
-      )}
-
-      {status === 'ready' && (
-        <div className="space-y-2">
-          <input type="text" value={motoboy} onChange={(e) => setMotoboy(e.target.value)} placeholder="Nome do motoboy" className={inputCls} />
-          <button onClick={marcarEnviado} disabled={loading || !motoboy.trim()} className={btnPrimary('bg-orange-500 hover:bg-orange-600')}>
-            {loading ? 'Despachando...' : '🏍 Marcar como Enviado'}
-          </button>
-        </div>
-      )}
-
-      {status === 'available_for_pickup' && (
-        <div className="space-y-2">
-          <input type="text" value={recebidoPor} onChange={(e) => setRecebidoPor(e.target.value)} placeholder="Retirado por" className={inputCls} />
-          <button onClick={marcarEntregue} disabled={loading || !recebidoPor.trim()} className={btnPrimary('bg-purple-600 hover:bg-purple-700')}>
-            {loading ? 'Confirmando...' : '🏪 Confirmar Retirada'}
-          </button>
-        </div>
-      )}
-
-      {status === 'dispatched' && (
-        <div className="space-y-2">
-          <input type="text" value={motoboy} onChange={(e) => setMotoboy(e.target.value)} placeholder="Nome do motoboy" className={inputCls} />
-          <input type="text" value={recebidoPor} onChange={(e) => setRecebidoPor(e.target.value)} placeholder="Recebido por" className={inputCls} />
-          <button onClick={marcarEntregue} disabled={loading || !recebidoPor.trim()} className={btnPrimary('bg-green-600 hover:bg-green-700')}>
-            {loading ? 'Confirmando...' : '✓ Confirmar Entrega'}
-          </button>
-        </div>
-      )}
-
-      {!['delivered', 'cancelled', 'undelivered'].includes(status) && (
-        <button onClick={() => mudarStatus('cancelled')} disabled={loading} className={btnDanger}>
-          Cancelar pedido
-        </button>
-      )}
-
-      {status === 'delivered' && (
-        <p className="text-center text-sm text-gray-400 py-2">Pedido já entregue</p>
-      )}
-    </div>
-  )
-}
-
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PainelPage() {
@@ -387,8 +250,7 @@ export default function PainelPage() {
       {drawerOrderId !== null && (
         <OrderDrawer
           id={drawerOrderId}
-          onClose={() => setDrawerOrderId(null)}
-          footer={(order) => <AdminPainelActions order={order} onClose={() => setDrawerOrderId(null)} />}
+          onClose={() => { setDrawerOrderId(null); refreshAll() }}
         />
       )}
     </div>
