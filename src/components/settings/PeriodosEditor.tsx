@@ -15,7 +15,6 @@ const EMPTY_PERIOD: PeriodoEntrega = {
   olistFormaFreteId: '',
   sortOrder: 0,
   deliveryLimitHour: '19:00',
-  cutoffTime: '15:00',
 }
 
 export function PeriodosEditor() {
@@ -118,8 +117,7 @@ export function PeriodosEditor() {
                   <p className="text-sm font-semibold text-gray-900">{p.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     <span className="font-mono">{p.id}</span>
-                    {' · '}até {p.deliveryLimitHour}
-                    {' · '}corte {p.cutoffTime}
+                    {' · '}entrega até {p.deliveryLimitHour}
                     {' · '}ordem {p.sortOrder}
                   </p>
                   {p.olistFormaFrete && (
@@ -214,7 +212,6 @@ function PeriodForm({
         </div>
 
         <Field label="Entrega até" value={value.deliveryLimitHour} onChange={field('deliveryLimitHour')} placeholder="12:00" />
-        <Field label="Disponível até" value={value.cutoffTime} onChange={field('cutoffTime')} placeholder="10:00" />
       </div>
       <div className="flex gap-2 justify-end pt-1">
         <button type="button" onClick={onCancel} className="text-sm text-gray-400 hover:text-gray-600 px-3 py-1.5">

@@ -13,5 +13,4 @@ export interface PeriodoEntrega {
   olistFormaFreteId: string    // numeric ID from Olist formas_frete (for future use)
   sortOrder: number
   deliveryLimitHour: string    // HH:MM — until when this period delivers
-  cutoffTime: string           // HH:MM — until when this period is available for purchase
 }

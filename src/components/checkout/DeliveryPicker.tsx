@@ -3,17 +3,17 @@
 import { DATAS_ENTREGA } from '@/constants/pedido'
 import type { DataEntrega } from '@/constants/pedido'
 import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
+import { isPeriodAvailable } from '@/domains/checkout/periods'
 
-function filterDates(): DataEntrega[] {
+function filterDates(hasAvailablePeriodsToday: boolean): DataEntrega[] {
   const now = new Date()
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const cutToday = now.getHours() >= 15
 
   return DATAS_ENTREGA.filter(d => {
     const [dd, mm, yyyy] = d.valor.split('/').map(Number)
     const date = new Date(yyyy, mm - 1, dd)
     if (date < todayStart) return false
-    if (date.getTime() === todayStart.getTime() && cutToday) return false
+    if (date.getTime() === todayStart.getTime() && !hasAvailablePeriodsToday) return false
     return true
   })
 }
@@ -28,8 +28,9 @@ interface Props {
 }
 
 export function DeliveryPicker({ dataEntrega, periodoEntrega, onData, onPeriodo, errorData, errorPeriodo }: Props) {
-  const { periods } = useDeliveryPeriods()
-  const availableDates = filterDates()
+  const { periods, preparationTimeMinutes } = useDeliveryPeriods()
+  const availablePeriods = periods.filter(p => isPeriodAvailable(p, preparationTimeMinutes))
+  const availableDates = filterDates(availablePeriods.length > 0)
 
   return (
     <div className="space-y-5">
@@ -72,7 +73,7 @@ export function DeliveryPicker({ dataEntrega, periodoEntrega, onData, onPeriodo,
           Período de entrega <span className="text-rose-500">*</span>
         </p>
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {periods.map(p => {
+          {availablePeriods.map(p => {
             const selected = periodoEntrega === p.id
             return (
               <button

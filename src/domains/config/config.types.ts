@@ -8,7 +8,6 @@ const periodoEntregaSchema = z.object({
   olistFormaFreteId: z.string(),
   sortOrder: z.number().int().min(0),
   deliveryLimitHour: z.string().regex(/^\d{2}:\d{2}$/),
-  cutoffTime: z.string().regex(/^\d{2}:\d{2}$/),
 })
 
 export const CONFIG_SCHEMA = {
