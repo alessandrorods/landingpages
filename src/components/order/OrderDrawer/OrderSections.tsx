@@ -94,19 +94,33 @@ export function OrderSections({ order }: Props) {
 
       <Divider />
 
-      {/* Endereço */}
+      {/* Endereço / Retirada */}
       <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Endereço de entrega</p>
-        <div className="bg-gray-50 rounded-xl px-3 py-2 space-y-0.5 mb-3">
-          <p className="text-sm font-medium text-gray-900">
-            {order.street}, {order.streetNumber}
-            {order.complement ? ` — ${order.complement}` : ''}
-          </p>
-          <p className="text-sm text-gray-600">{order.neighborhood}</p>
-          <p className="text-xs text-gray-400">CEP {order.zipCode}</p>
-          <p className="text-xs text-gray-400">Mogi das Cruzes / SP</p>
-        </div>
-        {canSee('navigation') && (() => {
+        {order.pickup ? (
+          <div className="flex items-center gap-2 bg-purple-50 rounded-xl px-3 py-3">
+            <span className="text-purple-600 text-lg">🏪</span>
+            <div>
+              <p className="text-sm font-semibold text-purple-800">Retirada na loja</p>
+              {order.deliveryDate && (
+                <p className="text-xs text-purple-600 mt-0.5">Data: {order.deliveryDate}</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Endereço de entrega</p>
+            <div className="bg-gray-50 rounded-xl px-3 py-2 space-y-0.5 mb-3">
+              <p className="text-sm font-medium text-gray-900">
+                {order.street}, {order.streetNumber}
+                {order.complement ? ` — ${order.complement}` : ''}
+              </p>
+              <p className="text-sm text-gray-600">{order.neighborhood}</p>
+              <p className="text-xs text-gray-400">CEP {order.zipCode}</p>
+              <p className="text-xs text-gray-400">Mogi das Cruzes / SP</p>
+            </div>
+          </>
+        )}
+        {!order.pickup && canSee('navigation') && (() => {
           const dest = encodeURIComponent(
             `${order.street}, ${order.streetNumber}, ${order.neighborhood}, Mogi das Cruzes, SP, ${order.zipCode}`
           )

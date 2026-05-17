@@ -30,7 +30,6 @@ const STATUS_TO_OLIST: Record<OrderStatus, OlistOrderStatus | null> = {
   pending:     'aberto',
   approved:    'aprovado',
   preparing:   'preparando_envio',
-  invoiced:    'faturado',
   ready:       'pronto_envio',
   dispatched:  'enviado',
   delivered:   'entregue',

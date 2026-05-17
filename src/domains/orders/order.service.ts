@@ -9,17 +9,23 @@ export class OrderServiceError extends Error {
   }
 }
 
-const STATUS_PROGRESSION: OrderStatus[] = [
-  'pending', 'approved', 'preparing', 'invoiced', 'ready', 'dispatched', 'delivered',
+const DELIVERY_PROGRESSION: OrderStatus[] = [
+  'pending', 'approved', 'preparing', 'ready', 'dispatched', 'delivered',
 ]
 
-function canTransition(current: OrderStatus | null, next: OrderStatus): boolean {
+const PICKUP_PROGRESSION: OrderStatus[] = [
+  'pending', 'approved', 'preparing', 'available_for_pickup', 'delivered',
+]
+
+function canTransition(current: OrderStatus | null, next: OrderStatus, pickup = false): boolean {
   if (next === 'cancelled') {
-    const idx = STATUS_PROGRESSION.indexOf(current ?? 'pending')
-    return idx <= STATUS_PROGRESSION.indexOf('approved')
+    const progression = pickup ? PICKUP_PROGRESSION : DELIVERY_PROGRESSION
+    const idx = progression.indexOf(current ?? 'pending')
+    return idx <= progression.indexOf('approved')
   }
-  const idxCurrent = STATUS_PROGRESSION.indexOf(current ?? '' as OrderStatus)
-  const idxNext = STATUS_PROGRESSION.indexOf(next)
+  const progression = pickup ? PICKUP_PROGRESSION : DELIVERY_PROGRESSION
+  const idxCurrent = progression.indexOf(current ?? '' as OrderStatus)
+  const idxNext = progression.indexOf(next)
   return idxCurrent !== -1 && idxNext > idxCurrent
 }
 
@@ -57,6 +63,7 @@ export function toOrderDTO(order: PrismaOrderWithItems, history: OrderHistoryEnt
   return {
     id: order.id,
     olistNumero: order.olistNumero,
+    pickup: order.pickup,
     status: order.status as OrderStatus,
     payment: order.payment as PaymentMethod,
     freight: Number(order.freight),
@@ -73,6 +80,7 @@ export function toOrderDTO(order: PrismaOrderWithItems, history: OrderHistoryEnt
     neighborhood: order.neighborhood,
     deliveryDate: fmtDate(order.deliveryDate),
     deliveryPeriod: order.deliveryPeriod,
+
     courierName: order.courier?.displayName ?? null,
     dispatchedAt: null,
     deliveredAt: null,
@@ -115,7 +123,7 @@ export function createOrderService(
     async updateStatus(id: number, status: OrderStatus): Promise<void> {
       const row = await repository.findById(id)
       if (!row) throw new OrderServiceError('Pedido não encontrado')
-      if (!canTransition(row.status as OrderStatus, status)) {
+      if (!canTransition(row.status as OrderStatus, status, row.pickup)) {
         throw new OrderServiceError('Transição de status não permitida')
       }
       await repository.updateStatus(id, status)

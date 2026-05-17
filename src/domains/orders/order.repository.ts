@@ -18,21 +18,22 @@ export function createOrderRepository() {
     create: (input: CreateOrderInput) =>
       prisma.order.create({
         data: {
+          pickup: input.pickup,
           payment: input.payment,
-          freight: input.freight,
+          freight: input.pickup ? 0 : input.freight,
           notes: input.notes ?? null,
           buyerName: input.buyerName,
           buyerPhone: input.buyerPhone,
           recipientName: input.recipientName,
           recipientPhone: input.recipientPhone,
           cardMessage: input.cardMessage ?? null,
-          zipCode: input.zipCode,
-          street: input.street,
-          streetNumber: input.streetNumber,
+          zipCode: input.zipCode ?? null,
+          street: input.street ?? null,
+          streetNumber: input.streetNumber ?? null,
           complement: input.complement ?? null,
-          neighborhood: input.neighborhood,
+          neighborhood: input.neighborhood ?? null,
           deliveryDate: parseDeliveryDate(input.deliveryDate),
-          deliveryPeriod: input.deliveryPeriod,
+          deliveryPeriod: input.deliveryPeriod ?? null,
           source: input.source,
           items: {
             create: input.items.map((i) => ({

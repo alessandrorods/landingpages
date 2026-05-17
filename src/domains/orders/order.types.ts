@@ -6,8 +6,8 @@ export type OrderHistoryAction =
   | 'created'
   | 'approved'
   | 'preparing'
-  | 'invoiced'
   | 'ready'
+  | 'available_for_pickup'
   | 'dispatched'
   | 'delivered'
   | 'undelivered'
@@ -27,8 +27,8 @@ export type OrderStatus =
   | 'pending'
   | 'approved'
   | 'preparing'
-  | 'invoiced'
   | 'ready'
+  | 'available_for_pickup'
   | 'dispatched'
   | 'delivered'
   | 'undelivered'
@@ -37,6 +37,7 @@ export type OrderStatus =
 export type PaymentMethod = 'pix' | 'card' | 'mp_link'
 
 export interface CreateOrderInput {
+  pickup: boolean
   payment: PaymentMethod
   freight: number
   notes?: string
@@ -45,13 +46,13 @@ export interface CreateOrderInput {
   recipientName: string
   recipientPhone: string
   cardMessage?: string
-  zipCode: string
-  street: string
-  streetNumber: string
+  zipCode?: string
+  street?: string
+  streetNumber?: string
   complement?: string
-  neighborhood: string
+  neighborhood?: string
   deliveryDate: string  // DD/MM/YYYY
-  deliveryPeriod: string
+  deliveryPeriod?: string
   items: Array<{ sku?: string; name: string; price: number; quantity: number }>
   source: 'admin' | 'checkout'
 }
@@ -67,6 +68,7 @@ export interface OrderItemDTO {
 export interface OrderDTO {
   id: number
   olistNumero: string | null
+  pickup: boolean
   status: OrderStatus
   payment: PaymentMethod
   freight: number
@@ -76,13 +78,13 @@ export interface OrderDTO {
   recipientName: string
   recipientPhone: string
   cardMessage: string | null
-  zipCode: string
-  street: string
-  streetNumber: string
+  zipCode: string | null
+  street: string | null
+  streetNumber: string | null
   complement: string | null
-  neighborhood: string
+  neighborhood: string | null
   deliveryDate: string  // DD/MM/YYYY — pronto para exibição
-  deliveryPeriod: string
+  deliveryPeriod: string | null
   courierName: string | null
   dispatchedAt: string | null   // DD/MM HH:MM
   deliveredAt: string | null    // DD/MM HH:MM

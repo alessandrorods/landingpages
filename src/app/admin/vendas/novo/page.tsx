@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { PERIODOS_ENTREGA } from '@/constants/pedido'
 import type { FormaPagamento, PedidoManualItem } from '@/app/api/admin/orders/create/route'
@@ -282,6 +282,10 @@ export default function NovoPedidoPage() {
   // produtos
   const [itens, setItens] = useState<PedidoManualItem[]>([])
 
+  // pickup
+  const [pickup, setPickup] = useState(false)
+  const [prepTime, setPrepTime] = useState('')
+
   // endereço
   const [cep, setCep] = useState('')
   const [cepLoading, setCepLoading] = useState(false)
@@ -310,6 +314,20 @@ export default function NovoPedidoPage() {
   const [resultado, setResultado] = useState<{ id: number; numero: string; linkPagamento?: string } | null>(null)
 
   const topRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!pickup || dataEntrega !== today) { setPrepTime(''); return }
+    fetch('/api/admin/config')
+      .then((r) => r.json())
+      .then((d) => {
+        const mins: number = d.config?.preparationTimeMinutes ?? 60
+        const ready = new Date(Date.now() + mins * 60_000)
+        const hh = String(ready.getHours()).padStart(2, '0')
+        const mm = String(ready.getMinutes()).padStart(2, '0')
+        setPrepTime(`${hh}:${mm}`)
+      })
+      .catch(() => setPrepTime(''))
+  }, [pickup, dataEntrega, today])
 
   async function buscarCep(raw: string) {
     const c = raw.replace(/\D/g, '')
@@ -355,6 +373,7 @@ export default function NovoPedidoPage() {
   function resetar() {
     setComprNome(''); setComprTel('')
     setItens([])
+    setPickup(false)
     setParaOutra(false); setDestNome(''); setDestTel('')
     setComMensagem(false); setMensagem('')
     setCep(''); setLogradouro(''); setNumEnd(''); setComplemento(''); setBairro('')
@@ -365,7 +384,7 @@ export default function NovoPedidoPage() {
   }
 
   const subtotal = itens.reduce((s, i) => s + i.preco * i.quantidade, 0)
-  const freteNum = parseFloat(frete) || 0
+  const freteNum = pickup ? 0 : (parseFloat(frete) || 0)
   const total = subtotal + freteNum
 
   async function submit(e: React.FormEvent) {
@@ -377,17 +396,20 @@ export default function NovoPedidoPage() {
     setErro('')
     try {
       const body = {
+        pickup,
         itens,
-        frete: freteNum,
-        endereco: {
-          cep: cep.replace(/\D/g, ''),
-          logradouro,
-          numero: numEnd,
-          complemento: complemento || undefined,
-          bairro,
-          dataEntrega: isoToTiny(dataEntrega),
-          periodoEntrega: periodo,
-        },
+        frete: pickup ? 0 : freteNum,
+        endereco: pickup
+          ? { dataEntrega: isoToTiny(dataEntrega) }
+          : {
+              cep: cep.replace(/\D/g, ''),
+              logradouro,
+              numero: numEnd,
+              complemento: complemento || undefined,
+              bairro,
+              dataEntrega: isoToTiny(dataEntrega),
+              periodoEntrega: periodo,
+            },
         destinatario: {
           paraOutraPessoa: paraOutra,
           nome: paraOutra ? destNome : comprNome,
@@ -458,45 +480,22 @@ export default function NovoPedidoPage() {
           <BuscaProduto onSelect={adicionarProduto} />
         </Section>
 
-        {/* Endereço de entrega */}
-        <Section title="Endereço de entrega">
-          <div>
-            <Label required>CEP{cepLoading ? ' (buscando...)' : ''}</Label>
-            <Input
-              type="text"
-              inputMode="numeric"
-              value={cep}
-              onChange={(e) => buscarCep(e.target.value)}
-              placeholder="00000-000"
-              maxLength={9}
-              required
-            />
-          </div>
+        {/* Toggle retirada — fora do card */}
+        <label className="flex items-center gap-3 cursor-pointer bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+          <input
+            type="checkbox"
+            checked={pickup}
+            onChange={(e) => setPickup(e.target.checked)}
+            className="w-5 h-5 accent-orange-500 shrink-0"
+          />
+          <span className="text-sm font-medium text-gray-800">Retirada na loja</span>
+        </label>
 
-          <div>
-            <Label required>Logradouro</Label>
-            <Input value={logradouro} onChange={(e) => setLogradouro(e.target.value)} placeholder="Rua / Av." required />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+        {/* Card de retirada */}
+        {pickup && (
+          <Section title="Retirada na loja">
             <div>
-              <Label required>Número</Label>
-              <Input value={numEnd} onChange={(e) => setNumEnd(e.target.value)} placeholder="Nº" required />
-            </div>
-            <div>
-              <Label>Complemento</Label>
-              <Input value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Apto, bloco..." />
-            </div>
-          </div>
-
-          <div>
-            <Label required>Bairro</Label>
-            <Input value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Bairro" required />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label required>Data de entrega</Label>
+              <Label required>Data de retirada</Label>
               <Input
                 type="date"
                 value={dataEntrega}
@@ -505,36 +504,97 @@ export default function NovoPedidoPage() {
                 required
               />
             </div>
+            {prepTime && (
+              <div className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+                <span className="text-orange-500 text-xl shrink-0">⚠️</span>
+                <div>
+                  <p className="text-xs font-medium text-orange-700">Disponível para retirada depois das</p>
+                  <p className="text-3xl font-bold text-orange-800 tabular-nums">{prepTime}</p>
+                </div>
+              </div>
+            )}
+          </Section>
+        )}
+
+        {/* Card de entrega */}
+        {!pickup && (
+          <Section title="Endereço de entrega">
             <div>
-              <Label>Horário</Label>
-              <select
-                value={periodo}
-                onChange={(e) => setPeriodo(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
-              >
-                <option value="">—</option>
-                {PERIODOS_ENTREGA.map((p) => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
+              <Label required>CEP{cepLoading ? ' (buscando...)' : ''}</Label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={cep}
+                onChange={(e) => buscarCep(e.target.value)}
+                placeholder="00000-000"
+                maxLength={9}
+                required
+              />
             </div>
-          </div>
 
-          <Divider />
+            <div>
+              <Label required>Logradouro</Label>
+              <Input value={logradouro} onChange={(e) => setLogradouro(e.target.value)} placeholder="Rua / Av." required />
+            </div>
 
-          <div>
-            <Label required>Frete (R$)</Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
-              value={frete}
-              onChange={(e) => setFrete(e.target.value)}
-              required
-            />
-          </div>
-        </Section>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label required>Número</Label>
+                <Input value={numEnd} onChange={(e) => setNumEnd(e.target.value)} placeholder="Nº" required />
+              </div>
+              <div>
+                <Label>Complemento</Label>
+                <Input value={complemento} onChange={(e) => setComplemento(e.target.value)} placeholder="Apto, bloco..." />
+              </div>
+            </div>
+
+            <div>
+              <Label required>Bairro</Label>
+              <Input value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Bairro" required />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label required>Data de entrega</Label>
+                <Input
+                  type="date"
+                  value={dataEntrega}
+                  onChange={(e) => setDataEntrega(e.target.value)}
+                  min={today}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Horário</Label>
+                <select
+                  value={periodo}
+                  onChange={(e) => setPeriodo(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
+                >
+                  <option value="">—</option>
+                  {PERIODOS_ENTREGA.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <Divider />
+
+            <div>
+              <Label required>Frete (R$)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={frete}
+                onChange={(e) => setFrete(e.target.value)}
+                required
+              />
+            </div>
+          </Section>
+        )}
 
         {/* Destinatário */}
         <Section title="Destinatário">
@@ -607,10 +667,12 @@ export default function NovoPedidoPage() {
             <span>Produtos</span>
             <span>{brl(subtotal)}</span>
           </div>
-          <div className="flex justify-between text-sm text-gray-600">
-            <span>Frete</span>
-            <span>{brl(freteNum)}</span>
-          </div>
+          {!pickup && (
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Frete</span>
+              <span>{brl(freteNum)}</span>
+            </div>
+          )}
           <div className="border-t border-gray-100 pt-2 flex justify-between items-baseline">
             <span className="text-sm font-semibold text-gray-700">Total</span>
             <span className="text-2xl font-bold text-gray-900">{brl(total)}</span>

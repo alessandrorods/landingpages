@@ -8,6 +8,7 @@ export const AREA_ACCESS: Record<string, readonly Role[]> = {
   motoboy:   ['motoboy', 'admin'],
   painel:    ['admin'],
   users:     ['admin'],
+  settings:  ['admin'],
 }
 
 export const AREA_LABELS: Record<string, string> = {
@@ -29,6 +30,7 @@ export const PERMISSIONS = {
   dispatchOrder:     ['admin'],
   searchProducts:    ['vendas', 'admin'],
   manageUsers:       ['admin'],
+  manageConfig:      ['admin'],
 } as const satisfies Record<string, readonly Role[]>
 
 export type Permission = keyof typeof PERMISSIONS

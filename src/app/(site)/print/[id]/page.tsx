@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { OrderPrintContent } from '@/components/OrderPrintContent'
+import { OrderPrintContent } from '@/components/order/OrderPrintContent'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
 export default function PrintPage() {

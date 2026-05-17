@@ -18,16 +18,17 @@ export interface PedidoManualItem {
 }
 
 interface PedidoManualBody {
+  pickup: boolean
   itens: PedidoManualItem[]
   frete: number
   endereco: {
-    cep: string
-    logradouro: string
-    numero: string
+    cep?: string
+    logradouro?: string
+    numero?: string
     complemento?: string
-    bairro: string
+    bairro?: string
     dataEntrega: string
-    periodoEntrega: string
+    periodoEntrega?: string
   }
   destinatario: {
     paraOutraPessoa: boolean
@@ -59,8 +60,9 @@ function validate(raw: unknown): PedidoManualBody {
     if (!i.nome || typeof i.preco !== 'number' || i.preco <= 0) throw new Error('Item com preço inválido')
     if (typeof i.quantidade !== 'number' || i.quantidade < 1) throw new Error('Quantidade inválida')
   }
-  if (!endereco?.logradouro || !endereco?.numero || !endereco?.bairro || !endereco?.cep) throw new Error('Endereço incompleto')
-  if (!endereco?.dataEntrega) throw new Error('Data de entrega obrigatória')
+  const isPickup = Boolean(b.pickup)
+  if (!isPickup && (!endereco?.logradouro || !endereco?.numero || !endereco?.bairro || !endereco?.cep)) throw new Error('Endereço incompleto')
+  if (!endereco?.dataEntrega) throw new Error('Data obrigatória')
   if (!destinatario?.nome || !destinatario?.telefone) throw new Error('Destinatário incompleto')
   if (!comprador?.nome || !comprador?.telefone) throw new Error('Comprador incompleto')
   if (!['pix', 'card', 'mp_link'].includes(b.pagamento as string)) throw new Error('Forma de pagamento inválida')
@@ -101,8 +103,9 @@ export async function POST(request: NextRequest) {
   let order: Awaited<ReturnType<typeof orderService.createOrder>>
   try {
     order = await orderService.createOrder({
+      pickup: body.pickup,
       payment: body.pagamento,
-      freight: body.frete,
+      freight: body.pickup ? 0 : body.frete,
       notes: body.obs?.trim() || undefined,
       buyerName: body.comprador.nome,
       buyerPhone: body.comprador.telefone,

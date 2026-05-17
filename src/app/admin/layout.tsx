@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
     return (
       <div className="admin-root min-h-screen bg-gray-50">
-        <main className="w-full px-4 pb-24 pt-4">{children}</main>
+        <main className="w-full px-4 pb-24 pt-4 lg:pb-4">{children}</main>
       </div>
     )
   }
@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <UserProvider role={role} displayName={displayName}>
       <div className="admin-root min-h-screen bg-gray-50">
         <AdminHeader />
-        <main className="w-full px-4 pb-24 pt-4">{children}</main>
+        <main className="w-full px-4 pb-24 pt-4 lg:pb-4">{children}</main>
       </div>
     </UserProvider>
   )

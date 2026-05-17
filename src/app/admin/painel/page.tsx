@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useOrders } from '@/hooks/useOrders'
-import OrderDrawer from '@/components/OrderDrawer'
-import { OrderCard } from '@/components/OrderCard'
-import { PrintOverlay } from '@/components/PrintOverlay'
+import OrderDrawer from '@/components/order/OrderDrawer'
+import { OrderList } from '@/components/order/OrderList'
+import { PrintOverlay } from '@/components/order/PrintOverlay'
+import { STATUS_BADGE } from '@/constants/orderDisplay'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -14,27 +15,6 @@ function todayFormatted(): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Em Aberto',
-  approved: 'Pago',
-  preparing: 'Em montagem',
-  invoiced: 'Faturado',
-  ready: 'Pronto para envio',
-  dispatched: 'Saiu para entrega',
-  delivered: 'Entregue',
-  undelivered: 'Não entregue',
-  cancelled: 'Cancelado',
-}
-
-const STATUS_BADGE_CLS: Record<string, string> = {
-  pending: 'bg-gray-100 text-gray-600',
-  approved: 'bg-green-100 text-green-700',
-  preparing: 'bg-yellow-100 text-yellow-700',
-  invoiced: 'bg-blue-100 text-blue-700',
-  ready: 'bg-blue-100 text-blue-700',
-  dispatched: 'bg-orange-100 text-orange-700',
-  delivered: 'bg-green-100 text-green-800',
-}
 
 // ── Busca de pedido ────────────────────────────────────────────────────────────
 
@@ -98,8 +78,8 @@ function BuscaPedidoPanel({ onClose: onClosePanel }: { onClose: () => void }) {
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold font-mono text-gray-900">#{order.olistNumero ?? '—'}</span>
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE_CLS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                {STATUS_LABEL[order.status] ?? order.status}
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[order.status]?.cls ?? 'bg-gray-100 text-gray-600'}`}>
+                {STATUS_BADGE[order.status]?.label ?? order.status}
               </span>
               <button onClick={() => { setOrder(null); setNumero('') }} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1">×</button>
             </div>
@@ -209,7 +189,7 @@ function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () =
       if (novoStatus === 'preparing') {
         setPrinting(true)
       } else {
-        setDone(`Marcado como: ${STATUS_LABEL[novoStatus] ?? novoStatus}`)
+        setDone(`Marcado como: ${STATUS_BADGE[novoStatus as keyof typeof STATUS_BADGE]?.label ?? novoStatus}`)
         closeAfterDelay()
       }
     } catch { setErr('Erro de conexão') } finally { setLoading(false) }
@@ -271,7 +251,7 @@ function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () =
         </button>
       )}
 
-      {(status === 'approved' || status === 'preparing' || status === 'invoiced') && (
+      {(status === 'approved' || status === 'preparing') && (
         <button onClick={() => mudarStatus('ready')} disabled={loading} className={btnSecondary}>
           {loading ? 'Atualizando...' : '📦 Marcar como Pronto para Envio'}
         </button>
@@ -282,6 +262,15 @@ function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () =
           <input type="text" value={motoboy} onChange={(e) => setMotoboy(e.target.value)} placeholder="Nome do motoboy" className={inputCls} />
           <button onClick={marcarEnviado} disabled={loading || !motoboy.trim()} className={btnPrimary('bg-orange-500 hover:bg-orange-600')}>
             {loading ? 'Despachando...' : '🏍 Marcar como Enviado'}
+          </button>
+        </div>
+      )}
+
+      {status === 'available_for_pickup' && (
+        <div className="space-y-2">
+          <input type="text" value={recebidoPor} onChange={(e) => setRecebidoPor(e.target.value)} placeholder="Retirado por" className={inputCls} />
+          <button onClick={marcarEntregue} disabled={loading || !recebidoPor.trim()} className={btnPrimary('bg-purple-600 hover:bg-purple-700')}>
+            {loading ? 'Confirmando...' : '🏪 Confirmar Retirada'}
           </button>
         </div>
       )}
@@ -309,109 +298,6 @@ function AdminPainelActions({ order, onClose }: { order: OrderDTO; onClose: () =
   )
 }
 
-// ── Coluna desktop ────────────────────────────────────────────────────────────
-
-interface ColunaProps {
-  titulo: string
-  cor: string
-  orders: OrderDTO[]
-  loading: boolean
-  error: string
-  onOpenPedido: (id: number) => void
-  showStatus?: boolean
-  dimCards?: boolean
-}
-
-function Coluna({ titulo, cor, orders, loading, error, onOpenPedido, showStatus, dimCards }: ColunaProps) {
-  return (
-    <div className="flex flex-col min-w-0">
-      <div className="flex items-center gap-2 mb-3 px-1 flex-wrap">
-        <h2 className="text-sm font-bold text-gray-800 truncate">{titulo}</h2>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${cor}`}>
-          {loading ? '…' : orders.length}
-        </span>
-      </div>
-
-      {loading && (
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-24" />
-          ))}
-        </div>
-      )}
-
-      {!loading && error && <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>}
-
-      {!loading && !error && orders.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-8">Nenhum pedido</p>
-      )}
-
-      {!loading && orders.map((order) => (
-        <OrderCard
-          key={order.id}
-          order={order}
-          onOpen={() => onOpenPedido(order.id)}
-          accent="purple"
-          badge={showStatus
-            ? <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE_CLS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[order.status] ?? order.status}</span>
-            : undefined}
-          cta="Ver detalhes ›"
-          dimmed={dimCards}
-        />
-      ))}
-    </div>
-  )
-}
-
-// ── Accordion mobile ──────────────────────────────────────────────────────────
-
-interface AccordionSectionProps extends ColunaProps {
-  open: boolean
-  onToggle: () => void
-}
-
-function AccordionSection({ titulo, cor, orders, loading, error, onOpenPedido, showStatus, dimCards, open, onToggle }: AccordionSectionProps) {
-  return (
-    <div className="border border-gray-100 rounded-2xl bg-white shadow-sm mb-3 overflow-hidden">
-      <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-sm text-gray-800">{titulo}</span>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cor}`}>{loading ? '…' : orders.length}</span>
-        </div>
-        <span className="text-gray-400 text-lg leading-none ml-2">{open ? '▲' : '▼'}</span>
-      </button>
-
-      {open && (
-        <div className="px-4 pb-4">
-          {loading && (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="bg-gray-50 rounded-2xl border border-gray-100 p-4 animate-pulse h-20" />
-              ))}
-            </div>
-          )}
-          {!loading && error && <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>}
-          {!loading && !error && orders.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Nenhum pedido</p>
-          )}
-          {!loading && orders.map((order) => (
-            <OrderCard
-          key={order.id}
-          order={order}
-          onOpen={() => onOpenPedido(order.id)}
-          accent="purple"
-          badge={showStatus
-            ? <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE_CLS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[order.status] ?? order.status}</span>
-            : undefined}
-          cta="Ver detalhes ›"
-          dimmed={dimCards}
-        />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -422,11 +308,11 @@ export default function PainelPage() {
   const pagoHook = useOrders('approved')
   const montandoHook = useOrders('preparing')
   const prontoHook = useOrders('ready')
+  const retiradaHook = useOrders('available_for_pickup')
   const enviadoHook = useOrders('dispatched')
   const entregueHook = useOrders('delivered')
 
   const [drawerOrderId, setDrawerOrderId] = useState<number | null>(null)
-  const [openSection, setOpenSection] = useState<string>('aberto')
   const [searchOpen, setSearchOpen] = useState(false)
 
   const pagoMontandoAll = [...pagoHook.orders, ...montandoHook.orders]
@@ -434,18 +320,19 @@ export default function PainelPage() {
   const pagoMontandoError = pagoHook.error || montandoHook.error
 
   const totalCount = abertoHook.orders.length + pagoMontandoAll.length +
-    prontoHook.orders.length + enviadoHook.orders.length + entregueHook.orders.length
+    prontoHook.orders.length + retiradaHook.orders.length + enviadoHook.orders.length + entregueHook.orders.length
 
   function refreshAll() {
     abertoHook.refresh()
     pagoHook.refresh()
     montandoHook.refresh()
     prontoHook.refresh()
+    retiradaHook.refresh()
     enviadoHook.refresh()
     entregueHook.refresh()
   }
 
-  const allHooks = [abertoHook, pagoHook, montandoHook, prontoHook, enviadoHook, entregueHook]
+  const allHooks = [abertoHook, pagoHook, montandoHook, prontoHook, retiradaHook, enviadoHook, entregueHook]
   const anyLoading = allHooks.some((h) => h.loading)
 
   const lastUpdate = allHooks.reduce<Date | null>((best, h) => {
@@ -461,8 +348,9 @@ export default function PainelPage() {
   const colunas = [
     { key: 'pending',       titulo: 'Em Aberto',          cor: 'bg-gray-100 text-gray-600',      orders: abertoHook.orders,  loading: abertoHook.loading,  error: abertoHook.error,  showStatus: false, dimCards: true },
     { key: 'pago_montando',titulo: 'Pago / Em montagem',  cor: 'bg-yellow-100 text-yellow-700',  orders: pagoMontandoAll,    loading: pagoMontandoLoading, error: pagoMontandoError, showStatus: true,  dimCards: false },
-    { key: 'ready', titulo: 'Pronto para Envio',   cor: 'bg-blue-100 text-blue-700',      orders: prontoHook.orders,  loading: prontoHook.loading,  error: prontoHook.error,  showStatus: false, dimCards: false },
-    { key: 'dispatched',      titulo: 'Enviado',             cor: 'bg-orange-100 text-orange-700',  orders: enviadoHook.orders, loading: enviadoHook.loading, error: enviadoHook.error, showStatus: false, dimCards: false },
+    { key: 'ready',                titulo: 'Pronto para Envio',        cor: 'bg-blue-100 text-blue-700',    orders: prontoHook.orders,   loading: prontoHook.loading,   error: prontoHook.error,   showStatus: false, dimCards: false },
+    { key: 'available_for_pickup', titulo: 'Disponível para Retirada', cor: 'bg-purple-100 text-purple-700', orders: retiradaHook.orders, loading: retiradaHook.loading, error: retiradaHook.error, showStatus: false, dimCards: false },
+    { key: 'dispatched',           titulo: 'Enviado',                  cor: 'bg-orange-100 text-orange-700', orders: enviadoHook.orders,  loading: enviadoHook.loading,  error: enviadoHook.error,  showStatus: false, dimCards: false },
     { key: 'delivered',     titulo: 'Entregue (hoje)',     cor: 'bg-green-100 text-green-800',    orders: entregueHook.orders,loading: entregueHook.loading,error: entregueHook.error,showStatus: false, dimCards: false },
   ]
 
@@ -480,23 +368,19 @@ export default function PainelPage() {
 
       {searchOpen && <BuscaPedidoPanel onClose={() => setSearchOpen(false)} />}
 
-      {/* Desktop: 5 colunas */}
-      <div className="hidden lg:grid lg:grid-cols-5 lg:gap-4">
+      <div className="lg:flex lg:gap-2 lg:items-stretch" style={{ minHeight: 'calc(100vh - 120px)' }}>
         {colunas.map((col) => (
-          <Coluna key={col.key} titulo={col.titulo} cor={col.cor} orders={col.orders}
-            loading={col.loading} error={col.error} onOpenPedido={setDrawerOrderId}
-            showStatus={col.showStatus} dimCards={col.dimCards} />
-        ))}
-      </div>
-
-      {/* Mobile: accordion */}
-      <div className="lg:hidden">
-        {colunas.map((col) => (
-          <AccordionSection key={col.key} titulo={col.titulo} cor={col.cor} orders={col.orders}
-            loading={col.loading} error={col.error} onOpenPedido={setDrawerOrderId}
-            showStatus={col.showStatus} dimCards={col.dimCards}
-            open={openSection === col.key}
-            onToggle={() => setOpenSection(openSection === col.key ? '' : col.key)} />
+          <OrderList
+            key={col.key}
+            title={col.titulo}
+            badgeCls={col.cor}
+            orders={col.orders}
+            loading={col.loading}
+            error={col.error}
+            onOpenOrder={setDrawerOrderId}
+            showStatus={col.showStatus}
+            dimCards={col.dimCards}
+          />
         ))}
       </div>
 

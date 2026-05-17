@@ -7,8 +7,8 @@ import { OrderServiceError } from '@/domains/orders/order.service'
 import type { OrderStatus } from '@/domains/orders/order.types'
 
 const VALID: OrderStatus[] = [
-  'pending', 'approved', 'preparing', 'invoiced',
-  'ready', 'dispatched', 'delivered', 'undelivered', 'cancelled',
+  'pending', 'approved', 'preparing',
+  'ready', 'available_for_pickup', 'dispatched', 'delivered', 'undelivered', 'cancelled',
 ]
 
 function getEnv(key: string): string {

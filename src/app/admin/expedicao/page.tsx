@@ -2,35 +2,19 @@
 
 import { useState } from 'react'
 import { useOrders } from '@/hooks/useOrders'
-import OrderDrawer from '@/components/OrderDrawer'
-import { OrderCard } from '@/components/OrderCard'
+import { OrderList } from '@/components/order/OrderList'
+import OrderDrawer from '@/components/order/OrderDrawer'
 import type { OrderDTO } from '@/domains/orders/order.types'
-
-function todayFormatted(): string {
-  const d = new Date()
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  aberto: 'Aguardando pagamento',
-  aprovado: 'Pago',
-  preparando_envio: 'Preparando',
-  faturado: 'Faturado',
-  pronto_envio: 'Pronto para envio',
-  enviado: 'Saiu para entrega',
-  entregue: 'Entregue',
-  nao_entregue: 'Não entregue',
-  cancelado: 'Cancelado',
-}
+import { STATUS_BADGE } from '@/constants/orderDisplay'
 
 // ── Busca de pedido ───────────────────────────────────────────────────────────
 
-function BuscaPedido() {
+function OrderSearch() {
   const [numero, setNumero] = useState('')
   const [loading, setLoading] = useState(false)
   const [order, setOrder] = useState<OrderDTO | null>(null)
   const [err, setErr] = useState('')
-  const [drawerAberto, setDrawerAberto] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   async function buscar(e: React.FormEvent) {
     e.preventDefault()
@@ -42,10 +26,7 @@ function BuscaPedido() {
     try {
       const res = await fetch(`/api/admin/orders/search?numero=${encodeURIComponent(n)}`)
       const data = await res.json()
-      if (!res.ok) {
-        setErr(data.error ?? 'Erro ao buscar pedido')
-        return
-      }
+      if (!res.ok) { setErr(data.error ?? 'Erro ao buscar pedido'); return }
       setOrder(data.order)
     } catch {
       setErr('Erro de conexão')
@@ -56,10 +37,7 @@ function BuscaPedido() {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-        Rastrear pedido
-      </p>
-
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Rastrear pedido</p>
       <form onSubmit={buscar} className="flex gap-2 mb-3">
         <input
           type="number"
@@ -84,140 +62,31 @@ function BuscaPedido() {
       {order && (
         <div className="border-t border-gray-100 pt-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold font-mono text-gray-900">#{order.olistNumero ?? '—'}</span>
+            <span className="text-2xl font-bold font-mono text-gray-900">#{order.id}</span>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-                {STATUS_LABEL[order.status] ?? order.status}
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[order.status]?.cls ?? 'bg-gray-100 text-gray-600'}`}>
+                {STATUS_BADGE[order.status]?.label ?? order.status}
               </span>
-              <button
-                onClick={() => { setOrder(null); setNumero('') }}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1"
-                aria-label="Fechar resultado"
-              >
-                ×
-              </button>
+              <button onClick={() => { setOrder(null); setNumero('') }} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1">×</button>
             </div>
           </div>
-
           {order.deliveryDate && (
             <p className="text-xs text-gray-500">Entrega prevista: <span className="font-medium text-gray-700">{order.deliveryDate}</span></p>
           )}
-
-          <p className="text-sm text-gray-700">
-            {order.neighborhood} — {order.street}, {order.streetNumber}
-          </p>
-
-          {order.courierName && (
-            <p className="text-sm text-gray-700">
-              Motoboy: <span className="font-semibold">{order.courierName}</span>
-            </p>
+          {order.street && (
+            <p className="text-sm text-gray-700">{order.neighborhood} — {order.street}, {order.streetNumber}</p>
           )}
-
-          <button
-            onClick={() => setDrawerAberto(true)}
-            className="text-xs text-blue-600 font-semibold underline"
-          >
+          {order.courierName && (
+            <p className="text-sm text-gray-700">Motoboy: <span className="font-semibold">{order.courierName}</span></p>
+          )}
+          <button onClick={() => setDrawerOpen(true)} className="text-xs text-blue-600 font-semibold underline">
             Ver detalhes completos
           </button>
         </div>
       )}
 
-      {drawerAberto && order && (
-        <OrderDrawer id={order.id} onClose={() => setDrawerAberto(false)} />
-      )}
-    </div>
-  )
-}
-
-// ── Coluna ────────────────────────────────────────────────────────────────────
-
-interface ColunaProps {
-  titulo: string
-  cor: string
-  orders: OrderDTO[]
-  loading: boolean
-  error: string
-  onOpenPedido: (id: number) => void
-}
-
-function Coluna({ titulo, cor, orders, loading, error, onOpenPedido }: ColunaProps) {
-  return (
-    <div className="flex flex-col min-w-0">
-      <div className="flex items-center gap-2 mb-3 px-1">
-        <h2 className="text-sm font-bold text-gray-800">{titulo}</h2>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cor}`}>
-          {loading ? '…' : orders.length}
-        </span>
-      </div>
-
-      {loading && (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-24" />
-          ))}
-        </div>
-      )}
-
-      {!loading && error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>
-      )}
-
-      {!loading && !error && orders.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-8">Nenhum pedido</p>
-      )}
-
-      {!loading && orders.map((order) => (
-        <OrderCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} accent="blue" cta="Ver detalhes ›" />
-      ))}
-    </div>
-  )
-}
-
-// ── Accordion (mobile) ────────────────────────────────────────────────────────
-
-interface AccordionSectionProps extends ColunaProps {
-  open: boolean
-  onToggle: () => void
-}
-
-function AccordionSection({ titulo, cor, orders, loading, error, onOpenPedido, open, onToggle }: AccordionSectionProps) {
-  return (
-    <div className="border border-gray-100 rounded-2xl bg-white shadow-sm mb-3 overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3"
-      >
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm text-gray-800">{titulo}</span>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cor}`}>
-            {loading ? '…' : orders.length}
-          </span>
-        </div>
-        <span className="text-gray-400 text-lg leading-none">{open ? '▲' : '▼'}</span>
-      </button>
-
-      {open && (
-        <div className="px-4 pb-4">
-          {loading && (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="bg-gray-50 rounded-2xl border border-gray-100 p-4 animate-pulse h-20" />
-              ))}
-            </div>
-          )}
-
-          {!loading && error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-xl p-3">{error}</p>
-          )}
-
-          {!loading && !error && orders.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">Nenhum pedido</p>
-          )}
-
-          {!loading && orders.map((order) => (
-            <OrderCard key={order.id} order={order} onOpen={() => onOpenPedido(order.id)} accent="blue" cta="Ver detalhes ›" />
-          ))}
-        </div>
+      {drawerOpen && order && (
+        <OrderDrawer id={order.id} onClose={() => setDrawerOpen(false)} />
       )}
     </div>
   )
@@ -226,78 +95,47 @@ function AccordionSection({ titulo, cor, orders, loading, error, onOpenPedido, o
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ExpedicaoPage() {
-  const today = todayFormatted()
-
-  const prontoEnvio = useOrders('pronto_envio')
-  const enviado = useOrders('enviado')
-  const entregue = useOrders('entregue')
+  const readyHook      = useOrders('ready')
+  const dispatchedHook = useOrders('dispatched')
+  const deliveredHook  = useOrders('delivered')
 
   const [drawerOrderId, setDrawerOrderId] = useState<number | null>(null)
-  const [openSection, setOpenSection] = useState<string>('pronto_envio')
-
-  const colunas = [
-    {
-      key: 'pronto_envio',
-      titulo: 'Pronto para envio',
-      cor: 'bg-blue-100 text-blue-700',
-      orders: prontoEnvio.orders,
-      loading: prontoEnvio.loading,
-      error: prontoEnvio.error,
-    },
-    {
-      key: 'enviado',
-      titulo: 'Enviado',
-      cor: 'bg-orange-100 text-orange-700',
-      orders: enviado.orders,
-      loading: enviado.loading,
-      error: enviado.error,
-    },
-    {
-      key: 'entregue',
-      titulo: 'Entregue',
-      cor: 'bg-green-100 text-green-800',
-      orders: entregue.orders,
-      loading: entregue.loading,
-      error: entregue.error,
-    },
-  ]
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div>
       <h1 className="text-xl font-bold text-gray-900 mb-4">Expedição</h1>
 
-      <BuscaPedido />
+      <OrderSearch />
 
-      {/* Desktop: 3 colunas */}
-      <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4">
-        {colunas.map((col) => (
-          <Coluna
-            key={col.key}
-            titulo={col.titulo}
-            cor={col.cor}
-            orders={col.orders}
-            loading={col.loading}
-            error={col.error}
-            onOpenPedido={setDrawerOrderId}
-          />
-        ))}
-      </div>
-
-      {/* Mobile: accordion */}
-      <div className="lg:hidden">
-        {colunas.map((col) => (
-          <AccordionSection
-            key={col.key}
-            titulo={col.titulo}
-            cor={col.cor}
-            orders={col.orders}
-            loading={col.loading}
-            error={col.error}
-            onOpenPedido={setDrawerOrderId}
-            open={openSection === col.key}
-            onToggle={() => setOpenSection(openSection === col.key ? '' : col.key)}
-          />
-        ))}
+      <div className="lg:flex lg:gap-2 lg:items-stretch" style={{ minHeight: 'calc(100vh - 120px)' }}>
+        <OrderList
+          title="Pronto para Envio"
+          badgeCls="bg-blue-100 text-blue-700"
+          orders={readyHook.orders}
+          loading={readyHook.loading}
+          error={readyHook.error}
+          onOpenOrder={setDrawerOrderId}
+          accent="blue"
+          defaultOpen
+        />
+        <OrderList
+          title="Enviado"
+          badgeCls="bg-orange-100 text-orange-700"
+          orders={dispatchedHook.orders}
+          loading={dispatchedHook.loading}
+          error={dispatchedHook.error}
+          onOpenOrder={setDrawerOrderId}
+          accent="blue"
+        />
+        <OrderList
+          title="Entregue"
+          badgeCls="bg-green-100 text-green-800"
+          orders={deliveredHook.orders}
+          loading={deliveredHook.loading}
+          error={deliveredHook.error}
+          onOpenOrder={setDrawerOrderId}
+          accent="blue"
+        />
       </div>
 
       {drawerOrderId !== null && (

@@ -2,11 +2,9 @@
 
 import { useState } from 'react'
 import { useOrders } from '@/hooks/useOrders'
-import StatusBar from '@/app/admin/components/StatusBar'
-import EmptyState from '@/app/admin/components/EmptyState'
-import OrderDrawer from '@/components/OrderDrawer'
-import { OrderCard } from '@/components/OrderCard'
-import { PrintOverlay } from '@/components/PrintOverlay'
+import { OrderList } from '@/components/order/OrderList'
+import OrderDrawer from '@/components/order/OrderDrawer'
+import { PrintOverlay } from '@/components/order/PrintOverlay'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
 function MontadoAction({
@@ -49,11 +47,12 @@ function MontadoAction({
   async function marcarMontado() {
     setLoading(true)
     setErr('')
+    const nextStatus = order.pickup ? 'available_for_pickup' : 'ready'
     try {
       const res = await fetch(`/api/admin/orders/${order.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ situacao: 'ready' }),
+        body: JSON.stringify({ situacao: nextStatus }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -94,7 +93,7 @@ function MontadoAction({
           disabled={loading}
           className="w-full bg-pink-600 hover:bg-pink-700 disabled:opacity-60 text-white font-semibold py-4 rounded-xl text-base transition-colors"
         >
-          {loading ? 'Atualizando...' : '✓ Montado — passar para Expedição'}
+          {loading ? 'Atualizando...' : order.pickup ? '✓ Montado — Disponível para retirada' : '✓ Montado — passar para Expedição'}
         </button>
       )}
     </>
@@ -102,7 +101,7 @@ function MontadoAction({
 }
 
 export default function FloristaPage() {
-  const { orders, loading, error, lastUpdate, nextRefreshAt, refresh } = useOrders('approved')
+  const { orders, loading, error, refresh } = useOrders('approved')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [removidos, setRemovidos] = useState<Set<number>>(new Set())
 
@@ -117,38 +116,17 @@ export default function FloristaPage() {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl font-bold text-gray-900 mb-4">Montagem</h1>
 
-      <StatusBar count={visiveis.length} lastUpdate={lastUpdate} nextRefreshAt={nextRefreshAt} onRefresh={refresh} loading={loading} />
-
-      {loading && (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse h-28" />
-          ))}
-        </div>
-      )}
-
-      {!loading && error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-xl p-4">{error}</p>
-      )}
-
-      {!loading && !error && visiveis.length === 0 && (
-        <EmptyState icon="🌸" message="Todos os pedidos estão montados!" />
-      )}
-
-      {!loading && visiveis.map((order) => (
-        <OrderCard
-          key={order.id}
-          order={order}
-          onOpen={() => setSelectedId(order.id)}
-          accent="pink"
-          primary={order.items[0]?.name ?? '—'}
-          secondary={order.recipientName === order.buyerName ? order.buyerName : `Para: ${order.recipientName}`}
-          badge={order.cardMessage
-            ? <span className="text-xs bg-pink-100 text-pink-700 font-semibold px-2 py-0.5 rounded-full">Tem mensagem</span>
-            : undefined}
-          cta="Montar ›"
-        />
-      ))}
+      <OrderList
+        title="Em montagem"
+        badgeCls="bg-pink-100 text-pink-700"
+        orders={visiveis}
+        loading={loading}
+        error={error}
+        onOpenOrder={(id) => setSelectedId(id)}
+        accent="pink"
+        cta="Montar ›"
+        defaultOpen
+      />
 
       {selectedId !== null && (
         <OrderDrawer

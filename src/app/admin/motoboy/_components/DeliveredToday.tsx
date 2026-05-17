@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
-export function DeliveredToday() {
+export function DeliveredToday({ refreshTrigger }: { refreshTrigger?: number }) {
   const [orders, setOrders] = useState<OrderDTO[]>([])
   const [open, setOpen] = useState(false)
 
@@ -12,7 +12,7 @@ export function DeliveredToday() {
       .then((r) => r.json())
       .then((d) => setOrders(d.orders ?? []))
       .catch(() => {})
-  }, [])
+  }, [refreshTrigger])
 
   if (orders.length === 0) return null
 

@@ -9,6 +9,7 @@ const AREAS = [
   { role: 'expedicao', label: 'Expedição', icon: '🚚', desc: 'Separação para rota', href: '/admin/expedicao' },
   { role: 'motoboy', label: 'Motoboy', icon: '🏍️', desc: 'Confirmação de entregas', href: '/admin/motoboy' },
   { role: 'admin', label: 'Usuários', icon: '🧑', desc: 'Gerenciar usuários', href: '/admin/users' },
+  { role: 'admin', label: 'Configurações', icon: '⚙️', desc: 'Parâmetros do sistema', href: '/admin/settings' },
 ]
 
 export default async function AdminPage() {
@@ -39,7 +40,7 @@ export default async function AdminPage() {
         <div className="border-t border-gray-100 pt-3">
           {AREAS.map((a) => (
             <Link
-              key={a.role}
+              key={a.href}
               href={a.href}
               className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:border-green-200 hover:shadow transition-all mb-3 last:mb-0"
             >

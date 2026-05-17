@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { IoPrintOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5'
-import { PrintOverlay } from '@/components/PrintOverlay'
+import { PrintOverlay } from '@/components/order/PrintOverlay'
 import { useOrderDetail } from '@/hooks/useOrderDetail'
 import { useUser } from '@/contexts/UserContext'
 import { canSeeDrawerFeature } from '@/constants/orderDrawerFeatures'
