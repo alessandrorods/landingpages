@@ -1,7 +1,10 @@
-import type { FormData } from '../types'
+'use client'
+
+import type { FormData } from '@/app/(site)/checkout/types'
 import type { Product } from '@/constants/products'
-import { formatPrice } from '../utils'
-import { FRETE_VALOR, DATAS_ENTREGA, PERIODOS_ENTREGA } from '@/constants/pedido'
+import { formatPrice } from '@/app/(site)/checkout/utils'
+import { FRETE_VALOR, DATAS_ENTREGA } from '@/constants/pedido'
+import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
 
 interface Props {
   form: FormData
@@ -29,8 +32,9 @@ function SectionHeader({ label, onEdit }: { label: string; onEdit?: () => void }
 const CARD = 'bg-white text-gray-900 rounded-2xl shadow-sm border border-gray-100 p-6 mt-4'
 
 export function StepResumo({ form, product, onNavigate }: Props) {
+  const { periods } = useDeliveryPeriods()
   const dataLabel = DATAS_ENTREGA.find(d => d.valor === form.endereco.dataEntrega)
-  const periodoLabel = PERIODOS_ENTREGA.find(p => p.id === form.endereco.periodoEntrega)?.label
+  const periodoLabel = periods.find(p => p.id === form.endereco.periodoEntrega)?.label
 
   return (
     <>

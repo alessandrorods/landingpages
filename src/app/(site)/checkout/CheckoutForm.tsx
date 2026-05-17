@@ -10,9 +10,9 @@ import { StepIndicator } from './components/StepIndicator'
 import { StepEndereco } from './components/StepEndereco'
 import { StepDestinatario } from './components/StepDestinatario'
 import { StepComprador } from './components/StepComprador'
-import { StepResumo } from './components/StepResumo'
+import { StepResumo } from '@/components/checkout/StepResumo'
 import { CheckoutNav } from './components/CheckoutNav'
-import { DeliveryPicker } from './components/DeliveryPicker'
+import { DeliveryPicker } from '@/components/checkout/DeliveryPicker'
 import { CardMensagem } from './components/CardMensagem'
 
 export default function CheckoutForm({ sku }: { sku: string }) {

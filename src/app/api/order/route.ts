@@ -9,9 +9,9 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Corpo inválido' }, { status: 400 })
   }
 
-  let body: ReturnType<typeof validatePedidoBody>
+  let body: Awaited<ReturnType<typeof validatePedidoBody>>
   try {
-    body = validatePedidoBody(raw)
+    body = await validatePedidoBody(raw)
   } catch (err) {
     if (err instanceof ValidationError) {
       return Response.json({ error: err.message }, { status: 400 })

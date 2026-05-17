@@ -1,9 +1,9 @@
+import { createConfigRepository } from '@/domains/config/config.repository'
+import { createConfigService } from '@/domains/config/config.service'
 import { PRODUCTS } from '@/constants/products'
-import { PERIODOS_ENTREGA } from '@/constants/pedido'
 import type { PedidoBody } from './types'
 
 const VALID_SKUS = new Set(PRODUCTS.map((p) => p.sku))
-const VALID_PERIODOS = new Set(PERIODOS_ENTREGA.map((p) => p.id))
 
 function isString(v: unknown): v is string {
   return typeof v === 'string'
@@ -13,7 +13,10 @@ function digits(v: string) {
   return v.replace(/\D/g, '')
 }
 
-export function validatePedidoBody(body: unknown): PedidoBody {
+export async function validatePedidoBody(body: unknown): Promise<PedidoBody> {
+  const periods = await createConfigService(createConfigRepository()).get('deliveryPeriods')
+  const validPeriods = new Set(periods.map((p) => p.id))
+
   if (!body || typeof body !== 'object') throw new ValidationError('Corpo inválido')
   const b = body as Record<string, unknown>
 
@@ -44,7 +47,7 @@ export function validatePedidoBody(body: unknown): PedidoBody {
   if (!isString(e.dataEntrega) || !/^\d{2}\/\d{2}\/\d{4}$/.test(e.dataEntrega))
     throw new ValidationError('Data de entrega inválida')
 
-  if (!isString(e.periodoEntrega) || !VALID_PERIODOS.has(e.periodoEntrega))
+  if (!isString(e.periodoEntrega) || !validPeriods.has(e.periodoEntrega))
     throw new ValidationError('Período de entrega inválido')
 
   // destinatario

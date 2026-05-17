@@ -198,3 +198,18 @@ export interface OlistUpdateResponse {
     erros?: Array<{ erro: string; campo?: string }>
   }
 }
+
+export interface OlistShippingMethodsResponse {
+  retorno?: {
+    status?: string
+    forma_envio?: {
+      id: string
+      nome: string
+      formas_frete?: Array<{
+        id: string
+        descricao: string
+        codigo: string
+      }>
+    }
+  }
+}

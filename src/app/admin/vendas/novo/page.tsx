@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { PERIODOS_ENTREGA } from '@/constants/pedido'
+import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
 import type { FormaPagamento, PedidoManualItem } from '@/app/api/admin/orders/create/route'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -307,6 +307,7 @@ function Sucesso({ id, trackingToken, numero, linkPagamento, telefone, pickup, p
 
 export default function NovoPedidoPage() {
   const today = todayBRT()
+  const { periods } = useDeliveryPeriods()
 
   // comprador
   const [comprNome, setComprNome] = useState('')
@@ -614,7 +615,7 @@ export default function NovoPedidoPage() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
                 >
                   <option value="">—</option>
-                  {PERIODOS_ENTREGA.map((p) => (
+                  {periods.map((p) => (
                     <option key={p.id} value={p.id}>{p.label}</option>
                   ))}
                 </select>

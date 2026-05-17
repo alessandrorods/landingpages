@@ -7,9 +7,13 @@ import type {
   OlistUpdateOrderData,
   OlistUpdateResponse,
   OlistProductsResponse,
+  OlistShippingMethodsResponse,
 } from './types'
 import type { CreateOrderInput, OrderStatus, PaymentMethod } from '@/domains/orders/order.types'
-import { PERIODOS_ENTREGA, FRETE_POR_CONTA } from '@/constants/pedido'
+import type { PeriodoEntrega } from '@/constants/pedido.types'
+import { FRETE_POR_CONTA } from '@/constants/pedido'
+import { createConfigRepository } from '@/domains/config/config.repository'
+import { createConfigService } from '@/domains/config/config.service'
 
 const BASE_URL = 'https://api.tiny.com.br/api2'
 
@@ -43,8 +47,8 @@ const PAYMENT_TO_OLIST: Record<PaymentMethod, string> = {
   mp_link: 'credito',
 }
 
-function buildOlistPayload(orderId: number, input: CreateOrderInput): OlistOrderPayload {
-  const formaFrete = PERIODOS_ENTREGA.find((p) => p.id === input.deliveryPeriod)?.idOlist
+function buildOlistPayload(orderId: number, input: CreateOrderInput, periods: PeriodoEntrega[]): OlistOrderPayload {
+  const formaFrete = periods.find((p) => p.id === input.deliveryPeriod)?.olistFormaFrete
   const formaPag = PAYMENT_TO_OLIST[input.payment]
   const total = input.items.reduce((s, i) => s + i.price * i.quantity, input.freight)
   const hoje = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
@@ -191,9 +195,13 @@ export function createOlistClient(token: string) {
     listProducts: (pesquisa: string) =>
       post<OlistProductsResponse>('produtos.pesquisa.php', { pesquisa }),
 
+    getShippingMethods: (idFormaEnvio: string) =>
+      post<OlistShippingMethodsResponse>('formas.envio.obter', { idFormaEnvio }),
+
     // Domain-level methods — accept our types, handle Olist translation internally
     async createOrderFromDomain(orderId: number, input: CreateOrderInput): Promise<{ id: number; numero: string } | null> {
-      const payload = buildOlistPayload(orderId, input)
+      const periods = await createConfigService(createConfigRepository()).get('deliveryPeriods')
+      const payload = buildOlistPayload(orderId, input, periods)
       const result = await post<OlistMutationResponse>('pedido.incluir.php', { pedido: JSON.stringify(payload) })
       if (result.retorno?.status !== 'OK') {
         const erros = (result.retorno?.erros ?? []).map((e) => e.erro).join('; ')

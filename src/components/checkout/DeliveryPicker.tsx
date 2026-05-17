@@ -1,16 +1,19 @@
-import { DATAS_ENTREGA, PERIODOS_ENTREGA } from '@/constants/pedido'
-import type { DataEntrega } from '@/constants/pedido'
+'use client'
 
-function filtrarDatas(): DataEntrega[] {
+import { DATAS_ENTREGA } from '@/constants/pedido'
+import type { DataEntrega } from '@/constants/pedido'
+import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
+
+function filterDates(): DataEntrega[] {
   const now = new Date()
-  const hojeInicio = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const corteHoje = now.getHours() >= 15
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const cutToday = now.getHours() >= 15
 
   return DATAS_ENTREGA.filter(d => {
     const [dd, mm, yyyy] = d.valor.split('/').map(Number)
-    const data = new Date(yyyy, mm - 1, dd)
-    if (data < hojeInicio) return false
-    if (data.getTime() === hojeInicio.getTime() && corteHoje) return false
+    const date = new Date(yyyy, mm - 1, dd)
+    if (date < todayStart) return false
+    if (date.getTime() === todayStart.getTime() && cutToday) return false
     return true
   })
 }
@@ -25,7 +28,8 @@ interface Props {
 }
 
 export function DeliveryPicker({ dataEntrega, periodoEntrega, onData, onPeriodo, errorData, errorPeriodo }: Props) {
-  const datasDisponiveis = filtrarDatas()
+  const { periods } = useDeliveryPeriods()
+  const availableDates = filterDates()
 
   return (
     <div className="space-y-5">
@@ -34,7 +38,7 @@ export function DeliveryPicker({ dataEntrega, periodoEntrega, onData, onPeriodo,
           Data de entrega <span className="text-rose-500">*</span>
         </p>
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {datasDisponiveis.map(d => {
+          {availableDates.map(d => {
             const selected = dataEntrega === d.valor
             return (
               <button
@@ -68,7 +72,7 @@ export function DeliveryPicker({ dataEntrega, periodoEntrega, onData, onPeriodo,
           Período de entrega <span className="text-rose-500">*</span>
         </p>
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {PERIODOS_ENTREGA.map(p => {
+          {periods.map(p => {
             const selected = periodoEntrega === p.id
             return (
               <button

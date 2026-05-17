@@ -4,7 +4,7 @@ export const FRETE_VALOR = 15.00
 export const FRETE_POR_CONTA = 'D'
 
 export type { DataEntrega, PeriodoEntrega } from './pedido.types'
-import type { DataEntrega, PeriodoEntrega } from './pedido.types'
+import type { DataEntrega } from './pedido.types'
 
 export const DATAS_ENTREGA: DataEntrega[] = [
   { valor: '29/04/2026', dia: 29,  diaSemana: 'Ontem' },
@@ -16,10 +16,4 @@ export const DATAS_ENTREGA: DataEntrega[] = [
   { valor: '10/05/2026', dia: 10, diaSemana: 'Dom', destaque: true, labelDestaque: 'Dia das Mães' },
   { valor: '11/05/2026', dia: 11, diaSemana: 'Seg' },
   { valor: '12/05/2026', dia: 11, diaSemana: 'Ter' },
-]
-
-export const PERIODOS_ENTREGA: PeriodoEntrega[] = [
-  { id: 'qualquer', label: 'Qualquer horário (até 19h)', idOlist: "Horário Comercial (08h às 18h)" },
-  // { id: 'manha', label: 'Manhã (após 8h)', idOlist: 'Manhã I (depois das 08h)'  },
-  { id: 'tarde', label: 'Tarde (após 14h)', idOlist: 'Tarde I (depois das 14h)' },
 ]

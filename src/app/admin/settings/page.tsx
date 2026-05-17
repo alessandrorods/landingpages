@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { CONFIG_LABELS } from '@/domains/config/config.types'
 import type { ConfigKey } from '@/domains/config/config.types'
+import { PeriodosEditor } from '@/components/settings/PeriodosEditor'
 
-type ConfigMap = Record<ConfigKey, number>
+type ConfigMap = Partial<Record<ConfigKey, unknown>>
 
 export default function SettingsPage() {
   const [config, setConfig] = useState<ConfigMap | null>(null)
@@ -19,7 +20,7 @@ export default function SettingsPage() {
       .catch(() => setError('Não foi possível carregar as configurações'))
   }, [])
 
-  async function save(key: ConfigKey, value: number) {
+  async function save(key: ConfigKey, value: unknown) {
     setSaving(key)
     setError('')
     try {
@@ -55,8 +56,8 @@ export default function SettingsPage() {
           {(Object.keys(CONFIG_LABELS) as ConfigKey[]).map((key) => (
             <ConfigField
               key={key}
-              label={CONFIG_LABELS[key]}
-              value={config[key]}
+              label={CONFIG_LABELS[key] ?? key}
+              value={config[key] as number}
               saving={saving === key}
               saved={saved === key}
               onSave={(value) => save(key, value)}
@@ -64,6 +65,8 @@ export default function SettingsPage() {
           ))}
         </div>
       )}
+
+      <PeriodosEditor />
     </div>
   )
 }

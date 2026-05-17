@@ -9,5 +9,9 @@ export interface DataEntrega {
 export interface PeriodoEntrega {
   id: string
   label: string
-  idOlist: string
+  olistFormaFrete: string      // description sent in pedido.forma_frete (e.g. "Manhã I (depois das 08h)")
+  olistFormaFreteId: string    // numeric ID from Olist formas_frete (for future use)
+  sortOrder: number
+  deliveryLimitHour: string    // HH:MM — until when this period delivers
+  cutoffTime: string           // HH:MM — until when this period is available for purchase
 }
