@@ -6,6 +6,7 @@ export const AREA_ACCESS: Record<string, readonly Role[]> = {
   florista:  ['florista', 'admin'],
   expedicao: ['expedicao', 'admin'],
   motoboy:   ['motoboy', 'admin'],
+  fila:      ['expedicao', 'admin'],
   painel:    ['admin'],
   users:     ['admin'],
   settings:  ['admin'],
@@ -16,6 +17,7 @@ export const AREA_LABELS: Record<string, string> = {
   florista:  'Florista',
   expedicao: 'Expedição',
   motoboy:   'Motoboy',
+  fila:      'Fila de Despacho',
   painel:    'Painel',
   users:     'Usuários',
 }

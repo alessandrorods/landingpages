@@ -57,6 +57,13 @@ export function createOrderRepository() {
         orderBy: { deliveryDate: 'asc' },
       }),
 
+    findReadyForDispatch: () =>
+      prisma.order.findMany({
+        where: { status: 'ready', pickup: false },
+        include: includeItems,
+        orderBy: { createdAt: 'asc' },
+      }),
+
     findByNumero: (numero: string) =>
       prisma.order.findFirst({
         where: { olistNumero: numero },

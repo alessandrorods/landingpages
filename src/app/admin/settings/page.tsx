@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { CONFIG_LABELS } from '@/domains/config/config.types'
 import type { ConfigKey } from '@/domains/config/config.types'
 import { PeriodosEditor } from '@/components/settings/PeriodosEditor'
+import { RegioesEditor } from '@/components/settings/RegioesEditor'
 
 type ConfigMap = Partial<Record<ConfigKey, unknown>>
 
@@ -67,6 +68,7 @@ export default function SettingsPage() {
       )}
 
       <PeriodosEditor />
+      <RegioesEditor />
     </div>
   )
 }

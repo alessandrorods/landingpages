@@ -10,9 +10,19 @@ const periodoEntregaSchema = z.object({
   deliveryLimitHour: z.string().regex(/^\d{2}:\d{2}$/),
 })
 
+export const deliveryRegionSchema = z.object({
+  region: z.string().min(1),
+  label: z.string().min(1),
+  zipStart: z.string().regex(/^\d{8}$/, 'CEP início deve ter 8 dígitos'),
+  zipEnd: z.string().regex(/^\d{8}$/, 'CEP fim deve ter 8 dígitos'),
+})
+
+export type DeliveryRegion = z.infer<typeof deliveryRegionSchema>
+
 export const CONFIG_SCHEMA = {
   preparationTimeMinutes: z.number().int().min(0),
   deliveryPeriods: z.array(periodoEntregaSchema),
+  deliveryRegions: z.array(deliveryRegionSchema),
 } as const
 
 export type ConfigKey = keyof typeof CONFIG_SCHEMA
@@ -21,9 +31,10 @@ export type ConfigValue<K extends ConfigKey> = z.infer<typeof CONFIG_SCHEMA[K]>
 export const CONFIG_DEFAULTS: { [K in ConfigKey]: ConfigValue<K> } = {
   preparationTimeMinutes: 60,
   deliveryPeriods: [] as PeriodoEntrega[],
+  deliveryRegions: [] as Array<DeliveryRegion>,
 }
 
-// Only numeric/simple keys — deliveryPeriods has its own editor in settings
+// Only numeric/simple keys — deliveryPeriods and deliveryRegions have dedicated editors
 export const CONFIG_LABELS: Partial<Record<ConfigKey, string>> = {
   preparationTimeMinutes: 'Tempo mínimo de preparo (minutos)',
 }
