@@ -6,15 +6,17 @@ import { createOrderService } from './order.service'
 import { createOlistSyncService } from './olist-sync.service'
 import { withOrderHistory } from './order-history.decorator'
 
-export function createOrderDomain(tinyToken: string) {
-  const olistClient = createOlistClient(tinyToken)
+export function createOrderDomain(tinyToken?: string) {
   const orderRepository = createOrderRepository()
   const syncEventRepository = createOlistSyncEventRepository()
   const historyRepository = createOrderHistoryRepository()
 
   const rawService = createOrderService(orderRepository, syncEventRepository)
   const orderService = withOrderHistory(rawService, historyRepository)
-  const syncService = createOlistSyncService(olistClient, syncEventRepository, orderRepository)
+
+  const syncService = tinyToken
+    ? createOlistSyncService(createOlistClient(tinyToken), syncEventRepository, orderRepository)
+    : null
 
   return { orderService, syncService }
 }

@@ -4,12 +4,6 @@ import { can } from '@/domains/admin/permissions'
 import { createOrderDomain } from '@/domains/orders/order.domain'
 import { createUserRepository } from '@/domains/users/user.repository'
 
-function getEnv(key: string): string {
-  const value = process.env[key]
-  if (!value) throw new Error(`${key} não configurado`)
-  return value
-}
-
 export async function GET(request: NextRequest) {
   if (!can(getRequestRole(request), 'viewOrders')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
@@ -22,7 +16,7 @@ export async function GET(request: NextRequest) {
   if (!courier) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
   try {
-    const { orderService } = createOrderDomain(getEnv('TINY_TOKEN'))
+    const { orderService } = createOrderDomain()
     const orders = await orderService.listDeliveredTodayByCourier(courier.id)
     return NextResponse.json({ orders })
   } catch (err) {

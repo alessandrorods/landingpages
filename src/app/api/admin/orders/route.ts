@@ -10,12 +10,6 @@ const VALID_STATUSES: OrderStatus[] = [
   'ready', 'available_for_pickup', 'dispatched', 'delivered', 'undelivered', 'cancelled',
 ]
 
-function getEnv(key: string): string {
-  const value = process.env[key]
-  if (!value) throw new Error(`${key} não configurado`)
-  return value
-}
-
 export async function GET(request: NextRequest) {
   if (!can(getRequestRole(request), 'viewOrders')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
@@ -29,7 +23,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { orderService } = createOrderDomain(getEnv('TINY_TOKEN'))
+    const { orderService } = createOrderDomain()
 
     let courierId: string | undefined
     const courierParam = request.nextUrl.searchParams.get('courierId')
