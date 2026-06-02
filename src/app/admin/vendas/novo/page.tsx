@@ -476,6 +476,7 @@ export default function NovoPedidoPage() {
         <h1 className="text-xl font-bold text-gray-900 mb-4">Novo Pedido</h1>
         <Sucesso
           id={resultado.id}
+          trackingToken={resultado.trackingToken}
           numero={resultado.numero}
           linkPagamento={resultado.linkPagamento}
           telefone={comprTel}

@@ -14,7 +14,7 @@ export async function POST() {
 
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 
-  const token = await signToken({ orderId: 'debug-00000000-0000-0000-0000-000000000000', pedido: 'DEBUG-001', sku: 'AR06', nome: 'Alessandro', valor: 184.90 })
+  const token = await signToken({ orderId: 0, pedido: 'DEBUG-001', sku: 'AR06', nome: 'Alessandro', valor: 184.90 })
   const confirmacaoUrl = `${baseUrl}/payment/finish?payment_token=${token}`
 
   const mpClient = createMercadoPagoClient(accessToken)

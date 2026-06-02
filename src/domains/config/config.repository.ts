@@ -8,8 +8,8 @@ export function createConfigRepository() {
     set: (key: string, value: unknown) =>
       prisma.systemConfig.upsert({
         where:  { key },
-        update: { value },
-        create: { key, value },
+        update: { value: value as never },
+        create: { key, value: value as never },
       }),
 
     list: () =>

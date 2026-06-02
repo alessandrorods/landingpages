@@ -29,3 +29,9 @@ export function UserProvider({
 export function useUser(): User | null {
   return useContext(UserContext)
 }
+
+export function useRequiredUser(): User {
+  const user = useContext(UserContext)
+  if (!user) throw new Error('useRequiredUser must be used inside UserProvider')
+  return user
+}

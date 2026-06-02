@@ -13,7 +13,8 @@
       "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\projetos\\\\mundo-planta-dia-das-maes\\\\src\\\\app\\\\admin\\\\setup\")",
       "PowerShell(New-Item *)",
       "Bash(Get-ChildItem -Path \"C:\\\\projetos\\\\mundo-planta-dia-das-maes\" -Recurse -Directory -Name)",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Bash(npm run *)"
     ]
   }
 }

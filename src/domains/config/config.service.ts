@@ -14,16 +14,16 @@ export function createConfigService(repository: ConfigRepository) {
       const row = await repository.get(key)
       if (!row) return CONFIG_DEFAULTS[key]
       const result = CONFIG_SCHEMA[key].safeParse(row.value)
-      return result.success ? result.data : CONFIG_DEFAULTS[key]
+      return (result.success ? result.data : CONFIG_DEFAULTS[key]) as ConfigValue<K>
     },
 
     async set<K extends ConfigKey>(key: K, value: unknown): Promise<ConfigValue<K>> {
       const result = CONFIG_SCHEMA[key].safeParse(value)
       if (!result.success) {
-        throw new ConfigServiceError(result.error.errors[0]?.message ?? 'Valor inválido')
+        throw new ConfigServiceError((result.error as unknown as { errors: { message: string }[] }).errors[0]?.message ?? 'Valor inválido')
       }
       await repository.set(key, result.data)
-      return result.data
+      return result.data as ConfigValue<K>
     },
 
     async list(): Promise<{ [K in ConfigKey]: ConfigValue<K> }> {

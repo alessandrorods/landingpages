@@ -31,14 +31,15 @@ export class OlistClientError extends Error {
 // ── Mappers (domain → Olist) ──────────────────────────────────────────────────
 
 const STATUS_TO_OLIST: Record<OrderStatus, OlistOrderStatus | null> = {
-  pending:     'aberto',
-  approved:    'aprovado',
-  preparing:   'preparando_envio',
-  ready:       'pronto_envio',
-  dispatched:  'enviado',
-  delivered:   'entregue',
-  undelivered: 'nao_entregue',
-  cancelled:   'cancelado',
+  pending:              'aberto',
+  approved:             'aprovado',
+  preparing:            'preparando_envio',
+  ready:                'pronto_envio',
+  available_for_pickup: null,
+  dispatched:           'enviado',
+  delivered:            'entregue',
+  undelivered:          'nao_entregue',
+  cancelled:            'cancelado',
 }
 
 const PAYMENT_TO_OLIST: Record<PaymentMethod, string> = {
@@ -82,11 +83,11 @@ function buildOlistPayload(orderId: number, input: CreateOrderInput, periods: Pe
       endereco_entrega: {
         nome_destinatario: input.recipientName,
         fone: input.recipientPhone,
-        endereco: input.street,
-        numero: input.streetNumber,
+        endereco: input.street ?? '',
+        numero: input.streetNumber ?? '',
         complemento: input.complement ?? '',
-        bairro: input.neighborhood,
-        cep: input.zipCode.replace(/\D/g, ''),
+        bairro: input.neighborhood ?? '',
+        cep: (input.zipCode ?? '').replace(/\D/g, ''),
         cidade: 'Mogi das Cruzes',
         uf: 'SP',
       },

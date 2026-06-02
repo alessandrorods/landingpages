@@ -5,6 +5,7 @@ import { useOrders } from '@/hooks/useOrders'
 import OrderDrawer from '@/components/order/OrderDrawer'
 import { OrderList } from '@/components/order/OrderList'
 import { STATUS_BADGE } from '@/constants/orderDisplay'
+import type { OrderDTO } from '@/domains/orders/order.types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

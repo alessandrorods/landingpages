@@ -55,6 +55,7 @@ export async function processarCheckout(body: PedidoBody): Promise<CheckoutResul
       deliveryDate: body.endereco.dataEntrega,
       deliveryPeriod: body.endereco.periodoEntrega,
       items: [{ sku: product.sku, name: product.name, price: product.price, quantity: 1 }],
+      pickup: false,
       source: 'checkout',
     }, { type: 'system', name: 'checkout' })
   } catch (err) {
