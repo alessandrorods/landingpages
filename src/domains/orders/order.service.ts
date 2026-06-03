@@ -146,6 +146,30 @@ export function createOrderService(
       await syncEventRepository.create(id, 'status_updated', { status: 'delivered' })
     },
 
+    async markUndelivered(
+      id: number,
+      evidence: { reason: string; notes?: string; photoUrls: string[]; lat?: number; lng?: number },
+    ): Promise<void> {
+      const row = await repository.findById(id)
+      if (!row) throw new OrderServiceError('Pedido não encontrado')
+      if (row.status !== 'dispatched') throw new OrderServiceError('Pedido não está em rota')
+      await repository.updateStatus(id, 'undelivered')
+      await syncEventRepository.create(id, 'status_updated', { status: 'undelivered' })
+    },
+
+    async rescheduleOrder(
+      id: number,
+      schedule: { deliveryDate: string; deliveryPeriod?: string },
+    ): Promise<void> {
+      const row = await repository.findById(id)
+      if (!row) throw new OrderServiceError('Pedido não encontrado')
+      if (row.status !== 'undelivered') throw new OrderServiceError('Pedido não está com status não entregue')
+      await repository.updateDeliverySchedule(id, schedule.deliveryDate, schedule.deliveryPeriod ?? null)
+      await repository.clearCourier(id)
+      await repository.updateStatus(id, 'ready')
+      await syncEventRepository.create(id, 'status_updated', { status: 'ready', rescheduled: true })
+    },
+
     async findByNumero(numero: string): Promise<OrderDTO | null> {
       const row = await repository.findByNumero(numero)
       return row ? toOrderDTO(row) : null

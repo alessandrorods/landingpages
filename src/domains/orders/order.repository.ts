@@ -98,6 +98,18 @@ export function createOrderRepository() {
     updateDelivery: (id: number, data: { courierId: string }) =>
       prisma.order.update({ where: { id }, data }),
 
+    clearCourier: (id: number) =>
+      prisma.order.update({ where: { id }, data: { courierId: null } }),
+
+    updateDeliverySchedule: (id: number, deliveryDate: string, deliveryPeriod: string | null) =>
+      prisma.order.update({
+        where: { id },
+        data: {
+          deliveryDate: parseDeliveryDate(deliveryDate),
+          deliveryPeriod,
+        },
+      }),
+
     updateMpPreferenceId: (id: number, mpPreferenceId: string) =>
       prisma.order.update({ where: { id }, data: { mpPreferenceId } }),
 

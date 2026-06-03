@@ -5,6 +5,7 @@ import { CONFIG_LABELS } from '@/domains/config/config.types'
 import type { ConfigKey } from '@/domains/config/config.types'
 import { PeriodosEditor } from '@/components/settings/PeriodosEditor'
 import { RegioesEditor } from '@/components/settings/RegioesEditor'
+import { UndeliveredReasonsEditor } from './_components/UndeliveredReasonsEditor'
 
 type ConfigMap = Partial<Record<ConfigKey, unknown>>
 
@@ -69,6 +70,7 @@ export default function SettingsPage() {
 
       <PeriodosEditor />
       <RegioesEditor />
+      <UndeliveredReasonsEditor />
     </div>
   )
 }

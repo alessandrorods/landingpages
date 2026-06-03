@@ -2,6 +2,7 @@ import type { OrderService } from './order.service'
 import { fmtDatetime } from './order.service'
 import type { OrderHistoryRepository } from './order-history.repository'
 import type { Actor, CreateOrderInput, OrderHistoryAction, OrderHistoryEntryDTO, OrderStatus } from './order.types'
+import { signPhotoUrl } from '@/core/photo/signedUrl'
 
 type RawEntry = Awaited<ReturnType<OrderHistoryRepository['findByOrderId']>>[number]
 
@@ -12,8 +13,21 @@ function toHistoryEntryDTO(e: RawEntry): OrderHistoryEntryDTO {
     actorType: e.actorType as 'user' | 'system',
     actorName: e.actorName,
     actorRole: e.actorRole ?? null,
-    metadata:  e.metadata as Record<string, string> | null,
+    metadata:  e.metadata as Record<string, unknown> | null,
     createdAt: e.createdAt.toISOString(),
+  }
+}
+
+async function redactPhotoUrls(entry: OrderHistoryEntryDTO): Promise<OrderHistoryEntryDTO> {
+  if (entry.action !== 'undelivered' || !entry.metadata) return entry
+  const urls = entry.metadata.photoUrls
+  if (!Array.isArray(urls) || urls.length === 0) return entry
+  return {
+    ...entry,
+    metadata: {
+      ...entry.metadata,
+      photoUrls: await Promise.all((urls as string[]).map(signPhotoUrl)),
+    },
   }
 }
 
@@ -40,6 +54,24 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
       await historyRepository.record(id, 'delivered', actor, { courierName, receivedBy })
     },
 
+    async markUndelivered(
+      id: number,
+      evidence: { reason: string; notes?: string; photoUrls: string[]; lat?: number; lng?: number },
+      actor: Actor,
+    ) {
+      await service.markUndelivered(id, evidence)
+      await historyRepository.record(id, 'undelivered', actor, evidence)
+    },
+
+    async rescheduleOrder(
+      id: number,
+      schedule: { deliveryDate: string; deliveryPeriod?: string },
+      actor: Actor,
+    ) {
+      await service.rescheduleOrder(id, schedule)
+      await historyRepository.record(id, 'ready', actor, schedule)
+    },
+
     async approveFromPayment(orderId: number, actor: Actor) {
       const transitioned = await service.approveFromPayment(orderId)
       if (transitioned) await historyRepository.record(orderId, 'approved', actor)
@@ -51,7 +83,7 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
         historyRepository.findByOrderId(id),
       ])
       if (!order) return null
-      const history = entries.map(toHistoryEntryDTO)
+      const history = await Promise.all(entries.map(toHistoryEntryDTO).map(redactPhotoUrls))
       const dispatched = history.findLast((h) => h.action === 'dispatched')
       const delivered  = history.findLast((h) => h.action === 'delivered')
       return {

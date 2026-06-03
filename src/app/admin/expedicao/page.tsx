@@ -95,9 +95,10 @@ function OrderSearch() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ExpedicaoPage() {
-  const readyHook      = useOrders('ready')
-  const dispatchedHook = useOrders('dispatched')
-  const deliveredHook  = useOrders('delivered')
+  const readyHook        = useOrders('ready')
+  const dispatchedHook   = useOrders('dispatched')
+  const deliveredHook    = useOrders('delivered')
+  const undeliveredHook  = useOrders('undelivered')
 
   const [drawerOrderId, setDrawerOrderId] = useState<number | null>(null)
 
@@ -133,6 +134,15 @@ export default function ExpedicaoPage() {
           orders={deliveredHook.orders}
           loading={deliveredHook.loading}
           error={deliveredHook.error}
+          onOpenOrder={setDrawerOrderId}
+          accent="blue"
+        />
+        <OrderList
+          title="Não entregue"
+          badgeCls="bg-red-100 text-red-700"
+          orders={undeliveredHook.orders}
+          loading={undeliveredHook.loading}
+          error={undeliveredHook.error}
           onOpenOrder={setDrawerOrderId}
           accent="blue"
         />

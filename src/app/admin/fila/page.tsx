@@ -12,6 +12,7 @@ const AT_RISK_WINDOW_MINUTES = 60
 interface ApiResponse {
   orders: OrderDTO[]
   inRoute: OrderDTO[]
+  undelivered: OrderDTO[]
   regions: DeliveryRegion[]
   periods: PeriodoEntrega[]
 }
@@ -60,6 +61,7 @@ const RISK_STYLES: Record<RiskLevel, { card: string; header: string; badge: stri
 export default function FilaPage() {
   const [groups, setGroups] = useState<QueueGroup[]>([])
   const [inRoute, setInRoute] = useState<OrderDTO[]>([])
+  const [undelivered, setUndelivered] = useState<OrderDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [countdown, setCountdown] = useState(POLL_SECONDS)
@@ -69,7 +71,7 @@ export default function FilaPage() {
   const [paused, setPaused] = useState(false)
   const countdownRef = useRef(POLL_SECONDS)
   const pausedRef = useRef(false)
-  const bufferRef = useRef<{ groups: QueueGroup[]; inRoute: OrderDTO[] } | null>(null)
+  const bufferRef = useRef<{ groups: QueueGroup[]; inRoute: OrderDTO[]; undelivered: OrderDTO[] } | null>(null)
 
   const load = useCallback(async () => {
     setError('')
@@ -81,10 +83,11 @@ export default function FilaPage() {
       countdownRef.current = POLL_SECONDS
       setCountdown(POLL_SECONDS)
       if (pausedRef.current) {
-        bufferRef.current = { groups: newGroups, inRoute: data.inRoute }
+        bufferRef.current = { groups: newGroups, inRoute: data.inRoute, undelivered: data.undelivered ?? [] }
       } else {
         setGroups(newGroups)
         setInRoute(data.inRoute)
+        setUndelivered(data.undelivered ?? [])
         setLastUpdatedAt(new Date())
         bufferRef.current = null
       }
@@ -102,6 +105,7 @@ export default function FilaPage() {
     if (!next && bufferRef.current) {
       setGroups(bufferRef.current.groups)
       setInRoute(bufferRef.current.inRoute)
+      setUndelivered(bufferRef.current.undelivered)
       setLastUpdatedAt(new Date())
       bufferRef.current = null
     }
@@ -252,6 +256,27 @@ export default function FilaPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Não entregues ── */}
+      {!loading && undelivered.length > 0 && (
+        <div className="shrink-0 border-t-2 border-red-200 bg-red-50 px-6 py-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-red-500 mb-3">
+            Não entregues — aguardando reagendamento — {undelivered.length} {undelivered.length === 1 ? 'pedido' : 'pedidos'}
+          </p>
+          <div className="flex gap-4 overflow-x-auto pb-1">
+            {undelivered.map((order) => (
+              <div key={order.id} className="shrink-0 bg-white border border-red-200 rounded-xl px-4 py-3 min-w-[180px]">
+                <p className="text-xl font-black text-red-700 tabular-nums">#{order.id}</p>
+                <p className="text-sm font-semibold text-gray-700 truncate mt-0.5">{order.neighborhood}</p>
+                <p className="text-xs text-gray-400 truncate">{order.recipientName}</p>
+                {order.courierName && (
+                  <p className="text-xs text-red-400 mt-1">Motoboy: {order.courierName}</p>
+                )}
               </div>
             ))}
           </div>

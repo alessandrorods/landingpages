@@ -14,16 +14,18 @@ export async function GET(request: NextRequest) {
   try {
     const repo = createOrderRepository()
     const config = createConfigService(createConfigRepository())
-    const [rawReady, rawDispatched, regions, periods] = await Promise.all([
+    const [rawReady, rawDispatched, rawUndelivered, regions, periods] = await Promise.all([
       repo.findReadyForDispatch(),
       repo.findByStatus('dispatched'),
+      repo.findByStatus('undelivered'),
       config.get('deliveryRegions'),
       config.get('deliveryPeriods'),
     ])
 
     const orders = rawReady.map((o) => toOrderDTO(o))
     const inRoute = rawDispatched.map((o) => toOrderDTO(o))
-    return NextResponse.json({ orders, inRoute, regions, periods })
+    const undelivered = rawUndelivered.map((o) => toOrderDTO(o))
+    return NextResponse.json({ orders, inRoute, undelivered, regions, periods })
   } catch (err) {
     console.error('[dispatch-queue] GET falhou', err)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

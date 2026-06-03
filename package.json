@@ -16,6 +16,7 @@
     "@hotjar/browser": "^1.0.9",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@vercel/blob": "^2.4.0",
     "dotenv": "^17.4.2",
     "next": "^16.2.4",
     "pg": "^8.20.0",

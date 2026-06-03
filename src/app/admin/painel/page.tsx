@@ -175,6 +175,7 @@ export default function PainelPage() {
   const retiradaHook = useOrders('available_for_pickup')
   const enviadoHook = useOrders('dispatched')
   const entregueHook = useOrders('delivered')
+  const naoEntregueHook = useOrders('undelivered')
 
   const [drawerOrderId, setDrawerOrderId] = useState<number | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -184,7 +185,8 @@ export default function PainelPage() {
   const pagoMontandoError = pagoHook.error || montandoHook.error
 
   const totalCount = abertoHook.orders.length + pagoMontandoAll.length +
-    prontoHook.orders.length + retiradaHook.orders.length + enviadoHook.orders.length + entregueHook.orders.length
+    prontoHook.orders.length + retiradaHook.orders.length + enviadoHook.orders.length +
+    entregueHook.orders.length + naoEntregueHook.orders.length
 
   function refreshAll() {
     abertoHook.refresh()
@@ -194,9 +196,10 @@ export default function PainelPage() {
     retiradaHook.refresh()
     enviadoHook.refresh()
     entregueHook.refresh()
+    naoEntregueHook.refresh()
   }
 
-  const allHooks = [abertoHook, pagoHook, montandoHook, prontoHook, retiradaHook, enviadoHook, entregueHook]
+  const allHooks = [abertoHook, pagoHook, montandoHook, prontoHook, retiradaHook, enviadoHook, entregueHook, naoEntregueHook]
   const anyLoading = allHooks.some((h) => h.loading)
 
   const lastUpdate = allHooks.reduce<Date | null>((best, h) => {
@@ -215,7 +218,8 @@ export default function PainelPage() {
     { key: 'ready',                titulo: 'Pronto para Envio',        cor: 'bg-blue-100 text-blue-700',    orders: prontoHook.orders,   loading: prontoHook.loading,   error: prontoHook.error,   showStatus: false, dimCards: false },
     { key: 'available_for_pickup', titulo: 'Disponível para Retirada', cor: 'bg-purple-100 text-purple-700', orders: retiradaHook.orders, loading: retiradaHook.loading, error: retiradaHook.error, showStatus: false, dimCards: false },
     { key: 'dispatched',           titulo: 'Enviado',                  cor: 'bg-orange-100 text-orange-700', orders: enviadoHook.orders,  loading: enviadoHook.loading,  error: enviadoHook.error,  showStatus: false, dimCards: false },
-    { key: 'delivered',     titulo: 'Entregue (hoje)',     cor: 'bg-green-100 text-green-800',    orders: entregueHook.orders,loading: entregueHook.loading,error: entregueHook.error,showStatus: false, dimCards: false },
+    { key: 'delivered',     titulo: 'Entregue (hoje)',     cor: 'bg-green-100 text-green-800',    orders: entregueHook.orders,    loading: entregueHook.loading,    error: entregueHook.error,    showStatus: false, dimCards: false },
+    { key: 'undelivered',   titulo: 'Não entregue',        cor: 'bg-red-100 text-red-700',        orders: naoEntregueHook.orders, loading: naoEntregueHook.loading, error: naoEntregueHook.error, showStatus: false, dimCards: false },
   ]
 
   return (
