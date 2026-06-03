@@ -2,7 +2,19 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "mcp__mercadopago__search_documentation"
+      "mcp__mercadopago__search_documentation",
+      "Bash(npm install *)",
+      "Bash(git mv *)",
+      "Bash(git add *)",
+      "Bash(ls lib/)",
+      "Bash(ls constants/)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\projetos\\\\mundo-planta-dia-das-maes\\\\src\\\\app\\\\api\\\\admin\\\\setup\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\projetos\\\\mundo-planta-dia-das-maes\\\\src\\\\app\\\\admin\\\\setup\")",
+      "PowerShell(New-Item *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\projetos\\\\mundo-planta-dia-das-maes\" -Recurse -Directory -Name)",
+      "Bash(npx prisma *)",
+      "Bash(npm run *)"
     ]
   }
 }
