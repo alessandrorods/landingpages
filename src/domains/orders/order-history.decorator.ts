@@ -2,7 +2,7 @@ import type { OrderService } from './order.service'
 import { fmtDatetime } from './order.service'
 import type { OrderHistoryRepository } from './order-history.repository'
 import type { Actor, CreateOrderInput, OrderHistoryAction, OrderHistoryEntryDTO, OrderStatus } from './order.types'
-import { signPhotoUrl } from '@/core/photo/signedUrl'
+import { issueSignedToken, presignUrl } from '@vercel/blob'
 
 type RawEntry = Awaited<ReturnType<OrderHistoryRepository['findByOrderId']>>[number]
 
@@ -18,17 +18,29 @@ function toHistoryEntryDTO(e: RawEntry): OrderHistoryEntryDTO {
   }
 }
 
-async function redactPhotoUrls(entry: OrderHistoryEntryDTO): Promise<OrderHistoryEntryDTO> {
+async function presignPhotoUrls(entry: OrderHistoryEntryDTO): Promise<OrderHistoryEntryDTO> {
   if (entry.action !== 'undelivered' || !entry.metadata) return entry
   const urls = entry.metadata.photoUrls
   if (!Array.isArray(urls) || urls.length === 0) return entry
-  return {
-    ...entry,
-    metadata: {
-      ...entry.metadata,
-      photoUrls: await Promise.all((urls as string[]).map(signPhotoUrl)),
-    },
-  }
+
+  const evidenceToken = process.env.BLOB_EVIDENCE_READ_WRITE_TOKEN
+  if (!evidenceToken) return entry
+
+  const signed = await Promise.all(
+    (urls as string[]).map(async (blobUrl) => {
+      const pathname = new URL(blobUrl).pathname.slice(1)
+      const delegationToken = await issueSignedToken({
+        pathname,
+        operations: ['get'],
+        validUntil: Date.now() + 3600_000,
+        token: evidenceToken,
+      })
+      const { presignedUrl } = await presignUrl(delegationToken, { operation: 'get', pathname, access: 'private' })
+      return presignedUrl
+    }),
+  )
+
+  return { ...entry, metadata: { ...entry.metadata, photoUrls: signed } }
 }
 
 export function withOrderHistory(service: OrderService, historyRepository: OrderHistoryRepository) {
@@ -83,7 +95,7 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
         historyRepository.findByOrderId(id),
       ])
       if (!order) return null
-      const history = await Promise.all(entries.map(toHistoryEntryDTO).map(redactPhotoUrls))
+      const history = await Promise.all(entries.map(toHistoryEntryDTO).map(presignPhotoUrls))
       const dispatched = history.findLast((h) => h.action === 'dispatched')
       const delivered  = history.findLast((h) => h.action === 'delivered')
       return {
