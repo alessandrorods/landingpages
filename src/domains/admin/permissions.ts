@@ -33,6 +33,7 @@ export const PERMISSIONS = {
   searchProducts:    ['vendas', 'admin'],
   markUndelivered:   ['motoboy', 'admin'],
   rescheduleOrder:   ['expedicao', 'admin'],
+  editOrder:         ['vendas', 'expedicao', 'admin'],
   manageUsers:       ['admin'],
   manageConfig:      ['admin'],
 } as const satisfies Record<string, readonly Role[]>

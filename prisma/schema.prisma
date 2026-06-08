@@ -57,11 +57,13 @@ enum OrderHistoryAction {
   delivered
   undelivered
   cancelled
+  edited
 }
 
 enum OlistSyncEventType {
   order_created
   status_updated
+  order_updated
 }
 
 enum OlistSyncEventStatus {

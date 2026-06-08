@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getRequestRole, getRequestDisplayName } from '@/domains/admin/auth'
 import { can } from '@/domains/admin/permissions'
 import { createOrderDomain } from '@/domains/orders/order.domain'
+import { createUserRepository } from '@/domains/users/user.repository'
 import { OrderServiceError } from '@/domains/orders/order.service'
 import type { OrderStatus } from '@/domains/orders/order.types'
 
@@ -21,15 +22,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!can(getRequestRole(request), 'updateOrderStatus')) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
-  }
+  const role = getRequestRole(request)
+  if (!role) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
 
   const { id: rawId } = await params
   const id = parseInt(rawId, 10)
   if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
 
-  let body: { situacao?: string }
+  let body: { situacao?: string; force?: boolean; courierId?: string }
   try {
     body = await request.json()
   } catch {
@@ -41,12 +41,25 @@ export async function PATCH(
     return NextResponse.json({ error: 'status inválido' }, { status: 400 })
   }
 
-  const role = getRequestRole(request)
-  if (!role) return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  const force = body.force === true && role === 'admin'
+
+  if (!force && !can(role, 'updateOrderStatus')) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+  }
+
+  const actor = { type: 'user' as const, name: getRequestDisplayName(request) ?? role, role }
 
   try {
     const { orderService, syncService } = createOrderDomain(getEnv('TINY_TOKEN'))
-    await orderService.updateStatus(id, status, { type: 'user', name: getRequestDisplayName(request) ?? role, role })
+
+    if (force && status === 'dispatched' && body.courierId) {
+      const courier = await createUserRepository().findById(body.courierId)
+      if (!courier) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 422 })
+      await orderService.dispatch(id, courier.id, courier.displayName, actor)
+    } else {
+      await orderService.updateStatus(id, status, actor, force ? { force: true } : undefined)
+    }
+
     after(() => syncService.processPendingFor(id).catch((err) =>
       console.error('[status] sync after-update falhou', { orderId: id, err }),
     ))

@@ -1,4 +1,5 @@
 import type { OrderService } from './order.service'
+import type { UpdateOrderInput } from './order.types'
 import { fmtDatetime } from './order.service'
 import type { OrderHistoryRepository } from './order-history.repository'
 import type { Actor, CreateOrderInput, OrderHistoryAction, OrderHistoryEntryDTO, OrderStatus } from './order.types'
@@ -51,9 +52,10 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
       return order
     },
 
-    async updateStatus(id: number, status: OrderStatus, actor: Actor) {
-      await service.updateStatus(id, status)
-      await historyRepository.record(id, status as OrderHistoryAction, actor)
+    async updateStatus(id: number, status: OrderStatus, actor: Actor, options?: { force?: boolean }) {
+      await service.updateStatus(id, status, options)
+      await historyRepository.record(id, status as OrderHistoryAction, actor,
+        options?.force ? { forced: true } : undefined)
     },
 
     async dispatch(id: number, courierId: string, courierName: string, actor: Actor) {
@@ -105,6 +107,11 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
         receivedBy:   delivered?.metadata?.receivedBy ?? null,
         history,
       }
+    },
+
+    async updateOrder(id: number, data: UpdateOrderInput, actor: Actor) {
+      await service.updateOrder(id, data)
+      await historyRepository.record(id, 'edited', actor)
     },
 
     // Pass-throughs — sem efeito colateral de histórico
