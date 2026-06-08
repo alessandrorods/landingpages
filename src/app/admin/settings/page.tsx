@@ -7,6 +7,7 @@ import { PeriodosEditor } from '@/components/settings/PeriodosEditor'
 import { RegioesEditor } from '@/components/settings/RegioesEditor'
 import { UndeliveredReasonsEditor } from './_components/UndeliveredReasonsEditor'
 import { LIEnvioMappingEditor } from './_components/LIEnvioMappingEditor'
+import { LIWebhookEditor } from './_components/LIWebhookEditor'
 
 type ConfigMap = Partial<Record<ConfigKey, unknown>>
 
@@ -68,6 +69,7 @@ export default function SettingsPage() {
         <PeriodosEditor />
         <RegioesEditor />
         <UndeliveredReasonsEditor />
+        <LIWebhookEditor />
         <LIEnvioMappingEditor />
       </div>
     </div>

@@ -23,6 +23,7 @@ export function createLiSyncService(
       }
       await liClient.updateOrderStatus(liNumero, codigo)
       await liSyncEventRepository.markDone(event.id)
+      console.log('[li-sync] status atualizado na LI', { eventId: event.id, orderId: event.orderId, liNumero, codigo })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[li-sync] processEvent falhou', { eventId: event.id, err: message })

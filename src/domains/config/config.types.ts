@@ -42,6 +42,7 @@ export const CONFIG_SCHEMA = {
   deliveryRegions: z.array(deliveryRegionSchema),
   undeliveredReasons: z.array(z.string().min(1)),
   liWebhookSecret: z.string(),
+  liWebhookUrl: z.string(),
   liEnvioMapping: z.record(z.string(), z.string()),  // liEnvioId → deliveryPeriodId
 } as const
 
@@ -60,6 +61,7 @@ export const CONFIG_DEFAULTS: { [K in ConfigKey]: ConfigValue<K> } = {
     'Outro',
   ],
   liWebhookSecret: '',
+  liWebhookUrl: '',
   liEnvioMapping: {},
 }
 

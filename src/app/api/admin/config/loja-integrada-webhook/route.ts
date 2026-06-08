@@ -22,10 +22,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const liClient = createLIClient(getEnvOrThrow('LI_CHAVE_API'), getEnvOrThrow('LI_CHAVE_APLICACAO'))
-    const webhookInfo = await liClient.getWebhook()
-    const secret = await configService().get('liWebhookSecret')
-    return NextResponse.json({ webhookInfo, secretConfigured: !!secret })
+    const svc = configService()
+    const secret = await svc.get('liWebhookSecret')
+    const notifyUrl = await svc.get('liWebhookUrl')
+    return NextResponse.json({
+      registered: !!secret,
+      notifyUrl: notifyUrl || null,
+    })
   } catch (err) {
     console.error('[li-webhook-config] GET erro', err)
     return NextResponse.json({ error: 'Erro ao buscar configuração' }, { status: 500 })
@@ -50,10 +53,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await configService().set('liWebhookSecret', secret)
+    const svc = configService()
+    await svc.set('liWebhookSecret', secret)
+    await svc.set('liWebhookUrl', notifyUrl)
+
     const token = await hmacSign(secret)
     const liClient = createLIClient(getEnvOrThrow('LI_CHAVE_API'), getEnvOrThrow('LI_CHAVE_APLICACAO'))
     await liClient.registerWebhook(notifyUrl, token)
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[li-webhook-config] POST erro', err)

@@ -41,9 +41,6 @@ export function createLIClient(chaveApi: string, chaveAplicacao: string) {
   }
 
   return {
-    getWebhook: () =>
-      request<unknown>('GET', '/webhooks/v1/pedido'),
-
     registerWebhook: async (notifyUrl: string, token: string): Promise<void> => {
       const webhookBody = { notifyUrl, token }
       // DELETE existing, then PUT new

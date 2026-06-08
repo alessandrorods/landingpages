@@ -61,7 +61,10 @@ export function createLojaIntegradaWebhookService(
 
       if (aprovado) {
         const existing = await orderRepository.findByOlistId(payload.id)
-        if (existing) return // idempotência
+        if (existing) {
+          console.log('[li-webhook] pedido já importado — ignorando', { liId: payload.id, liNumero: payload.numero, orderId: existing.id })
+          return
+        }
 
         const [obs, envioMapping] = [
           parseClienteObs(payload.cliente_obs),
@@ -99,17 +102,25 @@ export function createLojaIntegradaWebhookService(
         }, SYSTEM_ACTOR)
 
         await orderRepository.updateOlistRef(created.id, payload.id, String(payload.numero))
+        console.log('[li-webhook] pedido criado', { liId: payload.id, liNumero: payload.numero, orderId: created.id, buyer: payload.cliente.nome })
         return
       }
 
       if (cancelado) {
         const existing = await orderRepository.findByOlistId(payload.id)
-        if (!existing) return
-        if (existing.status !== 'pending' && existing.status !== 'approved') return
+        if (!existing) {
+          console.log('[li-webhook] cancelamento ignorado — pedido não importado', { liId: payload.id, liNumero: payload.numero })
+          return
+        }
+        if (existing.status !== 'pending' && existing.status !== 'approved') {
+          console.log('[li-webhook] cancelamento ignorado — status não cancelável', { liId: payload.id, liNumero: payload.numero, status: existing.status })
+          return
+        }
         try {
           await orderService.updateStatus(existing.id, 'cancelled', SYSTEM_ACTOR)
-        } catch {
-          // order may already be in a non-cancellable state — ignore
+          console.log('[li-webhook] pedido cancelado', { liId: payload.id, liNumero: payload.numero, orderId: existing.id })
+        } catch (err) {
+          console.error('[li-webhook] erro ao cancelar pedido', { liId: payload.id, liNumero: payload.numero, orderId: existing.id, err })
         }
       }
     },
