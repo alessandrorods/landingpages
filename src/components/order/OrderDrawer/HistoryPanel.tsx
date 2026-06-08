@@ -61,12 +61,41 @@ export function HistoryPanel({ entries }: { entries: OrderHistoryEntryDTO[] }) {
                 </div>
               </div>
               {entry.metadata && Object.entries(entry.metadata).length > 0 && (
-                <div className="mt-1 space-y-0.5">
-                  {Object.entries(entry.metadata).map(([key, value]) => (
-                    <p key={key} className="text-xs text-gray-500">
-                      {METADATA_LABEL[key] ?? key}: {value}
-                    </p>
-                  ))}
+                <div className="mt-1 space-y-1.5">
+                  {Object.entries(entry.metadata).map(([key, value]) => {
+                    if (key === 'photoUrls' || key === 'lat' || key === 'lng') return null
+                    if (Array.isArray(value) || typeof value === 'object') return null
+                    return (
+                      <p key={key} className="text-xs text-gray-500">
+                        {METADATA_LABEL[key] ?? key}: {String(value)}
+                      </p>
+                    )
+                  })}
+                  {/* Map link */}
+                  {typeof entry.metadata.lat === 'number' && typeof entry.metadata.lng === 'number' && (
+                    <a
+                      href={`https://maps.google.com/?q=${entry.metadata.lat},${entry.metadata.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                    >
+                      Ver localização no mapa
+                    </a>
+                  )}
+                  {/* Photos */}
+                  {Array.isArray(entry.metadata.photoUrls) && (entry.metadata.photoUrls as string[]).length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap mt-1">
+                      {(entry.metadata.photoUrls as string[]).map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={url}
+                            alt={`Foto ${i + 1}`}
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

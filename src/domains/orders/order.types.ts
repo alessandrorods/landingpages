@@ -19,7 +19,7 @@ export interface OrderHistoryEntryDTO {
   actorType: 'user' | 'system'
   actorName: string
   actorRole: string | null
-  metadata: Record<string, string> | null
+  metadata: Record<string, unknown> | null
   createdAt: string
 }
 

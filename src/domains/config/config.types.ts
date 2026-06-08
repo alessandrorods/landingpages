@@ -23,6 +23,7 @@ export const CONFIG_SCHEMA = {
   preparationTimeMinutes: z.number().int().min(0),
   deliveryPeriods: z.array(periodoEntregaSchema),
   deliveryRegions: z.array(deliveryRegionSchema),
+  undeliveredReasons: z.array(z.string().min(1)),
 } as const
 
 export type ConfigKey = keyof typeof CONFIG_SCHEMA
@@ -32,6 +33,13 @@ export const CONFIG_DEFAULTS: { [K in ConfigKey]: ConfigValue<K> } = {
   preparationTimeMinutes: 60,
   deliveryPeriods: [] as PeriodoEntrega[],
   deliveryRegions: [] as Array<DeliveryRegion>,
+  undeliveredReasons: [
+    'Destinatário ausente',
+    'Endereço não encontrado / incorreto',
+    'Acesso bloqueado (portaria, condomínio)',
+    'Recusa de recebimento',
+    'Outro',
+  ],
 }
 
 // Only numeric/simple keys — deliveryPeriods and deliveryRegions have dedicated editors

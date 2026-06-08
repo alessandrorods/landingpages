@@ -7,7 +7,8 @@ export function createOrderHistoryRepository() {
       orderId: number,
       action: OrderHistoryAction,
       actor: Actor,
-      metadata?: Record<string, string>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      metadata?: Record<string, any>,
     ) =>
       prisma.orderHistoryEntry.create({
         data: {

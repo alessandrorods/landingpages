@@ -37,7 +37,11 @@ export const ACTION_DOT: Record<OrderHistoryAction, string> = {
 }
 
 export const METADATA_LABEL: Record<string, string> = {
-  courierName: 'Motoboy',
-  receivedBy:  'Recebido por',
-  source:      'Via',
+  courierName:    'Motoboy',
+  receivedBy:     'Recebido por',
+  source:         'Via',
+  reason:         'Motivo',
+  notes:          'Observações',
+  deliveryDate:   'Nova data',
+  deliveryPeriod: 'Período',
 }

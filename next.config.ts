@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
         hostname: 'cdn.awsli.com.br',
       }],
   },
-  allowedDevOrigins: ['192.168.1.5'],
+  allowedDevOrigins: ['192.168.15.17'],
 };
 
 

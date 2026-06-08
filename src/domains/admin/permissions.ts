@@ -31,6 +31,8 @@ export const PERMISSIONS = {
   updateOrderStatus: ['florista', 'expedicao', 'admin'],
   dispatchOrder:     ['admin'],
   searchProducts:    ['vendas', 'admin'],
+  markUndelivered:   ['motoboy', 'admin'],
+  rescheduleOrder:   ['expedicao', 'admin'],
   manageUsers:       ['admin'],
   manageConfig:      ['admin'],
 } as const satisfies Record<string, readonly Role[]>

@@ -7,6 +7,7 @@ import { OrderList } from '@/components/order/OrderList'
 import OrderDrawer from '@/components/order/OrderDrawer'
 import { CollectOrder } from './_components/CollectOrder'
 import { DeliveredToday } from './_components/DeliveredToday'
+import { GeolocationPrompt } from './_components/GeolocationPrompt'
 
 export default function MotoboyPage() {
   const user = useUser()
@@ -21,6 +22,7 @@ export default function MotoboyPage() {
         Motoboy: <span className="font-semibold text-gray-800">{user?.displayName}</span>
       </p>
 
+      <GeolocationPrompt />
       <CollectOrder onCollected={refresh} />
 
       <OrderList

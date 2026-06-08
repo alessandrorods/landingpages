@@ -18,6 +18,8 @@ export const ORDER_DRAWER_FEATURES = {
   actionMarkReady:        ['florista', 'admin'],
   actionDispatch:         ['expedicao', 'admin'],
   actionDeliver:          ['motoboy', 'admin'],
+  actionUndeliver:        ['motoboy', 'admin'],
+  actionReschedule:       ['expedicao', 'admin'],
   actionConfirmPickup:    ['admin'],
   actionCancel:           ['admin'],
   actionRecover:          ['vendas'],

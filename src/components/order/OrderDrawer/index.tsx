@@ -17,6 +17,8 @@ import { DrawerActionDeliver } from './DrawerActionDeliver'
 import { DrawerActionConfirmPickup } from './DrawerActionConfirmPickup'
 import { DrawerActionCancel } from './DrawerActionCancel'
 import { DrawerActionRecover } from './DrawerActionRecover'
+import { DrawerActionUndeliver } from './DrawerActionUndeliver'
+import { DrawerActionReschedule } from './DrawerActionReschedule'
 
 interface Props {
   id: number
@@ -202,11 +204,13 @@ export default function OrderDrawer({ id, onClose }: Props) {
           const showDispatch       = canSee('actionDispatch')       && order.status === 'ready'                && !order.pickup
           const showConfirmPickup  = canSee('actionConfirmPickup')  && order.status === 'available_for_pickup'
           const showDeliver        = canSee('actionDeliver')        && order.status === 'dispatched'
+          const showUndeliver      = canSee('actionUndeliver')      && order.status === 'dispatched'
+          const showReschedule     = canSee('actionReschedule')     && order.status === 'undelivered'
           const showRecover        = canSee('actionRecover')        && order.status === 'pending'
           const showCancel         = canSee('actionCancel')         && !!nonFinalStatus
 
           if (!showApprove && !showStartPreparing && !showMarkReady && !showDispatch &&
-              !showConfirmPickup && !showDeliver && !showRecover && !showCancel) return null
+              !showConfirmPickup && !showDeliver && !showUndeliver && !showReschedule && !showRecover && !showCancel) return null
 
           return (
             <div className="flex-none border-t border-gray-100 px-5 py-4 space-y-2">
@@ -216,6 +220,8 @@ export default function OrderDrawer({ id, onClose }: Props) {
               {showDispatch       && <DrawerActionDispatch       order={order} close={handleClose} />}
               {showConfirmPickup  && <DrawerActionConfirmPickup  order={order} close={handleClose} />}
               {showDeliver        && <DrawerActionDeliver        order={order} close={handleClose} />}
+              {showUndeliver      && <DrawerActionUndeliver      order={order} close={handleClose} />}
+              {showReschedule     && <DrawerActionReschedule     order={order} close={handleClose} />}
               {showRecover        && <DrawerActionRecover        order={order} />}
               {showCancel         && <DrawerActionCancel         order={order} close={handleClose} />}
             </div>
