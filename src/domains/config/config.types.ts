@@ -10,11 +10,28 @@ const periodoEntregaSchema = z.object({
   deliveryLimitHour: z.string().regex(/^\d{2}:\d{2}$/),
 })
 
-export const deliveryRegionSchema = z.object({
-  region: z.string().min(1),
-  label: z.string().min(1),
+const zipRangeSchema = z.object({
   zipStart: z.string().regex(/^\d{8}$/, 'CEP início deve ter 8 dígitos'),
-  zipEnd: z.string().regex(/^\d{8}$/, 'CEP fim deve ter 8 dígitos'),
+  zipEnd:   z.string().regex(/^\d{8}$/, 'CEP fim deve ter 8 dígitos'),
+})
+
+export type ZipRange = z.infer<typeof zipRangeSchema>
+
+export const deliveryRegionSchema = z.object({
+  region:    z.string().min(1),
+  label:     z.string().min(1),
+  zipRanges: z.array(zipRangeSchema).min(1).optional(),
+  // legacy flat fields — tolerated on read, synthesised into zipRanges
+  zipStart: z.string().regex(/^\d{8}$/).optional(),
+  zipEnd:   z.string().regex(/^\d{8}$/).optional(),
+}).transform((v) => {
+  const { zipStart, zipEnd, zipRanges, ...rest } = v
+  const ranges = zipRanges?.length
+    ? zipRanges
+    : zipStart && zipEnd
+      ? [{ zipStart, zipEnd }]
+      : []
+  return { ...rest, zipRanges: ranges }
 })
 
 export type DeliveryRegion = z.infer<typeof deliveryRegionSchema>
