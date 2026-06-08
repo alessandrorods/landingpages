@@ -51,9 +51,10 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
       return order
     },
 
-    async updateStatus(id: number, status: OrderStatus, actor: Actor) {
-      await service.updateStatus(id, status)
-      await historyRepository.record(id, status as OrderHistoryAction, actor)
+    async updateStatus(id: number, status: OrderStatus, actor: Actor, options?: { force?: boolean }) {
+      await service.updateStatus(id, status, options)
+      await historyRepository.record(id, status as OrderHistoryAction, actor,
+        options?.force ? { forced: true } : undefined)
     },
 
     async dispatch(id: number, courierId: string, courierName: string, actor: Actor) {

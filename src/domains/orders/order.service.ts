@@ -120,10 +120,10 @@ export function createOrderService(
       return row ? toOrderDTO(row) : null
     },
 
-    async updateStatus(id: number, status: OrderStatus): Promise<void> {
+    async updateStatus(id: number, status: OrderStatus, options?: { force?: boolean }): Promise<void> {
       const row = await repository.findById(id)
       if (!row) throw new OrderServiceError('Pedido não encontrado')
-      if (!canTransition(row.status as OrderStatus, status, row.pickup)) {
+      if (!options?.force && !canTransition(row.status as OrderStatus, status, row.pickup)) {
         throw new OrderServiceError('Transição de status não permitida')
       }
       await repository.updateStatus(id, status)
