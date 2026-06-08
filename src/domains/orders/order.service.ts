@@ -1,4 +1,4 @@
-import type { CreateOrderInput, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod, OrderHistoryEntryDTO } from './order.types'
+import type { CreateOrderInput, UpdateOrderInput, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod, OrderHistoryEntryDTO } from './order.types'
 import type { OrderRepository } from './order.repository'
 import type { OlistSyncEventRepository } from './olist-sync-event.repository'
 
@@ -189,6 +189,17 @@ export function createOrderService(
 
     async setMpPreferenceId(id: number, mpPreferenceId: string): Promise<void> {
       await repository.updateMpPreferenceId(id, mpPreferenceId)
+    },
+
+    async updateOrder(id: number, data: UpdateOrderInput): Promise<void> {
+      const row = await repository.findById(id)
+      if (!row) throw new OrderServiceError('Pedido não encontrado')
+      await repository.updateOrder(id, data)
+      await syncEventRepository.create(id, 'order_updated', {
+        notes:        data.notes ?? null,
+        cardMessage:  data.cardMessage ?? null,
+        deliveryDate: data.deliveryDate,
+      })
     },
   }
 }

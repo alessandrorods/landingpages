@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { IoPrintOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5'
+import { IoPrintOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline, IoCreateOutline } from 'react-icons/io5'
 import { PrintOverlay } from '@/components/order/PrintOverlay'
 import { useOrderDetail } from '@/hooks/useOrderDetail'
 import { useUser } from '@/contexts/UserContext'
@@ -10,6 +10,8 @@ import { canSeeDrawerFeature } from '@/constants/orderDrawerFeatures'
 import { HistoryPanel } from './HistoryPanel'
 import { OrderSections } from './OrderSections'
 import { DrawerFooter } from './DrawerFooter'
+import { ActionModal } from './ActionModal'
+import { DrawerActionEdit } from './DrawerActionEdit'
 
 interface Props {
   id: number
@@ -33,6 +35,7 @@ export default function OrderDrawer({ id, onClose }: Props) {
   const [showHistory, setShowHistory] = useState(false)
   const [copiedConfirmation, setCopiedConfirmation] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   const role = useUser()?.role ?? null
   const canSee = (feature: Parameters<typeof canSeeDrawerFeature>[1]) =>
@@ -105,6 +108,15 @@ export default function OrderDrawer({ id, onClose }: Props) {
               )}
             </div>
             <div className="flex items-center gap-1">
+              {canSee('editOrder') && order && (
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="text-gray-400 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  aria-label="Editar pedido"
+                >
+                  <IoCreateOutline size={20} />
+                </button>
+              )}
               {canSee('historyPanel') && (
                 <button
                   onClick={() => setShowHistory((v) => !v)}
@@ -188,6 +200,13 @@ export default function OrderDrawer({ id, onClose }: Props) {
 
         {/* Footer: actions */}
         {order && <DrawerFooter order={order} canSee={canSee} onClose={handleClose} refresh={refresh} />}
+
+        {/* Edit modal */}
+        {editOpen && order && (
+          <ActionModal title="Editar pedido" onClose={() => setEditOpen(false)} size="md">
+            <DrawerActionEdit order={order} onSuccess={() => { setEditOpen(false); void refresh() }} />
+          </ActionModal>
+        )}
       </div>
     </div>
   )

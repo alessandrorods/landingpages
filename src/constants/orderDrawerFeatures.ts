@@ -24,6 +24,7 @@ export const ORDER_DRAWER_FEATURES = {
   actionCancel:           ['admin'],
   actionRecover:          ['vendas'],
   actionForceStatus:      ['admin'],
+  editOrder:              ['vendas', 'expedicao', 'admin'],
 } as const satisfies Record<string, readonly Role[]>
 
 export type OrderDrawerFeature = keyof typeof ORDER_DRAWER_FEATURES

@@ -1,4 +1,5 @@
 import type { OrderService } from './order.service'
+import type { UpdateOrderInput } from './order.types'
 import { fmtDatetime } from './order.service'
 import type { OrderHistoryRepository } from './order-history.repository'
 import type { Actor, CreateOrderInput, OrderHistoryAction, OrderHistoryEntryDTO, OrderStatus } from './order.types'
@@ -106,6 +107,11 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
         receivedBy:   delivered?.metadata?.receivedBy ?? null,
         history,
       }
+    },
+
+    async updateOrder(id: number, data: UpdateOrderInput, actor: Actor) {
+      await service.updateOrder(id, data)
+      await historyRepository.record(id, 'edited', actor)
     },
 
     // Pass-throughs — sem efeito colateral de histórico

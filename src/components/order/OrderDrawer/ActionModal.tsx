@@ -7,9 +7,10 @@ interface Props {
   title: string
   onClose: () => void
   children: React.ReactNode
+  size?: 'sm' | 'md'
 }
 
-export function ActionModal({ title, onClose, children }: Props) {
+export function ActionModal({ title, onClose, children, size = 'sm' }: Props) {
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Close on back-navigation (browser back button)
@@ -25,7 +26,7 @@ export function ActionModal({ title, onClose, children }: Props) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
         ref={panelRef}
-        className="relative bg-white rounded-t-3xl md:rounded-3xl w-full md:max-w-sm flex flex-col max-h-[85vh] animate-modal-slide-up"
+        className={`relative bg-white rounded-t-3xl md:rounded-3xl w-full flex flex-col max-h-[85vh] animate-modal-slide-up ${size === 'md' ? 'md:max-w-lg' : 'md:max-w-sm'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

@@ -4,7 +4,7 @@ const MAX_ATTEMPTS = 5
 
 export function createOlistSyncEventRepository() {
   return {
-    create: (orderId: number, type: 'order_created' | 'status_updated', payload: object) =>
+    create: (orderId: number, type: 'order_created' | 'status_updated' | 'order_updated', payload: object) =>
       prisma.olistSyncEvent.create({ data: { orderId, type, payload } }),
 
     findPending: () =>
