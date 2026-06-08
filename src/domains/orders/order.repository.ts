@@ -146,6 +146,12 @@ export function createOrderRepository() {
         }),
       ]),
 
+    findByOlistId: (olistId: number) =>
+      prisma.order.findUnique({ where: { olistId }, include: includeItems }),
+
+    updateOlistRefAndStatus: (id: number, olistId: number, olistNumero: string, status: OrderStatus) =>
+      prisma.order.update({ where: { id }, data: { olistId, olistNumero, status } }),
+
     findPublicStatus: (id: number) =>
       prisma.order.findUnique({
         where: { id },
