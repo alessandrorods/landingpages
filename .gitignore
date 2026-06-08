@@ -42,8 +42,12 @@ yarn-error.log*
 next-env.d.ts
 
 
+# scripts locais (não commitar)
+/scripts/
+
 # MCPs
 .mcp.json
 
 # Claude Code worktrees
 .claude/worktrees/
+/src/core/generated/prisma
