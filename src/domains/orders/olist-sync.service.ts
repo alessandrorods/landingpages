@@ -20,6 +20,23 @@ export function createOlistSyncService(
         return
       }
 
+      if (event.type === 'order_updated') {
+        const order = await orderRepository.findById(event.orderId)
+        if (!order?.olistId) return  // defer silently — olistId não disponível ainda
+        const { notes, cardMessage, deliveryDate } = event.payload as {
+          notes?: string | null
+          cardMessage?: string | null
+          deliveryDate: string
+        }
+        await olistClient.updateOrder(order.olistId, {
+          data_prevista: deliveryDate,
+          ...(notes        != null && { obs:         notes }),
+          ...(cardMessage  != null && { obs_interna: cardMessage }),
+        })
+        await syncEventRepository.markDone(event.id)
+        return
+      }
+
       if (event.type === 'status_updated') {
         const { status } = event.payload as { status: OrderStatus }
         const order = await orderRepository.findById(event.orderId)

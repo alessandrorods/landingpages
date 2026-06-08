@@ -22,6 +22,7 @@ export const ACTION_LABEL: Record<OrderHistoryAction, string> = {
   delivered:   'Entregue',
   undelivered: 'Não entregue',
   cancelled:   'Cancelado',
+  edited:      'Dados editados',
 }
 
 export const ACTION_DOT: Record<OrderHistoryAction, string> = {
@@ -34,6 +35,7 @@ export const ACTION_DOT: Record<OrderHistoryAction, string> = {
   delivered:   'bg-green-600',
   undelivered: 'bg-red-500',
   cancelled:   'bg-red-500',
+  edited:      'bg-blue-400',
 }
 
 export const METADATA_LABEL: Record<string, string> = {

@@ -2,23 +2,16 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { IoPrintOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline } from 'react-icons/io5'
+import { IoPrintOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline, IoCreateOutline } from 'react-icons/io5'
 import { PrintOverlay } from '@/components/order/PrintOverlay'
 import { useOrderDetail } from '@/hooks/useOrderDetail'
 import { useUser } from '@/contexts/UserContext'
 import { canSeeDrawerFeature } from '@/constants/orderDrawerFeatures'
 import { HistoryPanel } from './HistoryPanel'
 import { OrderSections } from './OrderSections'
-import { DrawerActionApprove } from './DrawerActionApprove'
-import { DrawerActionStartPreparing } from './DrawerActionStartPreparing'
-import { DrawerActionMarkReady } from './DrawerActionMarkReady'
-import { DrawerActionDispatch } from './DrawerActionDispatch'
-import { DrawerActionDeliver } from './DrawerActionDeliver'
-import { DrawerActionConfirmPickup } from './DrawerActionConfirmPickup'
-import { DrawerActionCancel } from './DrawerActionCancel'
-import { DrawerActionRecover } from './DrawerActionRecover'
-import { DrawerActionUndeliver } from './DrawerActionUndeliver'
-import { DrawerActionReschedule } from './DrawerActionReschedule'
+import { DrawerFooter } from './DrawerFooter'
+import { ActionModal } from './ActionModal'
+import { DrawerActionEdit } from './DrawerActionEdit'
 
 interface Props {
   id: number
@@ -42,6 +35,7 @@ export default function OrderDrawer({ id, onClose }: Props) {
   const [showHistory, setShowHistory] = useState(false)
   const [copiedConfirmation, setCopiedConfirmation] = useState(false)
   const [printing, setPrinting] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   const role = useUser()?.role ?? null
   const canSee = (feature: Parameters<typeof canSeeDrawerFeature>[1]) =>
@@ -88,7 +82,6 @@ export default function OrderDrawer({ id, onClose }: Props) {
     })
   }
 
-  const nonFinalStatus = order && !['delivered', 'cancelled', 'undelivered'].includes(order.status)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center">
@@ -115,6 +108,15 @@ export default function OrderDrawer({ id, onClose }: Props) {
               )}
             </div>
             <div className="flex items-center gap-1">
+              {canSee('editOrder') && order && (
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="text-gray-400 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  aria-label="Editar pedido"
+                >
+                  <IoCreateOutline size={20} />
+                </button>
+              )}
               {canSee('historyPanel') && (
                 <button
                   onClick={() => setShowHistory((v) => !v)}
@@ -196,37 +198,15 @@ export default function OrderDrawer({ id, onClose }: Props) {
           )}
         </div>
 
-        {/* Footer: actions — only rendered when at least one action applies */}
-        {order && (() => {
-          const showApprove        = canSee('actionApprove')        && order.status === 'pending'
-          const showStartPreparing = canSee('actionStartPreparing') && order.status === 'approved'
-          const showMarkReady      = canSee('actionMarkReady')      && order.status === 'preparing'
-          const showDispatch       = canSee('actionDispatch')       && order.status === 'ready'                && !order.pickup
-          const showConfirmPickup  = canSee('actionConfirmPickup')  && order.status === 'available_for_pickup'
-          const showDeliver        = canSee('actionDeliver')        && order.status === 'dispatched'
-          const showUndeliver      = canSee('actionUndeliver')      && order.status === 'dispatched'
-          const showReschedule     = canSee('actionReschedule')     && order.status === 'undelivered'
-          const showRecover        = canSee('actionRecover')        && order.status === 'pending'
-          const showCancel         = canSee('actionCancel')         && !!nonFinalStatus
+        {/* Footer: actions */}
+        {order && <DrawerFooter order={order} canSee={canSee} onClose={handleClose} refresh={refresh} />}
 
-          if (!showApprove && !showStartPreparing && !showMarkReady && !showDispatch &&
-              !showConfirmPickup && !showDeliver && !showUndeliver && !showReschedule && !showRecover && !showCancel) return null
-
-          return (
-            <div className="flex-none border-t border-gray-100 px-5 py-4 space-y-2">
-              {showApprove        && <DrawerActionApprove        order={order} refresh={refresh} />}
-              {showStartPreparing && <DrawerActionStartPreparing order={order} refresh={refresh} />}
-              {showMarkReady      && <DrawerActionMarkReady      order={order} close={handleClose} />}
-              {showDispatch       && <DrawerActionDispatch       order={order} close={handleClose} />}
-              {showConfirmPickup  && <DrawerActionConfirmPickup  order={order} close={handleClose} />}
-              {showDeliver        && <DrawerActionDeliver        order={order} close={handleClose} />}
-              {showUndeliver      && <DrawerActionUndeliver      order={order} close={handleClose} />}
-              {showReschedule     && <DrawerActionReschedule     order={order} close={handleClose} />}
-              {showRecover        && <DrawerActionRecover        order={order} />}
-              {showCancel         && <DrawerActionCancel         order={order} close={handleClose} />}
-            </div>
-          )
-        })()}
+        {/* Edit modal */}
+        {editOpen && order && (
+          <ActionModal title="Editar pedido" onClose={() => setEditOpen(false)} size="md">
+            <DrawerActionEdit order={order} onSuccess={() => { setEditOpen(false); void refresh() }} />
+          </ActionModal>
+        )}
       </div>
     </div>
   )

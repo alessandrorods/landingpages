@@ -7,11 +7,12 @@ import type { OrderDTO } from '@/domains/orders/order.types'
 interface Props {
   order: OrderDTO
   close: () => void
+  defaultConfirm?: boolean
 }
 
-export function DrawerActionCancel({ order, close }: Props) {
+export function DrawerActionCancel({ order, close, defaultConfirm = false }: Props) {
   const { loading, err, run } = useDrawerAction()
-  const [confirm, setConfirm] = useState(false)
+  const [confirm, setConfirm] = useState(defaultConfirm)
 
   async function cancel() {
     await run(async () => {

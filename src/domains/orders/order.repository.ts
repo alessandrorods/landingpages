@@ -1,5 +1,5 @@
 import prisma from '@/core/db/client'
-import type { CreateOrderInput, OrderStatus } from './order.types'
+import type { CreateOrderInput, UpdateOrderInput, OrderStatus } from './order.types'
 
 function parseDeliveryDate(ddmmyyyy: string): Date {
   const [dd, mm, yyyy] = ddmmyyyy.split('/')
@@ -112,6 +112,39 @@ export function createOrderRepository() {
 
     updateMpPreferenceId: (id: number, mpPreferenceId: string) =>
       prisma.order.update({ where: { id }, data: { mpPreferenceId } }),
+
+    updateOrder: (id: number, data: UpdateOrderInput) =>
+      prisma.$transaction([
+        prisma.order.update({
+          where: { id },
+          data: {
+            buyerName:     data.buyerName,
+            buyerPhone:    data.buyerPhone,
+            recipientName: data.recipientName,
+            recipientPhone: data.recipientPhone,
+            cardMessage:   data.cardMessage ?? null,
+            zipCode:       data.zipCode ?? null,
+            street:        data.street ?? null,
+            streetNumber:  data.streetNumber ?? null,
+            complement:    data.complement ?? null,
+            neighborhood:  data.neighborhood ?? null,
+            deliveryDate:  parseDeliveryDate(data.deliveryDate),
+            deliveryPeriod: data.deliveryPeriod ?? null,
+            freight:       data.freight,
+            notes:         data.notes ?? null,
+          },
+        }),
+        prisma.orderItem.deleteMany({ where: { orderId: id } }),
+        prisma.orderItem.createMany({
+          data: data.items.map((i) => ({
+            orderId:  id,
+            sku:      i.sku ?? null,
+            name:     i.name,
+            price:    i.price,
+            quantity: i.quantity,
+          })),
+        }),
+      ]),
 
     findPublicStatus: (id: number) =>
       prisma.order.findUnique({

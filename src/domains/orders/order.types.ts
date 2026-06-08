@@ -12,6 +12,7 @@ export type OrderHistoryAction =
   | 'delivered'
   | 'undelivered'
   | 'cancelled'
+  | 'edited'
 
 export interface OrderHistoryEntryDTO {
   id: number
@@ -35,6 +36,24 @@ export type OrderStatus =
   | 'cancelled'
 
 export type PaymentMethod = 'pix' | 'card' | 'mp_link'
+
+export interface UpdateOrderInput {
+  buyerName: string
+  buyerPhone: string
+  recipientName: string
+  recipientPhone: string
+  cardMessage?: string
+  zipCode?: string
+  street?: string
+  streetNumber?: string
+  complement?: string
+  neighborhood?: string
+  deliveryDate: string    // DD/MM/YYYY
+  deliveryPeriod?: string
+  freight: number
+  notes?: string
+  items: Array<{ sku?: string; name: string; price: number; quantity: number }>
+}
 
 export interface CreateOrderInput {
   pickup: boolean
