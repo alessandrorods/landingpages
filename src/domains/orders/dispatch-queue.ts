@@ -28,7 +28,9 @@ function resolveRegion(
     return { region: 'unknown', regionLabel: 'Região não identificada' }
   }
   const clean = zipCode.replace(/\D/g, '').padEnd(8, '0').slice(0, 8)
-  const match = regions.find((r) => clean >= r.zipStart && clean <= r.zipEnd)
+  const match = regions.find((r) =>
+    r.zipRanges.some((z) => clean >= z.zipStart && clean <= z.zipEnd)
+  )
   return match
     ? { region: match.region, regionLabel: match.label }
     : { region: 'unknown', regionLabel: 'Região não identificada' }
