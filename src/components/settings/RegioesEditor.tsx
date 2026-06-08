@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { DeliveryRegion } from '@/domains/config/config.types'
+import type { DeliveryRegion, ZipRange } from '@/domains/config/config.types'
 
 function cleanZip(v: string): string {
   return v.replace(/\D/g, '').slice(0, 8)
@@ -15,8 +15,7 @@ function formatZip(v: string): string {
 const EMPTY_REGION: DeliveryRegion = {
   region: '',
   label: '',
-  zipStart: '',
-  zipEnd: '',
+  zipRanges: [{ zipStart: '', zipEnd: '' }],
 }
 
 export function RegioesEditor() {
@@ -85,7 +84,7 @@ export function RegioesEditor() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Regiões de entrega</p>
-          <p className="text-xs text-gray-400 mt-0.5">Faixa de CEP → região (usado na fila de despacho)</p>
+          <p className="text-xs text-gray-400 mt-0.5">Faixas de CEP → região (usado na fila de despacho)</p>
         </div>
         {saved && <span className="text-xs text-green-600 font-semibold">✓ Salvo</span>}
       </div>
@@ -102,7 +101,7 @@ export function RegioesEditor() {
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900">{r.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5 font-mono">
-                    {formatZip(r.zipStart)} – {formatZip(r.zipEnd)}
+                    {r.zipRanges.map(z => `${formatZip(z.zipStart)} – ${formatZip(z.zipEnd)}`).join(' · ')}
                     <span className="font-sans ml-1">· {r.region}</span>
                   </p>
                 </div>
@@ -137,20 +136,49 @@ function RegionForm({ value, onChange, onConfirm, onCancel, saving }: {
   onCancel: () => void
   saving: boolean
 }) {
-  const field = (k: keyof DeliveryRegion) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value
-    const v = (k === 'zipStart' || k === 'zipEnd') ? cleanZip(raw) : raw
-    onChange({ ...value, [k]: v })
+  function updateRange(idx: number, field: keyof ZipRange, raw: string) {
+    const updated = value.zipRanges.map((z, i) =>
+      i === idx ? { ...z, [field]: cleanZip(raw) } : z
+    )
+    onChange({ ...value, zipRanges: updated })
+  }
+
+  function addRange() {
+    onChange({ ...value, zipRanges: [...value.zipRanges, { zipStart: '', zipEnd: '' }] })
+  }
+
+  function removeRange(idx: number) {
+    onChange({ ...value, zipRanges: value.zipRanges.filter((_, i) => i !== idx) })
   }
 
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-2">
-        <Field label="CEP início" value={formatZip(value.zipStart)} onChange={field('zipStart')} placeholder="08790-000" />
-        <Field label="CEP fim"   value={formatZip(value.zipEnd)}   onChange={field('zipEnd')}   placeholder="08810-999" />
-        <Field label="Slug da região" value={value.region} onChange={field('region')} placeholder="ex: mogi-leste" />
-        <Field label="Label"          value={value.label}  onChange={field('label')}  placeholder="ex: Mogi Leste" />
+        <Field label="Slug da região" value={value.region} onChange={e => onChange({ ...value, region: e.target.value })} placeholder="ex: mogi-leste" />
+        <Field label="Label"          value={value.label}  onChange={e => onChange({ ...value, label: e.target.value })}  placeholder="ex: Mogi Leste" />
       </div>
+
+      <div className="space-y-1.5">
+        <p className="text-xs text-gray-400">Faixas de CEP</p>
+        {value.zipRanges.map((z, idx) => (
+          <div key={idx} className="flex gap-2 items-center">
+            <div className="flex-1">
+              <Field label="" value={formatZip(z.zipStart)} onChange={e => updateRange(idx, 'zipStart', e.target.value)} placeholder="08710-000" />
+            </div>
+            <span className="text-xs text-gray-400 shrink-0">–</span>
+            <div className="flex-1">
+              <Field label="" value={formatZip(z.zipEnd)} onChange={e => updateRange(idx, 'zipEnd', e.target.value)} placeholder="08710-999" />
+            </div>
+            {value.zipRanges.length > 1 && (
+              <button type="button" onClick={() => removeRange(idx)} className="text-xs text-red-400 hover:text-red-600 shrink-0 px-1">×</button>
+            )}
+          </div>
+        ))}
+        <button type="button" onClick={addRange} className="text-xs text-blue-500 hover:text-blue-700">
+          + Faixa
+        </button>
+      </div>
+
       <div className="flex gap-2 justify-end pt-1">
         <button type="button" onClick={onCancel} className="text-sm text-gray-400 hover:text-gray-600 px-3 py-1.5">Cancelar</button>
         <button type="button" onClick={onConfirm} disabled={saving}

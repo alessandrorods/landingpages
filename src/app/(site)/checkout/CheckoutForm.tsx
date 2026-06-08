@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { PRODUCTS } from '@/constants/products'
-import { cepAtendido } from '@/constants/cep'
+import { cepAtendido, cepAtendidoPorRegioes } from '@/constants/cep'
+import type { DeliveryRegion } from '@/domains/config/config.types'
 import type { FormData, CepStatus, EnderecoForm, DestinatarioForm, CompradorForm } from './types'
 import { STORAGE_KEY, EMPTY_FORM, maskCEP, fetchViaCEP } from './utils'
 import { StepIndicator } from './components/StepIndicator'
@@ -19,6 +20,7 @@ export default function CheckoutForm({ sku }: { sku: string }) {
   const product = PRODUCTS.find(p => p.sku === sku)
   const router = useRouter()
 
+  const [deliveryRegions, setDeliveryRegions] = useState<DeliveryRegion[]>([])
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
   const [cepStatus, setCepStatus] = useState<CepStatus>('idle')
@@ -26,6 +28,13 @@ export default function CheckoutForm({ sku }: { sku: string }) {
   const [ready, setReady] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/delivery-regions')
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setDeliveryRegions(data) })
+      .catch(() => { /* fallback to static cepAtendido */ })
+  }, [])
 
   useEffect(() => {
     try {
@@ -69,7 +78,10 @@ export default function CheckoutForm({ sku }: { sku: string }) {
 
     const digits = masked.replace(/\D/g, '')
     if (digits.length < 8) { setCepStatus('idle'); return }
-    if (!cepAtendido(digits)) { setCepStatus('fora-area'); return }
+    const allowed = deliveryRegions.length > 0
+      ? cepAtendidoPorRegioes(digits, deliveryRegions)
+      : cepAtendido(digits)
+    if (!allowed) { setCepStatus('fora-area'); return }
 
     setCepStatus('loading')
     const data = await fetchViaCEP(digits)
@@ -84,7 +96,7 @@ export default function CheckoutForm({ sku }: { sku: string }) {
         bairro: data.bairro || f.endereco.bairro,
       },
     }))
-  }, [])
+  }, [deliveryRegions])
 
   function validate(s: number): Record<string, string> {
     const e: Record<string, string> = {}
