@@ -1,6 +1,7 @@
 import type { CreateOrderInput, UpdateOrderInput, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod, OrderHistoryEntryDTO } from './order.types'
 import type { OrderRepository } from './order.repository'
 import type { OlistSyncEventRepository } from './olist-sync-event.repository'
+import type { LiSyncEventRepository } from './li-sync-event.repository'
 
 export class OrderServiceError extends Error {
   constructor(message: string) {
@@ -94,14 +95,37 @@ export function toOrderDTO(order: PrismaOrderWithItems, history: OrderHistoryEnt
   }
 }
 
+const STATUS_TO_LI: Partial<Record<OrderStatus, string>> = {
+  preparing:   'em_producao',
+  ready:       'pedido_em_separacao',
+  dispatched:  'pedido_enviado',
+  delivered:   'pedido_entregue',
+  cancelled:   'pedido_cancelado',
+  undelivered: 'pedido_enviado',
+}
+
 export function createOrderService(
   repository: OrderRepository,
   syncEventRepository: OlistSyncEventRepository,
+  liSyncEventRepository?: LiSyncEventRepository,
 ) {
+  async function enqueueLiSync(orderId: number, status: OrderStatus, source: string): Promise<void> {
+    if (source !== 'loja_integrada' || !liSyncEventRepository) return
+    const codigo = STATUS_TO_LI[status]
+    if (!codigo) return
+    await liSyncEventRepository.create(orderId, 'status_updated', { codigo })
+  }
+
   return {
     async createOrder(input: CreateOrderInput): Promise<OrderDTO> {
       const raw = await repository.create(input)
-      await syncEventRepository.create(raw.id, 'order_created', input as object)
+      if (input.source !== 'loja_integrada') {
+        await syncEventRepository.create(raw.id, 'order_created', input as object)
+      }
+      if (input.initialStatus === 'approved') {
+        await repository.updateStatus(raw.id, 'approved')
+        return toOrderDTO({ ...raw, status: 'approved' as OrderStatus })
+      }
       return toOrderDTO(raw)
     },
 
@@ -128,6 +152,7 @@ export function createOrderService(
       }
       await repository.updateStatus(id, status)
       await syncEventRepository.create(id, 'status_updated', { status })
+      await enqueueLiSync(id, status, row.source)
     },
 
     async dispatch(id: number, courierId: string): Promise<void> {
@@ -136,6 +161,7 @@ export function createOrderService(
       await repository.updateDispatch(id, { courierId })
       await repository.updateStatus(id, 'dispatched')
       await syncEventRepository.create(id, 'status_updated', { status: 'dispatched' })
+      await enqueueLiSync(id, 'dispatched', row.source)
     },
 
     async deliver(id: number, receivedBy: string, courierId: string): Promise<void> {
@@ -144,6 +170,7 @@ export function createOrderService(
       await repository.updateDelivery(id, { courierId })
       await repository.updateStatus(id, 'delivered')
       await syncEventRepository.create(id, 'status_updated', { status: 'delivered' })
+      await enqueueLiSync(id, 'delivered', row.source)
     },
 
     async markUndelivered(
@@ -155,6 +182,7 @@ export function createOrderService(
       if (row.status !== 'dispatched') throw new OrderServiceError('Pedido não está em rota')
       await repository.updateStatus(id, 'undelivered')
       await syncEventRepository.create(id, 'status_updated', { status: 'undelivered' })
+      await enqueueLiSync(id, 'undelivered', row.source)
     },
 
     async rescheduleOrder(
@@ -168,6 +196,7 @@ export function createOrderService(
       await repository.clearCourier(id)
       await repository.updateStatus(id, 'ready')
       await syncEventRepository.create(id, 'status_updated', { status: 'ready', rescheduled: true })
+      await enqueueLiSync(id, 'ready', row.source)
     },
 
     async findByNumero(numero: string): Promise<OrderDTO | null> {

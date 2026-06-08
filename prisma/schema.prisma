@@ -102,6 +102,7 @@ model Order {
 
   items          OrderItem[]
   syncEvents     OlistSyncEvent[]
+  liSyncEvents   LiSyncEvent[]
   historyEntries OrderHistoryEntry[]
 
   @@map("orders")
@@ -136,6 +137,22 @@ model OlistSyncEvent {
   order Order @relation(fields: [orderId], references: [id])
 
   @@map("olist_sync_events")
+}
+
+model LiSyncEvent {
+  id          Int       @id @default(autoincrement())
+  orderId     Int       @map("order_id")
+  type        String    @db.VarChar(50)
+  payload     Json
+  status      String    @default("pending") @db.VarChar(20)
+  attempts    Int       @default(0)
+  lastError   String?   @map("last_error") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("li_sync_events")
 }
 
 model SystemConfig {

@@ -6,6 +6,7 @@ import type { ConfigKey } from '@/domains/config/config.types'
 import { PeriodosEditor } from '@/components/settings/PeriodosEditor'
 import { RegioesEditor } from '@/components/settings/RegioesEditor'
 import { UndeliveredReasonsEditor } from './_components/UndeliveredReasonsEditor'
+import { LIEnvioMappingEditor } from './_components/LIEnvioMappingEditor'
 
 type ConfigMap = Partial<Record<ConfigKey, unknown>>
 
@@ -53,24 +54,22 @@ export default function SettingsPage() {
         <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mt-16" />
       )}
 
-      {config && (
-        <div className="space-y-4">
-          {(Object.keys(CONFIG_LABELS) as ConfigKey[]).map((key) => (
-            <ConfigField
-              key={key}
-              label={CONFIG_LABELS[key] ?? key}
-              value={config[key] as number}
-              saving={saving === key}
-              saved={saved === key}
-              onSave={(value) => save(key, value)}
-            />
-          ))}
-        </div>
-      )}
-
-      <PeriodosEditor />
-      <RegioesEditor />
-      <UndeliveredReasonsEditor />
+      <div className="space-y-4">
+        {config && (Object.keys(CONFIG_LABELS) as ConfigKey[]).map((key) => (
+          <ConfigField
+            key={key}
+            label={CONFIG_LABELS[key] ?? key}
+            value={config[key] as number}
+            saving={saving === key}
+            saved={saved === key}
+            onSave={(value) => save(key, value)}
+          />
+        ))}
+        <PeriodosEditor />
+        <RegioesEditor />
+        <UndeliveredReasonsEditor />
+        <LIEnvioMappingEditor />
+      </div>
     </div>
   )
 }
