@@ -98,7 +98,15 @@ export default function OrderDrawer({ id, onClose }: Props) {
               <span className="text-3xl font-bold font-mono text-gray-900">
                 #{order?.id ?? '—'}
               </span>
-              {canSee('olistBadge') && (
+              {canSee('olistBadge') && order?.source === 'loja_integrada' && (
+                <div className="flex items-center gap-1.5">
+                  <Image src="/lojaintegrada-icon.svg" alt="Loja Integrada" width={14} height={14} className="rounded-sm" />
+                  <span className="text-xs text-gray-500">
+                    Loja Integrada · <span className="font-mono">{order.olistNumero ?? order.id}</span>
+                  </span>
+                </div>
+              )}
+              {canSee('olistBadge') && order?.source !== 'loja_integrada' && (
                 <div className="flex items-center gap-1.5">
                   <Image src="/olist-icon.png" alt="Olist" width={14} height={14} className={`rounded-sm ${!order?.olistNumero ? 'grayscale' : ''}`} />
                   <span className={`text-xs ${order?.olistNumero ? 'text-gray-500' : 'text-yellow-700'}`}>

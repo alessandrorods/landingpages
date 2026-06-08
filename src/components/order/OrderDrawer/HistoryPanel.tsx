@@ -1,7 +1,7 @@
 import { IoTimeOutline } from 'react-icons/io5'
 import { ROLE_LABELS } from '@/domains/admin/auth'
 import type { Role } from '@/domains/admin/auth'
-import { ACTION_LABEL, ACTION_DOT, METADATA_LABEL } from '@/constants/orderDisplay'
+import { ACTION_LABEL, ACTION_DOT, METADATA_LABEL, METADATA_VALUE } from '@/constants/orderDisplay'
 import type { OrderHistoryEntryDTO } from '@/domains/orders/order.types'
 
 function ActorDisplay({ actorType, actorName, actorRole }: {
@@ -65,9 +65,13 @@ export function HistoryPanel({ entries }: { entries: OrderHistoryEntryDTO[] }) {
                   {Object.entries(entry.metadata).map(([key, value]) => {
                     if (key === 'photoUrls' || key === 'lat' || key === 'lng') return null
                     if (Array.isArray(value) || typeof value === 'object') return null
+                    const label = METADATA_LABEL[key] ?? key
+                    const translated = METADATA_VALUE[key]?.[String(value)]
+                    const display = translated ?? String(value)
+                    if (!display) return null
                     return (
                       <p key={key} className="text-xs text-gray-500">
-                        {METADATA_LABEL[key] ?? key}: {String(value)}
+                        {translated !== undefined ? `${label} ${display}` : `${label}: ${display}`}
                       </p>
                     )
                   })}

@@ -46,4 +46,9 @@ export const METADATA_LABEL: Record<string, string> = {
   notes:          'Observações',
   deliveryDate:   'Nova data',
   deliveryPeriod: 'Período',
+  forced:         'Alteração forçada',
+}
+
+export const METADATA_VALUE: Record<string, Record<string, string>> = {
+  forced: { true: 'pelo admin', false: '' },
 }

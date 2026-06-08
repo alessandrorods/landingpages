@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { DeliveryLabel } from './DeliveryLabel'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
@@ -63,6 +64,13 @@ export function OrderCard({
       <p className={`font-semibold leading-snug ${dimmed ? 'text-gray-500' : 'text-gray-900'}`}>
         {primary ?? order.buyerName}
       </p>
+
+      {order.source === 'loja_integrada' && (
+        <div className="flex items-center gap-1 mt-0.5">
+          <Image src="/lojaintegrada-icon.svg" alt="Loja Integrada" width={11} height={11} className="rounded-sm opacity-50" />
+          <span className="text-xs text-gray-300 font-mono">#{order.olistNumero ?? order.id}</span>
+        </div>
+      )}
 
       {secondary && (
         <p className="text-sm text-gray-500 mt-0.5">{secondary}</p>

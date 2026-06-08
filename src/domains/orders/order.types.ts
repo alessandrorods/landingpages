@@ -73,7 +73,8 @@ export interface CreateOrderInput {
   deliveryDate: string  // DD/MM/YYYY
   deliveryPeriod?: string
   items: Array<{ sku?: string; name: string; price: number; quantity: number }>
-  source: 'admin' | 'checkout'
+  source: 'admin' | 'checkout' | 'loja_integrada'
+  initialStatus?: OrderStatus
 }
 
 export interface OrderItemDTO {

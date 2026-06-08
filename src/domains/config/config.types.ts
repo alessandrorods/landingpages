@@ -41,6 +41,9 @@ export const CONFIG_SCHEMA = {
   deliveryPeriods: z.array(periodoEntregaSchema),
   deliveryRegions: z.array(deliveryRegionSchema),
   undeliveredReasons: z.array(z.string().min(1)),
+  liWebhookSecret: z.string(),
+  liWebhookUrl: z.string(),
+  liEnvioMapping: z.record(z.string(), z.string()),  // liEnvioId → deliveryPeriodId
 } as const
 
 export type ConfigKey = keyof typeof CONFIG_SCHEMA
@@ -57,6 +60,9 @@ export const CONFIG_DEFAULTS: { [K in ConfigKey]: ConfigValue<K> } = {
     'Recusa de recebimento',
     'Outro',
   ],
+  liWebhookSecret: '',
+  liWebhookUrl: '',
+  liEnvioMapping: {},
 }
 
 // Only numeric/simple keys — deliveryPeriods and deliveryRegions have dedicated editors
