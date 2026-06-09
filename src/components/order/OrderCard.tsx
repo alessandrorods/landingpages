@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { DeliveryLabel } from './DeliveryLabel'
+import { useUser } from '@/contexts/UserContext'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
 type Accent = 'pink' | 'orange' | 'green' | 'blue' | 'purple' | 'gray'
@@ -38,6 +39,7 @@ export function OrderCard({
   cta,
   dimmed = false,
 }: OrderCardProps) {
+  const role = useUser()?.role
   const cls = dimmed
     ? { number: 'bg-gray-100 text-gray-500', cta: 'text-gray-400' }
     : ACCENT[accent]
@@ -65,10 +67,14 @@ export function OrderCard({
         {primary ?? order.buyerName}
       </p>
 
-      {order.source === 'loja_integrada' && (
+      {order.olistNumero && role !== 'motoboy' && (
         <div className="flex items-center gap-1 mt-0.5">
-          <Image src="/lojaintegrada-icon.svg" alt="Loja Integrada" width={11} height={11} className="rounded-sm opacity-50" />
-          <span className="text-xs text-gray-300 font-mono">#{order.olistNumero ?? order.id}</span>
+          {order.source === 'loja_integrada' ? (
+            <Image src="/lojaintegrada-icon.svg" alt="Loja Integrada" width={11} height={11} className="rounded-sm opacity-60" />
+          ) : (
+            <Image src="/olist-icon.png" alt="Olist" width={11} height={11} className="rounded-sm opacity-60" />
+          )}
+          <span className="text-xs text-gray-400 font-mono">#{order.olistNumero}</span>
         </div>
       )}
 

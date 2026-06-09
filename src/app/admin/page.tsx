@@ -4,10 +4,9 @@ import Link from 'next/link'
 import type { Role } from '@/domains/admin/auth'
 
 const AREAS: { roles: Role[]; label: string; icon: string; desc: string; href: string }[] = [
-  { roles: ['admin'],                    label: 'Painel da Operação',  icon: '📊', desc: 'Visão completa de todos os pedidos',   href: '/admin/painel'    },
+  { roles: ['expedicao', 'admin'],        label: 'Painel da Operação',  icon: '📊', desc: 'Visão completa de todos os pedidos',  href: '/admin/painel'    },
   { roles: ['vendas', 'admin'],          label: 'Vendas',             icon: '💰', desc: 'Pedidos pagos e recuperação',           href: '/admin/vendas'    },
   { roles: ['florista', 'admin'],        label: 'Florista',           icon: '🌸', desc: 'Montagem dos pedidos',                  href: '/admin/florista'  },
-  { roles: ['expedicao', 'admin'],       label: 'Expedição',          icon: '🚚', desc: 'Separação para rota',                   href: '/admin/expedicao' },
   { roles: ['expedicao', 'admin'],       label: 'Fila de Despacho',   icon: '📋', desc: 'Agrupamento de pedidos prontos',        href: '/admin/fila'      },
   { roles: ['motoboy', 'admin'],         label: 'Motoboy',            icon: '🏍️', desc: 'Confirmação de entregas',               href: '/admin/motoboy'   },
   { roles: ['admin'],                    label: 'Usuários',           icon: '🧑', desc: 'Gerenciar usuários',                    href: '/admin/users'     },

@@ -7,7 +7,7 @@ export const AREA_ACCESS: Record<string, readonly Role[]> = {
   expedicao: ['expedicao', 'admin'],
   motoboy:   ['motoboy', 'admin'],
   fila:      ['expedicao', 'admin'],
-  painel:    ['admin'],
+  painel:    ['expedicao', 'admin'],
   users:     ['admin'],
   settings:  ['admin'],
 }
@@ -29,7 +29,7 @@ export const PERMISSIONS = {
   searchOrders:      ['vendas', 'expedicao', 'admin'],
   createOrder:       ['vendas', 'admin'],
   updateOrderStatus: ['florista', 'expedicao', 'admin'],
-  dispatchOrder:     ['admin'],
+  dispatchOrder:     ['expedicao', 'admin'],
   searchProducts:    ['vendas', 'admin'],
   markUndelivered:   ['motoboy', 'admin'],
   rescheduleOrder:   ['expedicao', 'admin'],

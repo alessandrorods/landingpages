@@ -64,10 +64,32 @@ export function createOrderRepository() {
         orderBy: { createdAt: 'asc' },
       }),
 
-    findByNumero: (numero: string) =>
-      prisma.order.findFirst({
-        where: { olistNumero: numero },
+    findByNumero: (numero: string) => {
+      const asId = parseInt(numero, 10)
+      return prisma.order.findFirst({
+        where: {
+          OR: [
+            { olistNumero: numero },
+            ...(Number.isFinite(asId) ? [{ id: asId }] : []),
+          ],
+        },
         include: includeItems,
+      })
+    },
+
+    findDeliveredToday: () =>
+      prisma.order.findMany({
+        where: {
+          status: 'delivered',
+          historyEntries: {
+            some: {
+              action: 'delivered',
+              createdAt: { gte: startOfTodaySP() },
+            },
+          },
+        },
+        include: includeItems,
+        orderBy: { updatedAt: 'desc' },
       }),
 
     findDeliveredTodayByCourier: (courierId: string) =>

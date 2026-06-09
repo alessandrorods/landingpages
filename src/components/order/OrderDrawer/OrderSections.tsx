@@ -8,6 +8,7 @@ import { Section } from '@/components/ui/Section'
 import { Divider } from '@/components/ui/Divider'
 import { CopyPhoneButton } from './CopyPhoneButton'
 import { STATUS_BADGE } from '@/constants/orderDisplay'
+import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
 interface Props {
@@ -18,6 +19,10 @@ export function OrderSections({ order }: Props) {
   const role = useUser()?.role ?? null
   const canSee = (feature: Parameters<typeof canSeeDrawerFeature>[1]) =>
     canSeeDrawerFeature(role, feature)
+  const { periods } = useDeliveryPeriods()
+  const periodLabel = order.deliveryPeriod
+    ? (periods.find((p) => p.id === order.deliveryPeriod)?.label ?? order.deliveryPeriod)
+    : null
 
   const badge          = STATUS_BADGE[order.status]
   const compradorTel   = order.buyerPhone.replace(/\D/g, '')
@@ -42,8 +47,8 @@ export function OrderSections({ order }: Props) {
         <div className="bg-gray-50 rounded-xl px-3 py-3 mb-4">
           <p className="text-xs text-gray-400 mb-0.5">Entrega prevista</p>
           <p className="text-xl font-bold text-gray-900">{order.deliveryDate}</p>
-          {order.deliveryPeriod && (
-            <p className="text-xs text-gray-500 mt-0.5">{order.deliveryPeriod}</p>
+          {periodLabel && (
+            <p className="text-xs text-gray-500 mt-0.5">{periodLabel}</p>
           )}
         </div>
       </Section>

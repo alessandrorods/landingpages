@@ -5,7 +5,7 @@ import type { OrderDTO } from '@/domains/orders/order.types'
 
 const POLL_INTERVAL = 60_000
 
-export function useOrders(status: string, options?: { courierId?: string }) {
+export function useOrders(status: string, options?: { courierId?: string; todayOnly?: boolean }) {
   const [orders, setOrders] = useState<OrderDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -24,6 +24,7 @@ export function useOrders(status: string, options?: { courierId?: string }) {
     try {
       const params = new URLSearchParams({ status })
       if (options?.courierId) params.set('courierId', options.courierId)
+      if (options?.todayOnly) params.set('todayOnly', 'true')
       const res = await fetch(`/api/admin/orders?${params}`, { signal: controller.signal })
       if (!res.ok) throw new Error('Erro ao carregar')
       const data = await res.json()
@@ -36,7 +37,7 @@ export function useOrders(status: string, options?: { courierId?: string }) {
     } finally {
       setLoading(false)
     }
-  }, [status, options?.courierId])
+  }, [status, options?.courierId, options?.todayOnly])
 
   const fetchRef = useRef(fetch_)
   useEffect(() => { fetchRef.current = fetch_ }, [fetch_])
