@@ -8,6 +8,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import OrderDrawer from '@/components/order/OrderDrawer'
 import { OrderCard } from '@/components/order/OrderCard'
 import { ImportLIModal } from './ImportLIModal'
+import { OrderSearch } from '@/components/order/OrderSearch'
 
 type Tab = 'pagos' | 'recuperar'
 
@@ -69,6 +70,8 @@ export default function VendasPage() {
           ),
         )}
       </div>
+
+      <OrderSearch variant="bar" accentColor="orange" />
 
       <StatusBar
         count={active.orders.length}

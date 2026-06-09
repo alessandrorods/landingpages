@@ -116,6 +116,7 @@ export function withOrderHistory(service: OrderService, historyRepository: Order
 
     // Pass-throughs — sem efeito colateral de histórico
     listByStatus:                service.listByStatus.bind(service),
+    listDeliveredToday:          service.listDeliveredToday.bind(service),
     listDeliveredTodayByCourier: service.listDeliveredTodayByCourier.bind(service),
     findByNumero:                service.findByNumero.bind(service),
     setMpPreferenceId:           service.setMpPreferenceId.bind(service),

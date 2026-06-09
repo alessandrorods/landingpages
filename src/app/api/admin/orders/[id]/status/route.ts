@@ -29,7 +29,7 @@ export async function PATCH(
   const id = parseInt(rawId, 10)
   if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
 
-  let body: { situacao?: string; force?: boolean; courierId?: string }
+  let body: { situacao?: string; force?: boolean; courierId?: string; receivedBy?: string }
   try {
     body = await request.json()
   } catch {
@@ -41,7 +41,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'status inválido' }, { status: 400 })
   }
 
-  const force = body.force === true && role === 'admin'
+  const canForce = role === 'admin' || role === 'expedicao'
+  const force = body.force === true && canForce
 
   if (!force && !can(role, 'updateOrderStatus')) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
@@ -56,6 +57,16 @@ export async function PATCH(
       const courier = await createUserRepository().findById(body.courierId)
       if (!courier) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 422 })
       await orderService.dispatch(id, courier.id, courier.displayName, actor)
+    } else if (force && status === 'delivered') {
+      const userRepo = createUserRepository()
+      const courier = body.courierId ? await userRepo.findById(body.courierId) : null
+      await orderService.deliver(
+        id,
+        body.receivedBy?.trim() || '',
+        courier?.id ?? '',
+        courier?.displayName ?? '',
+        actor,
+      )
     } else {
       await orderService.updateStatus(id, status, actor, force ? { force: true } : undefined)
     }

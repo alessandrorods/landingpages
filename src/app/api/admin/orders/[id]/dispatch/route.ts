@@ -24,20 +24,22 @@ export async function POST(
   const id = parseInt(rawId, 10)
   if (isNaN(id)) return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
 
-  let body: { courierName?: string }
+  let body: { courierId?: string; courierName?: string }
   try {
     body = await request.json()
   } catch {
     return NextResponse.json({ error: 'Requisição inválida' }, { status: 400 })
   }
 
-  const { courierName } = body
-  if (!courierName?.trim()) {
-    return NextResponse.json({ error: 'Nome do motoboy obrigatório' }, { status: 400 })
+  const { courierId, courierName } = body
+  if (!courierId?.trim() && !courierName?.trim()) {
+    return NextResponse.json({ error: 'Motoboy obrigatório' }, { status: 400 })
   }
 
-  const courier = await createUserRepository().findAll()
-    .then((users) => users.find((u) => u.displayName === courierName.trim()) ?? null)
+  const allUsers = await createUserRepository().findAll()
+  const courier = courierId
+    ? (allUsers.find((u) => u.id === courierId) ?? null)
+    : (allUsers.find((u) => u.displayName === courierName!.trim()) ?? null)
   if (!courier) {
     return NextResponse.json({ error: 'Motoboy não encontrado' }, { status: 422 })
   }

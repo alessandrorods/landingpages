@@ -23,7 +23,7 @@ export const ORDER_DRAWER_FEATURES = {
   actionConfirmPickup:    ['admin'],
   actionCancel:           ['admin'],
   actionRecover:          ['vendas'],
-  actionForceStatus:      ['admin'],
+  actionForceStatus:      ['expedicao', 'admin'],
   editOrder:              ['vendas', 'expedicao', 'admin'],
 } as const satisfies Record<string, readonly Role[]>
 

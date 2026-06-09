@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import type { Role } from '@/domains/admin/auth'
 
 export const LS_KEY = '_dq_session'
@@ -10,13 +9,12 @@ export type StoredSession = { token: string; role: Role; expiresAt: number }
 const REDIRECT: Record<Role, string> = {
   vendas: '/admin/vendas',
   florista: '/admin/florista',
-  expedicao: '/admin/expedicao',
+  expedicao: '/admin/painel',
   motoboy: '/admin/motoboy',
   admin: '/admin',
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -41,7 +39,7 @@ export default function LoginPage() {
         if (res.ok) {
           const updated: StoredSession = { ...session, expiresAt: Date.now() + 8 * 60 * 60 * 1000 }
           localStorage.setItem(LS_KEY, JSON.stringify(updated))
-          router.replace(REDIRECT[session.role])
+          window.location.href = REDIRECT[session.role]
         } else {
           localStorage.removeItem(LS_KEY)
         }
@@ -52,7 +50,7 @@ export default function LoginPage() {
       }
     }
     tryRestore()
-  }, [router])
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -78,7 +76,7 @@ export default function LoginPage() {
         }
         localStorage.setItem(LS_KEY, JSON.stringify(session))
       }
-      router.push(REDIRECT[role])
+      window.location.href = REDIRECT[role]
     } catch {
       setError('Erro de conexão')
     } finally {

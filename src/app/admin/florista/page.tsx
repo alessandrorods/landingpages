@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useOrders } from '@/hooks/useOrders'
 import { OrderList } from '@/components/order/OrderList'
 import OrderDrawer from '@/components/order/OrderDrawer'
+import { OrderSearch } from '@/components/order/OrderSearch'
 
 export default function FloristaPage() {
   const { orders, loading, error, refresh } = useOrders('approved')
@@ -11,7 +12,10 @@ export default function FloristaPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-4">Montagem</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-gray-900">Montagem</h1>
+        <OrderSearch variant="modal" accentColor="pink" />
+      </div>
 
       <OrderList
         title="Em montagem"

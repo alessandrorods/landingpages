@@ -134,6 +134,11 @@ export function createOrderService(
       return rows.map((r) => toOrderDTO(r))
     },
 
+    async listDeliveredToday(): Promise<OrderDTO[]> {
+      const rows = await repository.findDeliveredToday()
+      return rows.map((r) => toOrderDTO(r))
+    },
+
     async listDeliveredTodayByCourier(courierId: string): Promise<OrderDTO[]> {
       const rows = await repository.findDeliveredTodayByCourier(courierId)
       return rows.map((r) => toOrderDTO(r))

@@ -35,7 +35,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const orders = await orderService.listByStatus(status, courierId)
+    const todayOnly = request.nextUrl.searchParams.get('todayOnly') === 'true'
+
+    let orders
+    if (status === 'delivered' && todayOnly) {
+      orders = await orderService.listDeliveredToday()
+    } else {
+      orders = await orderService.listByStatus(status, courierId)
+    }
     return NextResponse.json({ orders })
   } catch (err) {
     console.error('[orders] GET erro', err)
