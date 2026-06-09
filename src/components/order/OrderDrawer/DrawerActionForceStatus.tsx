@@ -9,7 +9,6 @@ import type { OrderStatus } from '@/domains/orders/order.types'
 interface UserOption {
   id: string
   displayName: string
-  role: string
 }
 
 const ALL_STATUSES: OrderStatus[] = [
@@ -28,29 +27,43 @@ export function DrawerActionForceStatus({ order, refresh, defaultOpen = false }:
   const [open, setOpen] = useState(defaultOpen)
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | ''>('')
   const [courierId, setCourierId] = useState('')
+  const [receivedBy, setReceivedBy] = useState('')
   const [users, setUsers] = useState<UserOption[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
 
-  const needsCourier = selectedStatus === 'dispatched'
+  const needsCourier = selectedStatus === 'dispatched' || selectedStatus === 'delivered'
 
   useEffect(() => {
     if (!needsCourier || users.length > 0) return
     setUsersLoading(true)
-    fetch('/api/admin/users')
+    fetch('/api/admin/users/couriers')
       .then((r) => r.json())
       .then((data) => {
-        const motboys = (data.users as UserOption[]).filter((u) => u.role === 'motoboy')
-        setUsers(motboys)
+        const couriers = data.couriers as UserOption[]
+        setUsers(couriers)
+        // pré-seleciona o motoboy atual se o pedido já tiver um
+        if (order.courierName) {
+          const match = couriers.find((u) => u.displayName === order.courierName)
+          if (match) setCourierId(match.id)
+        }
       })
       .catch(() => {})
       .finally(() => setUsersLoading(false))
-  }, [needsCourier, users.length])
+  }, [needsCourier, users.length, order.courierName])
+
+  // quando seleciona delivered, pré-preenche receivedBy com o nome do destinatário
+  useEffect(() => {
+    if (selectedStatus === 'delivered' && !receivedBy) {
+      setReceivedBy(order.recipientName ?? '')
+    }
+  }, [selectedStatus, order.recipientName, receivedBy])
 
   async function apply() {
     if (!selectedStatus) return
     await run(async () => {
       const body: Record<string, unknown> = { situacao: selectedStatus, force: true }
       if (needsCourier && courierId) body.courierId = courierId
+      if (selectedStatus === 'delivered') body.receivedBy = receivedBy
       const res = await fetch(`/api/admin/orders/${order.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -60,6 +73,7 @@ export function DrawerActionForceStatus({ order, refresh, defaultOpen = false }:
       setOpen(false)
       setSelectedStatus('')
       setCourierId('')
+      setReceivedBy('')
       refresh()
     })
   }
@@ -106,11 +120,21 @@ export function DrawerActionForceStatus({ order, refresh, defaultOpen = false }:
         </select>
       )}
 
+      {selectedStatus === 'delivered' && (
+        <input
+          type="text"
+          value={receivedBy}
+          onChange={(e) => setReceivedBy(e.target.value)}
+          placeholder="Recebido por (opcional)"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+        />
+      )}
+
       {err && <p className="text-xs text-red-600">{err}</p>}
 
       <div className="flex gap-2">
         <button
-          onClick={() => { setOpen(false); setSelectedStatus(''); setCourierId('') }}
+          onClick={() => { setOpen(false); setSelectedStatus(''); setCourierId(''); setReceivedBy('') }}
           className="flex-1 border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors"
         >
           Cancelar

@@ -1,16 +1,14 @@
 'use client'
-import { useRouter } from 'next/navigation'
 import { ROLE_LABELS } from '@/domains/admin/auth'
 import { useRequiredUser } from '@/contexts/UserContext'
 import Link from 'next/link'
 
 export default function AdminHeader() {
   const { role } = useRequiredUser()
-  const router = useRouter()
   async function logout() {
     await fetch('/api/admin/logout', { method: 'POST' })
     localStorage.removeItem('_dq_session')
-    router.push('/admin/login')
+    window.location.href = '/admin/login'
   }
 
   return (
