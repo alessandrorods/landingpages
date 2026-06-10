@@ -7,17 +7,18 @@ interface State {
   loading: boolean
 }
 
-export function useDeliveryPeriods(): State {
-  const [state, setState] = useState<State>({ periods: [], preparationTimeMinutes: 60, loading: true })
+export function useDeliveryPeriods(enabled = true): State {
+  const [state, setState] = useState<State>({ periods: [], preparationTimeMinutes: 60, loading: enabled })
 
   useEffect(() => {
+    if (!enabled) return
     fetch('/api/periods')
       .then((r) => r.json())
       .then((d: { periods: PeriodoEntrega[]; preparationTimeMinutes: number }) =>
         setState({ periods: d.periods, preparationTimeMinutes: d.preparationTimeMinutes, loading: false }),
       )
       .catch(() => setState({ periods: [], preparationTimeMinutes: 60, loading: false }))
-  }, [])
+  }, [enabled])
 
   return state
 }

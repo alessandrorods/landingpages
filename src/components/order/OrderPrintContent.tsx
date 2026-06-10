@@ -1,28 +1,85 @@
-import { Fragment } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 import type { OrderDTO } from '@/domains/orders/order.types'
+import { resolveRegion, type DeliveryRegion } from '@/domains/orders/dispatch-queue'
+import type { PeriodoEntrega } from '@/constants/pedido.types'
+import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
+import { useDeliveryRegions } from '@/hooks/useDeliveryRegions'
 
-export function OrderPrintContent({ order }: { order: OrderDTO }) {
+interface PrintData {
+  regions: DeliveryRegion[]
+  periods: PeriodoEntrega[]
+  loading: boolean
+}
+
+interface Props {
+  order: OrderDTO
+  data?: PrintData
+  onReady?: () => void
+}
+
+export function OrderPrintContent({ order, data, onReady }: Props) {
   const hasGreeting = !!order.cardMessage
   const mesmaPessoa = order.recipientName === order.buyerName
+
+  const { regions: fetchedRegions, loading: regionsLoading } = useDeliveryRegions(data === undefined)
+  const { periods: fetchedPeriods, loading: periodsLoading } = useDeliveryPeriods(data === undefined)
+
+  const regions = data?.regions ?? fetchedRegions
+  const periods = data?.periods ?? fetchedPeriods
+  const loading = data?.loading ?? (regionsLoading || periodsLoading)
+
+  const readyCalled = useRef(false)
+  useEffect(() => {
+    if (readyCalled.current || loading) return
+    readyCalled.current = true
+    onReady?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
+
+  const { regionLabel } = resolveRegion(order.zipCode, regions)
+  const deliveryPeriodLabel = periods.find((p) => p.id === order.deliveryPeriod)?.label ?? order.deliveryPeriod
 
   return <>
     <section className="flex flex-col justify-center h-[27cm]">
       {[1, 2].map((version) => <Fragment key={version}>
         <div className={`w-[17cm] h-[12cm] mx-auto mt-5 flex flex-col justify-between`}>
           <section className="relative">
-            <section className="flex flex-row">
-              <div className="text-2xl basis-2/3">Pedido <strong>{String(order.id)}</strong></div>
+            <section className="flex flex-row items-center">
+              <div className="text-2xl basis-1/3">Pedido <strong>{String(order.id)}</strong></div>
+              {!order.pickup && (
+                <div className="basis-2/3 mx-2 border-2 border-black text-center font-bold text-lg uppercase py-1 truncate">
+                  {regionLabel}
+                </div>
+              )}
               <div className="text-sm text-right basis-1/3">Via {version === 1 ? <>do entregador</> : <>da loja</>}</div>
             </section>
 
             <section className="text-left">
               <div className="text-lg mt-3">
-                <div>{order.street}, {order.streetNumber} {order.complement && <>({order.complement})</>}</div>
-                <div>{order.neighborhood} - Mogi das Cruzes</div>
-                <div>{order.zipCode}</div>
+                {order.pickup ? (
+                  <div className="w-[13cm] border-2 border-black text-center font-bold text-lg uppercase py-1">
+                    Retirada na loja
+                  </div>
+                ) : (
+                  <>
+                    <div>{order.street}, {order.streetNumber} {order.complement && <>({order.complement})</>}</div>
+                    <div>{order.neighborhood} - Mogi das Cruzes</div>
+                    <div>{order.zipCode}</div>
+                  </>
+                )}
                 <div className="text-lg mt-2">
-                  Entregar para: <strong>{order.recipientName}</strong>{' '}
-                  {!mesmaPessoa && order.recipientPhone}
+                  {order.pickup && <>
+                  <section className="w-1/2">
+                    <div>Cliente</div>
+                    <div><strong>{order.buyerName}</strong></div>
+                    <div>{order.buyerPhone}</div>
+                  </section>
+                  </>}
+
+                  {!order.pickup && <>
+                    Entregar para: <strong>{order.recipientName}</strong>{' '}
+                    {!mesmaPessoa && order.recipientPhone}
+                  </>}
                 </div>
               </div>
             </section>
@@ -43,10 +100,10 @@ export function OrderPrintContent({ order }: { order: OrderDTO }) {
               {order.deliveryPeriod && (
                 <section className="text-left truncate w-1/2 float-left">
                   <div>Período de entrega:</div>
-                  <strong>{order.deliveryPeriod}</strong>
+                  <strong>{deliveryPeriodLabel}</strong>
                 </section>
               )}
-              {version === 2 && (
+              {version === 2 && !order.pickup && (
                 <section className="text-right w-1/2 float-right">
                   <div>Comprador(a)</div>
                   <div><strong>{order.buyerName}</strong></div>
@@ -70,8 +127,8 @@ export function OrderPrintContent({ order }: { order: OrderDTO }) {
           </section>
 
           <section className="mb-8 flex flex-row justify-end gap-6">
-            {version === 2 && <div className="border-t-[1px] basis-1/3">Entregador</div>}
-            {version === 2 && <div className="border-t-[1px] basis-1/3">Horário saída</div>}
+            {version === 2 && !order.pickup && <div className="border-t-[1px] basis-1/3">Entregador</div>}
+            {version === 2 && !order.pickup && <div className="border-t-[1px] basis-1/3">Horário saída</div>}
             <div className="border-t-[1px] basis-1/3">Repasse (R$)</div>
           </section>
         </div>
