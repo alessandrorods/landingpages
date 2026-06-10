@@ -7,8 +7,14 @@ import OrderDrawer from '@/components/order/OrderDrawer'
 import { OrderSearch } from '@/components/order/OrderSearch'
 
 export default function FloristaPage() {
-  const { orders, loading, error, refresh } = useOrders('approved')
+  const aprovadoHook = useOrders('approved')
+  const montandoHook = useOrders('preparing')
   const [selectedId, setSelectedId] = useState<number | null>(null)
+
+  function refresh() {
+    aprovadoHook.refresh()
+    montandoHook.refresh()
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -20,9 +26,21 @@ export default function FloristaPage() {
       <OrderList
         title="Em montagem"
         badgeCls="bg-pink-100 text-pink-700"
-        orders={orders}
-        loading={loading}
-        error={error}
+        orders={montandoHook.orders}
+        loading={montandoHook.loading}
+        error={montandoHook.error}
+        onOpenOrder={(id) => setSelectedId(id)}
+        accent="pink"
+        cta="Montar ›"
+        defaultOpen
+      />
+
+      <OrderList
+        title="Prontos para montar"
+        badgeCls="bg-pink-100 text-pink-700"
+        orders={aprovadoHook.orders}
+        loading={aprovadoHook.loading}
+        error={aprovadoHook.error}
         onOpenOrder={(id) => setSelectedId(id)}
         accent="pink"
         cta="Montar ›"

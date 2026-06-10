@@ -20,7 +20,7 @@ export interface QueueGroup {
   orders: OrderDTO[]
 }
 
-function resolveRegion(
+export function resolveRegion(
   zipCode: string | null,
   regions: DeliveryRegion[],
 ): { region: string; regionLabel: string } {
