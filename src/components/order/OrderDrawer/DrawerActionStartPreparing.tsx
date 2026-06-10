@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useDrawerAction } from './useDrawerAction'
 import { PrintOverlay } from '@/components/order/PrintOverlay'
+import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
+import { useDeliveryRegions } from '@/hooks/useDeliveryRegions'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
 interface Props {
@@ -12,6 +14,8 @@ interface Props {
 
 export function DrawerActionStartPreparing({ order, refresh }: Props) {
   const { loading, err, run } = useDrawerAction()
+  const { periods, loading: periodsLoading } = useDeliveryPeriods()
+  const { regions, loading: regionsLoading } = useDeliveryRegions()
   const [printing, setPrinting] = useState(false)
 
   async function startPreparing() {
@@ -29,7 +33,15 @@ export function DrawerActionStartPreparing({ order, refresh }: Props) {
 
   return (
     <div className="space-y-2">
-      {printing && <PrintOverlay order={order} onClose={() => setPrinting(false)} />}
+      {printing && (
+        <PrintOverlay
+          order={order}
+          regions={regions}
+          periods={periods}
+          loading={periodsLoading || regionsLoading}
+          onClose={() => setPrinting(false)}
+        />
+      )}
       {err && <p className="text-xs text-red-600">{err}</p>}
       <button
         onClick={startPreparing}

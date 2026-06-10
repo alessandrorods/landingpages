@@ -17,19 +17,8 @@ export default function PrintPage() {
       .catch(() => setError(true))
   }, [id])
 
-  useEffect(() => {
-    if (!order) return
-    const retrier = setInterval(() => {
-      if (document.readyState === 'complete') {
-        window.print()
-        clearInterval(retrier)
-      }
-    }, 1000)
-    return () => clearInterval(retrier)
-  }, [order])
-
   if (error) return <div className="text-red-700">Erro ao carregar o pedido</div>
   if (!order) return null
 
-  return <OrderPrintContent order={order} />
+  return <OrderPrintContent order={order} onReady={() => window.print()} />
 }

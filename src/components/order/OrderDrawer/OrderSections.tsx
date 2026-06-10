@@ -9,6 +9,8 @@ import { Divider } from '@/components/ui/Divider'
 import { CopyPhoneButton } from './CopyPhoneButton'
 import { STATUS_BADGE } from '@/constants/orderDisplay'
 import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
+import { useDeliveryRegions } from '@/hooks/useDeliveryRegions'
+import { resolveRegion } from '@/domains/orders/dispatch-queue'
 import type { OrderDTO } from '@/domains/orders/order.types'
 
 interface Props {
@@ -20,9 +22,11 @@ export function OrderSections({ order }: Props) {
   const canSee = (feature: Parameters<typeof canSeeDrawerFeature>[1]) =>
     canSeeDrawerFeature(role, feature)
   const { periods } = useDeliveryPeriods()
+  const { regions } = useDeliveryRegions()
   const periodLabel = order.deliveryPeriod
     ? (periods.find((p) => p.id === order.deliveryPeriod)?.label ?? order.deliveryPeriod)
     : null
+  const { regionLabel } = resolveRegion(order.zipCode, regions)
 
   const badge          = STATUS_BADGE[order.status]
   const compradorTel   = order.buyerPhone.replace(/\D/g, '')
@@ -34,9 +38,16 @@ export function OrderSections({ order }: Props) {
       {/* Status + data de entrega */}
       <Section label="Pedido">
         <div className="flex items-center justify-between gap-3 mb-4">
-          <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${badge?.cls ?? 'bg-gray-100 text-gray-600'}`}>
-            {badge?.label ?? order.status}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${badge?.cls ?? 'bg-gray-100 text-gray-600'}`}>
+              {badge?.label ?? order.status}
+            </span>
+            {!order.pickup && (
+              <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700">
+                {regionLabel}
+              </span>
+            )}
+          </div>
           {canSee('createdAt') && (
             <span className="text-xs text-gray-400 shrink-0">
               {new Date(order.createdAt).toLocaleDateString('pt-BR')}
