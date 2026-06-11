@@ -26,7 +26,7 @@ export const PERMISSIONS = {
   viewOrders:        ROLES,
   collectOrder:      ROLES,
   deliverOrder:      ROLES,
-  searchOrders:      ['vendas', 'expedicao', 'admin'],
+  searchOrders:      ['vendas', 'florista', 'expedicao', 'admin'],
   createOrder:       ['vendas', 'admin'],
   updateOrderStatus: ['florista', 'expedicao', 'admin'],
   dispatchOrder:     ['expedicao', 'admin'],

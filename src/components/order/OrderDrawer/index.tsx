@@ -86,7 +86,7 @@ export default function OrderDrawer({ id, onClose }: Props) {
       <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
 
       <div
-        className={`relative bg-white rounded-t-3xl md:rounded-3xl w-full flex flex-col max-h-[94vh] md:max-h-[85vh] animate-modal-slide-up transition-[max-width] duration-200 ${showHistory ? 'md:max-w-5xl' : 'md:max-w-2xl'}`}
+        className={`relative bg-white rounded-t-3xl md:rounded-3xl w-full flex flex-col max-h-[94dvh] md:max-h-[85dvh] animate-modal-slide-up transition-[max-width] duration-200 ${showHistory ? 'md:max-w-5xl' : 'md:max-w-2xl'}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
