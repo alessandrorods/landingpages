@@ -7,6 +7,9 @@ import { createPagamentoService, PagamentoServiceError } from '@/domains/pagamen
 import { signToken } from '@/domains/checkout/token'
 import { createOrderDomain } from '@/domains/orders/order.domain'
 import type { PaymentMethod } from '@/domains/orders/order.types'
+import { createConfigRepository } from '@/domains/config/config.repository'
+import { createConfigService } from '@/domains/config/config.service'
+import { isPeriodAvailableForDate } from '@/domains/checkout/periods'
 
 export type FormaPagamento = PaymentMethod
 
@@ -47,7 +50,12 @@ function getEnv(key: string): string {
   return value
 }
 
-function validate(raw: unknown): PedidoManualBody {
+function tinyToIso(tiny: string): string {
+  const [d, m, y] = tiny.split('/')
+  return `${y}-${m}-${d}`
+}
+
+async function validate(raw: unknown): Promise<PedidoManualBody> {
   const b = raw as Record<string, unknown>
   const itens = b.itens as unknown[]
   const endereco = b.endereco as Record<string, unknown>
@@ -66,6 +74,24 @@ function validate(raw: unknown): PedidoManualBody {
   if (!destinatario?.nome || !destinatario?.telefone) throw new Error('Destinatário incompleto')
   if (!comprador?.nome || !comprador?.telefone) throw new Error('Comprador incompleto')
   if (!['pix', 'card', 'mp_link'].includes(b.pagamento as string)) throw new Error('Forma de pagamento inválida')
+
+  if (!isPickup) {
+    const periodoEntrega = endereco.periodoEntrega
+    if (typeof periodoEntrega !== 'string' || !periodoEntrega) throw new Error('Horário de entrega obrigatório')
+
+    const config = createConfigService(createConfigRepository())
+    const [periods, preparationTimeMinutes] = await Promise.all([
+      config.get('deliveryPeriods'),
+      config.get('preparationTimeMinutes'),
+    ])
+    const period = periods.find((p) => p.id === periodoEntrega)
+    if (!period) throw new Error('Horário de entrega inválido')
+
+    const deliveryDateISO = tinyToIso(endereco.dataEntrega as string)
+    if (!isPeriodAvailableForDate(period, preparationTimeMinutes, deliveryDateISO)) {
+      throw new Error('Horário de entrega indisponível para a data selecionada')
+    }
+  }
 
   return raw as PedidoManualBody
 }
@@ -86,7 +112,7 @@ export async function POST(request: NextRequest) {
 
   let body: PedidoManualBody
   try {
-    body = validate(raw)
+    body = await validate(raw)
   } catch (err) {
     return Response.json({ error: (err as Error).message }, { status: 400 })
   }

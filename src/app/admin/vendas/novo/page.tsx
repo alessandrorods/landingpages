@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
+import { isPeriodAvailableForDate } from '@/domains/checkout/periods'
 import type { FormaPagamento, PedidoManualItem } from '@/app/api/admin/orders/create/route'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -307,7 +308,7 @@ function Sucesso({ id, trackingToken, numero, linkPagamento, telefone, pickup, p
 
 export default function NovoPedidoPage() {
   const today = todayBRT()
-  const { periods } = useDeliveryPeriods()
+  const { periods, preparationTimeMinutes } = useDeliveryPeriods()
 
   // comprador
   const [comprNome, setComprNome] = useState('')
@@ -362,6 +363,13 @@ export default function NovoPedidoPage() {
       })
       .catch(() => setPrepTime(''))
   }, [pickup, dataEntrega, today])
+
+  useEffect(() => {
+    if (!periodo) return
+    const selected = periods.find((p) => p.id === periodo)
+    if (!selected) return
+    if (!isPeriodAvailableForDate(selected, preparationTimeMinutes, dataEntrega)) setPeriodo('')
+  }, [dataEntrega, periodo, periods, preparationTimeMinutes])
 
   async function buscarCep(raw: string) {
     const c = raw.replace(/\D/g, '')
@@ -425,6 +433,7 @@ export default function NovoPedidoPage() {
     e.preventDefault()
     if (itens.length === 0) { setErro('Adicione ao menos um produto'); return }
     if (isNaN(freteNum) || freteNum < 0) { setErro('Frete inválido'); return }
+    if (!pickup && !periodo) { setErro('Selecione o horário de entrega'); return }
 
     setLoading(true)
     setErro('')
@@ -609,16 +618,22 @@ export default function NovoPedidoPage() {
                 />
               </div>
               <div>
-                <Label>Horário</Label>
+                <Label required>Horário</Label>
                 <select
                   value={periodo}
                   onChange={(e) => setPeriodo(e.target.value)}
+                  required
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
                 >
                   <option value="">—</option>
-                  {periods.map((p) => (
-                    <option key={p.id} value={p.id}>{p.label}</option>
-                  ))}
+                  {periods.map((p) => {
+                    const available = isPeriodAvailableForDate(p, preparationTimeMinutes, dataEntrega)
+                    return (
+                      <option key={p.id} value={p.id} disabled={!available}>
+                        {p.label}{!available ? ' — Indisponível' : ''}
+                      </option>
+                    )
+                  })}
                 </select>
               </div>
             </div>
