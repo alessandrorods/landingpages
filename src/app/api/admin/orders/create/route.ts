@@ -6,6 +6,7 @@ import { can } from '@/domains/admin/permissions'
 import { createPagamentoService, PagamentoServiceError } from '@/domains/pagamentos/pagamento.service'
 import { signToken } from '@/domains/checkout/token'
 import { createOrderDomain } from '@/domains/orders/order.domain'
+import { signTrackingToken } from '@/domains/orders/tracking-token'
 import type { PaymentMethod } from '@/domains/orders/order.types'
 import { createConfigRepository } from '@/domains/config/config.repository'
 import { createConfigService } from '@/domains/config/config.service'
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error('[orders/create] falha ao aprovar pedido', { orderId: order.id, err })
     }
-    return Response.json({ id: order.id, numero: order.olistNumero ?? String(order.id), trackingToken: order.trackingToken })
+    return Response.json({ id: order.id, numero: order.olistNumero ?? String(order.id), trackingToken: await signTrackingToken(order.id) })
   }
 
   try {
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     await orderService.setMpPreferenceId(order.id, preferencia.id)
 
-    return Response.json({ id: order.id, numero: order.olistNumero ?? String(order.id), trackingToken: order.trackingToken, linkPagamento: preferencia.initPoint })
+    return Response.json({ id: order.id, numero: order.olistNumero ?? String(order.id), trackingToken: await signTrackingToken(order.id), linkPagamento: preferencia.initPoint })
   } catch (err) {
     if (err instanceof PagamentoServiceError) {
       return Response.json({ error: err.message }, { status: 502 })
