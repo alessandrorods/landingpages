@@ -3,10 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { IoPrintOutline, IoCopyOutline, IoCheckmarkOutline, IoTimeOutline, IoCloseOutline, IoCreateOutline } from 'react-icons/io5'
-import { PrintOverlay } from '@/components/order/PrintOverlay'
 import { useOrderDetail } from '@/hooks/useOrderDetail'
-import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
-import { useDeliveryRegions } from '@/hooks/useDeliveryRegions'
 import { useUser } from '@/contexts/UserContext'
 import { canSeeDrawerFeature } from '@/constants/orderDrawerFeatures'
 import { HistoryPanel } from './HistoryPanel'
@@ -34,11 +31,8 @@ function LoadingState({ onRetry }: { onRetry?: () => void }) {
 
 export default function OrderDrawer({ id, onClose }: Props) {
   const { order, loading, error, refresh } = useOrderDetail(id)
-  const { periods, loading: periodsLoading } = useDeliveryPeriods()
-  const { regions, loading: regionsLoading } = useDeliveryRegions()
   const [showHistory, setShowHistory] = useState(false)
   const [copiedConfirmation, setCopiedConfirmation] = useState(false)
-  const [printing, setPrinting] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
 
   const role = useUser()?.role ?? null
@@ -151,21 +145,12 @@ export default function OrderDrawer({ id, onClose }: Props) {
               )}
               {canSee('printButton') && order && (
                 <button
-                  onClick={() => setPrinting(true)}
+                  onClick={() => window.open(`/print/${order.id}`, '_blank')}
                   className="text-gray-400 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   aria-label="Imprimir pedido"
                 >
                   <IoPrintOutline size={20} />
                 </button>
-              )}
-              {printing && order && (
-                <PrintOverlay
-                  order={order}
-                  regions={regions}
-                  periods={periods}
-                  loading={periodsLoading || regionsLoading}
-                  onClose={() => setPrinting(false)}
-                />
               )}
               <button
                 onClick={handleClose}

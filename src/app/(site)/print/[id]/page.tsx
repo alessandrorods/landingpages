@@ -20,5 +20,9 @@ export default function PrintPage() {
   if (error) return <div className="text-red-700">Erro ao carregar o pedido</div>
   if (!order) return null
 
-  return <OrderPrintContent order={order} onReady={() => window.print()} />
+  return (
+    <div data-print-overlay="">
+      <OrderPrintContent order={order} onReady={() => window.print()} />
+    </div>
+  )
 }
