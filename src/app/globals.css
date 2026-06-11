@@ -65,5 +65,12 @@ body {
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 @media print {
+  html, body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
   body > *:not([data-print-overlay]) { display: none !important; }
 }
