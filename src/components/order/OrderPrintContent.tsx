@@ -90,9 +90,14 @@ export function OrderPrintContent({ order, onReady }: Props) {
 
             <section className="relative pb-2 mb-2 border-b-[1px]">
               {order.deliveryPeriod && (
-                <section className="text-left truncate w-1/2 float-left">
-                  <div>Período de entrega:</div>
-                  <strong>{deliveryPeriodLabel}</strong>
+                <section className="text-left w-1/2 float-left">
+                  <div className="flex items-baseline gap-3">
+                    <div className="truncate">
+                      <div>Período de entrega:</div>
+                      <strong>{deliveryPeriodLabel}</strong>
+                    </div>
+                    <div className="text-xl font-bold whitespace-nowrap shrink-0">{order.deliveryDate}</div>
+                  </div>
                 </section>
               )}
               {version === 2 && !order.pickup && (

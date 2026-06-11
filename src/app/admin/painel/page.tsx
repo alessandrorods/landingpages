@@ -6,6 +6,7 @@ import OrderDrawer from '@/components/order/OrderDrawer'
 import { OrderList } from '@/components/order/OrderList'
 import { OrderSearch } from '@/components/order/OrderSearch'
 import { useUser } from '@/contexts/UserContext'
+import { CepLookupButton } from '@/components/cep/CepLookupButton'
 
 // ── Barra de topo ─────────────────────────────────────────────────────────────
 
@@ -141,6 +142,7 @@ export default function PainelPage() {
             loading={anyLoading}
           />
         </div>
+        <CepLookupButton />
         <FilaLink />
       </div>
 
