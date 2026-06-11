@@ -1,45 +1,37 @@
 import { Fragment, useEffect, useRef } from 'react'
 import type { OrderDTO } from '@/domains/orders/order.types'
-import { resolveRegion, type DeliveryRegion } from '@/domains/orders/dispatch-queue'
-import type { PeriodoEntrega } from '@/constants/pedido.types'
+import { resolveRegion } from '@/domains/orders/dispatch-queue'
 import { useDeliveryPeriods } from '@/hooks/useDeliveryPeriods'
 import { useDeliveryRegions } from '@/hooks/useDeliveryRegions'
 
-interface PrintData {
-  regions: DeliveryRegion[]
-  periods: PeriodoEntrega[]
-  loading: boolean
-}
-
 interface Props {
   order: OrderDTO
-  data?: PrintData
   onReady?: () => void
 }
 
-export function OrderPrintContent({ order, data, onReady }: Props) {
+export function OrderPrintContent({ order, onReady }: Props) {
   const hasGreeting = !!order.cardMessage
   const mesmaPessoa = order.recipientName === order.buyerName
 
-  const { regions: fetchedRegions, loading: regionsLoading } = useDeliveryRegions(data === undefined)
-  const { periods: fetchedPeriods, loading: periodsLoading } = useDeliveryPeriods(data === undefined)
+  const { regions, loading: regionsLoading } = useDeliveryRegions()
+  const { periods, loading: periodsLoading } = useDeliveryPeriods()
+  const loading = regionsLoading || periodsLoading
 
-  const regions = data?.regions ?? fetchedRegions
-  const periods = data?.periods ?? fetchedPeriods
-  const loading = data?.loading ?? (regionsLoading || periodsLoading)
-
+  const containerRef = useRef<HTMLDivElement>(null)
   const readyCalled = useRef(false)
   useEffect(() => {
     if (readyCalled.current || loading) return
     readyCalled.current = true
-    onReady?.()
+
+    const images = Array.from(containerRef.current?.querySelectorAll('img') ?? [])
+    Promise.all(images.map((img) => img.decode().catch(() => {}))).then(() => onReady?.())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading])
 
   const { regionLabel } = resolveRegion(order.zipCode, regions)
   const deliveryPeriodLabel = periods.find((p) => p.id === order.deliveryPeriod)?.label ?? order.deliveryPeriod
 
-  return <>
+  return <div ref={containerRef}>
     <section className="flex flex-col justify-center h-[27cm]">
       {[1, 2].map((version) => <Fragment key={version}>
         <div className={`w-[17cm] h-[12cm] mx-auto mt-5 flex flex-col justify-between`}>
@@ -165,5 +157,5 @@ export function OrderPrintContent({ order, data, onReady }: Props) {
         </div>
       </section>
     )}
-  </>
+  </div>
 }
