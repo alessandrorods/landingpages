@@ -154,7 +154,7 @@ export function OrderPrintContent({ order, onReady }: Props) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/arabesco.png" alt="divider" className="w-[8cm] h-auto" />
           </div>
-          <div className="my-4">Pedido {order.olistNumero ?? String(order.id)}</div>
+          <div className="my-4">Pedido {String(order.id)}</div>
           <div className="text-center">
             <div>Encontre as melhores opções de presentes para qualquer ocasião</div>
             <div className="font-bold">www.floramundoplanta.com.br</div>
