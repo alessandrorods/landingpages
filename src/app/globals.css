@@ -64,6 +64,11 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+@page {
+  size: A4;
+  margin: 0.5cm;
+}
+
 @media print {
   html, body {
     height: auto !important;
