@@ -34,8 +34,14 @@ export function createExternalDispatchOrderRepository() {
 
     findUpcoming: () =>
       prisma.externalDispatchOrder.findMany({
-        where: { deliveryDate: { gte: startOfTodaySP() } },
+        where: { deliveryDate: { gte: startOfTodaySP() }, dispatchedAt: null },
         orderBy: { scheduledAt: 'asc' },
+      }),
+
+    dispatch: (id: number, courierId: string) =>
+      prisma.externalDispatchOrder.update({
+        where: { id },
+        data: { courierId, dispatchedAt: new Date() },
       }),
   }
 }

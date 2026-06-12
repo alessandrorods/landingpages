@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { IoPauseCircleOutline, IoAddCircleOutline } from 'react-icons/io5'
 import { buildDispatchQueue, isExternalOrder, type QueueGroup, type QueueOrder, type DeliveryRegion } from '@/domains/orders/dispatch-queue'
 import type { OrderDTO } from '@/domains/orders/order.types'
+import type { ExternalDispatchOrderDTO } from '@/domains/orders/external-order.types'
 import type { PeriodoEntrega } from '@/constants/pedido.types'
 import { EXTERNAL_PLATFORM_LABELS } from '@/constants/orderDisplay'
 import { AddExternalOrderModal } from './AddExternalOrderModal'
+import { DispatchExternalOrderModal } from './DispatchExternalOrderModal'
 
 const POLL_SECONDS = 30
 const AT_RISK_WINDOW_MINUTES = 60
@@ -72,6 +74,7 @@ export default function FilaPage() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [paused, setPaused] = useState(false)
   const [showAddExternal, setShowAddExternal] = useState(false)
+  const [dispatchingExternal, setDispatchingExternal] = useState<ExternalDispatchOrderDTO | null>(null)
   const countdownRef = useRef(POLL_SECONDS)
   const pausedRef = useRef(false)
   const bufferRef = useRef<{ groups: QueueGroup[]; inRoute: OrderDTO[]; undelivered: OrderDTO[] } | null>(null)
@@ -241,7 +244,7 @@ export default function FilaPage() {
         {visibleGroups.length > 0 && (
           <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
             {visibleGroups.map((group) => (
-              <GroupCard key={group.key} group={group} risk={computeRisk(group, now)} />
+              <GroupCard key={group.key} group={group} risk={computeRisk(group, now)} onDispatchExternal={setDispatchingExternal} />
             ))}
           </div>
         )}
@@ -295,11 +298,19 @@ export default function FilaPage() {
       {showAddExternal && (
         <AddExternalOrderModal onClose={() => setShowAddExternal(false)} onCreated={load} />
       )}
+
+      {dispatchingExternal && (
+        <DispatchExternalOrderModal
+          order={dispatchingExternal}
+          onClose={() => setDispatchingExternal(null)}
+          onDispatched={load}
+        />
+      )}
     </div>
   )
 }
 
-function GroupCard({ group, risk }: { group: QueueGroup; risk: RiskLevel }) {
+function GroupCard({ group, risk, onDispatchExternal }: { group: QueueGroup; risk: RiskLevel; onDispatchExternal: (order: ExternalDispatchOrderDTO) => void }) {
   const styles = RISK_STYLES[risk]
   return (
     <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col ${styles.card}`}>
@@ -323,22 +334,29 @@ function GroupCard({ group, risk }: { group: QueueGroup; risk: RiskLevel }) {
       </div>
       <div className="divide-y divide-gray-100">
         {group.orders.map((order) => (
-          <OrderRow key={`${isExternalOrder(order) ? 'ext' : 'order'}-${order.id}`} order={order} />
+          <OrderRow key={`${isExternalOrder(order) ? 'ext' : 'order'}-${order.id}`} order={order} onDispatchExternal={onDispatchExternal} />
         ))}
       </div>
     </div>
   )
 }
 
-function OrderRow({ order }: { order: QueueOrder }) {
+function OrderRow({ order, onDispatchExternal }: { order: QueueOrder; onDispatchExternal: (order: ExternalDispatchOrderDTO) => void }) {
   if (isExternalOrder(order)) {
     return (
       <div className="px-5 py-3 flex items-center gap-4">
         <span className="text-xl font-black text-gray-900 tabular-nums shrink-0">#{order.externalNumber}</span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-gray-700 truncate leading-tight">{order.neighborhood ?? '—'}</p>
           <p className="text-xs font-bold uppercase tracking-wide text-purple-500 truncate">{EXTERNAL_PLATFORM_LABELS[order.platform]}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => onDispatchExternal(order)}
+          className="shrink-0 text-xs font-semibold text-orange-600 hover:text-orange-800 border border-orange-200 hover:border-orange-400 rounded-lg px-3 py-1.5 transition-colors bg-orange-50 hover:bg-orange-100"
+        >
+          Despachado
+        </button>
       </div>
     )
   }
