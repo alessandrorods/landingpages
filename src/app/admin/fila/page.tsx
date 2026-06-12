@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { IoPauseCircleOutline, IoAddCircleOutline } from 'react-icons/io5'
+import { IoPauseCircleOutline, IoAddCircleOutline, IoCheckmarkCircleOutline } from 'react-icons/io5'
 import { buildDispatchQueue, isExternalOrder, type QueueGroup, type QueueOrder, type DeliveryRegion } from '@/domains/orders/dispatch-queue'
 import type { OrderDTO } from '@/domains/orders/order.types'
 import type { ExternalDispatchOrderDTO } from '@/domains/orders/external-order.types'
@@ -353,9 +353,10 @@ function OrderRow({ order, onDispatchExternal }: { order: QueueOrder; onDispatch
         <button
           type="button"
           onClick={() => onDispatchExternal(order)}
-          className="shrink-0 text-xs font-semibold text-orange-600 hover:text-orange-800 border border-orange-200 hover:border-orange-400 rounded-lg px-3 py-1.5 transition-colors bg-orange-50 hover:bg-orange-100"
+          title="Marcar como despachado"
+          className="shrink-0 text-gray-300 hover:text-orange-500 transition-colors p-1"
         >
-          Despachado
+          <IoCheckmarkCircleOutline className="w-5 h-5" />
         </button>
       </div>
     )
