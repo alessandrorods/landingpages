@@ -28,6 +28,10 @@ export function createExternalDispatchOrderService(repository: ExternalDispatchO
       const rows = await repository.findUpcoming()
       return rows.map(toExternalDispatchOrderDTO)
     },
+
+    async dispatch(id: number, courierId: string): Promise<void> {
+      await repository.dispatch(id, courierId)
+    },
   }
 }
 

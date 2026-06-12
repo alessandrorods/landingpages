@@ -172,6 +172,8 @@ model ExternalDispatchOrder {
   deliveryDate   DateTime @map("delivery_date") @db.Date
   deliveryPeriod String?  @map("delivery_period") @db.VarChar(50)
   scheduledAt    DateTime @map("scheduled_at") @db.Timestamptz
+  courierId      String?   @map("courier_id") @db.Uuid
+  dispatchedAt   DateTime? @map("dispatched_at") @db.Timestamptz
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("external_dispatch_orders")
