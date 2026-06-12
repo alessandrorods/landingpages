@@ -1,7 +1,14 @@
 import type { OrderDTO } from './order.types'
+import type { ExternalDispatchOrderDTO } from './external-order.types'
 import type { DeliveryRegion } from '@/domains/config/config.types'
 
 export type { DeliveryRegion }
+
+export type QueueOrder = OrderDTO | ExternalDispatchOrderDTO
+
+export function isExternalOrder(order: QueueOrder): order is ExternalDispatchOrderDTO {
+  return 'platform' in order
+}
 
 interface PeriodInfo {
   id: string
@@ -17,7 +24,7 @@ export interface QueueGroup {
   deliveryLimitHour: string | null  // HH:MM or null if period unknown
   region: string
   regionLabel: string
-  orders: OrderDTO[]
+  orders: QueueOrder[]
 }
 
 export function resolveRegion(
@@ -37,7 +44,7 @@ export function resolveRegion(
 }
 
 export function buildDispatchQueue(
-  orders: OrderDTO[],
+  orders: QueueOrder[],
   regions: DeliveryRegion[],
   periods: PeriodInfo[],
 ): QueueGroup[] {

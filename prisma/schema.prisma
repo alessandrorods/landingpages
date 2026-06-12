@@ -163,6 +163,20 @@ model SystemConfig {
   @@map("system_config")
 }
 
+model ExternalDispatchOrder {
+  id             Int      @id @default(autoincrement())
+  platform       String   @db.VarChar(50)
+  externalNumber String   @map("external_number") @db.VarChar(50)
+  zipCode        String?  @map("zip_code") @db.VarChar(10)
+  neighborhood   String?  @db.VarChar(100)
+  deliveryDate   DateTime @map("delivery_date") @db.Date
+  deliveryPeriod String?  @map("delivery_period") @db.VarChar(50)
+  scheduledAt    DateTime @map("scheduled_at") @db.Timestamptz
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("external_dispatch_orders")
+}
+
 model OrderItem {
   id       String  @id @default(uuid()) @db.Uuid
   orderId  Int     @map("order_id")
