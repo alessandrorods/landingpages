@@ -1,4 +1,5 @@
 import type { OrderHistoryAction, OrderStatus } from '@/domains/orders/order.types'
+import type { ExternalPlatform } from '@/domains/orders/external-order.types'
 
 export const STATUS_BADGE: Record<OrderStatus, { label: string; cls: string }> = {
   pending:     { label: 'Aguardando pagamento', cls: 'bg-gray-100 text-gray-600' },
@@ -51,4 +52,10 @@ export const METADATA_LABEL: Record<string, string> = {
 
 export const METADATA_VALUE: Record<string, Record<string, string>> = {
   forced: { true: 'pelo admin', false: '' },
+}
+
+export const EXTERNAL_PLATFORM_LABELS: Record<ExternalPlatform, string> = {
+  ifood: 'iFood',
+  giuliana_flores: 'Giuliana Flores',
+  outro: 'Outro',
 }

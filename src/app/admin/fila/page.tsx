@@ -1,16 +1,18 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { IoPauseCircleOutline } from 'react-icons/io5'
-import { buildDispatchQueue, type QueueGroup, type DeliveryRegion } from '@/domains/orders/dispatch-queue'
+import { IoPauseCircleOutline, IoAddCircleOutline } from 'react-icons/io5'
+import { buildDispatchQueue, isExternalOrder, type QueueGroup, type QueueOrder, type DeliveryRegion } from '@/domains/orders/dispatch-queue'
 import type { OrderDTO } from '@/domains/orders/order.types'
 import type { PeriodoEntrega } from '@/constants/pedido.types'
+import { EXTERNAL_PLATFORM_LABELS } from '@/constants/orderDisplay'
+import { AddExternalOrderModal } from './AddExternalOrderModal'
 
 const POLL_SECONDS = 30
 const AT_RISK_WINDOW_MINUTES = 60
 
 interface ApiResponse {
-  orders: OrderDTO[]
+  orders: QueueOrder[]
   inRoute: OrderDTO[]
   undelivered: OrderDTO[]
   regions: DeliveryRegion[]
@@ -69,6 +71,7 @@ export default function FilaPage() {
   const [todayOnly, setTodayOnly] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [paused, setPaused] = useState(false)
+  const [showAddExternal, setShowAddExternal] = useState(false)
   const countdownRef = useRef(POLL_SECONDS)
   const pausedRef = useRef(false)
   const bufferRef = useRef<{ groups: QueueGroup[]; inRoute: OrderDTO[]; undelivered: OrderDTO[] } | null>(null)
@@ -182,6 +185,12 @@ export default function FilaPage() {
             Atualizar
           </button>
 
+          <button type="button" onClick={() => setShowAddExternal(true)}
+            className="flex items-center gap-1.5 text-sm font-semibold text-purple-600 hover:text-purple-800 border border-purple-200 hover:border-purple-400 rounded-lg px-4 py-2 transition-colors bg-purple-50 hover:bg-purple-100">
+            <IoAddCircleOutline className="w-4 h-4" />
+            Pedido Externo
+          </button>
+
           {/* Pause toggle */}
           <button type="button" onClick={togglePause}
             className={`group flex items-center gap-2 text-sm font-bold rounded-lg px-4 py-2 transition-colors border ${
@@ -282,6 +291,10 @@ export default function FilaPage() {
           </div>
         </div>
       )}
+
+      {showAddExternal && (
+        <AddExternalOrderModal onClose={() => setShowAddExternal(false)} onCreated={load} />
+      )}
     </div>
   )
 }
@@ -309,13 +322,26 @@ function GroupCard({ group, risk }: { group: QueueGroup; risk: RiskLevel }) {
         </div>
       </div>
       <div className="divide-y divide-gray-100">
-        {group.orders.map((order) => <OrderRow key={order.id} order={order} />)}
+        {group.orders.map((order) => (
+          <OrderRow key={`${isExternalOrder(order) ? 'ext' : 'order'}-${order.id}`} order={order} />
+        ))}
       </div>
     </div>
   )
 }
 
-function OrderRow({ order }: { order: OrderDTO }) {
+function OrderRow({ order }: { order: QueueOrder }) {
+  if (isExternalOrder(order)) {
+    return (
+      <div className="px-5 py-3 flex items-center gap-4">
+        <span className="text-xl font-black text-gray-900 tabular-nums shrink-0">#{order.externalNumber}</span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-700 truncate leading-tight">{order.neighborhood ?? '—'}</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-purple-500 truncate">{EXTERNAL_PLATFORM_LABELS[order.platform]}</p>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="px-5 py-3 flex items-center gap-4">
       <span className="text-xl font-black text-gray-900 tabular-nums shrink-0">#{order.id}</span>

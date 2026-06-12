@@ -30,7 +30,7 @@ function canTransition(current: OrderStatus | null, next: OrderStatus, pickup = 
   return idxCurrent !== -1 && idxNext > idxCurrent
 }
 
-function fmtDate(d: Date): string {
+export function fmtDate(d: Date): string {
   const dd = String(d.getUTCDate()).padStart(2, '0')
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
   return `${dd}/${mm}/${d.getUTCFullYear()}`
